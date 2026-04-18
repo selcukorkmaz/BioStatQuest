@@ -27,6 +27,17 @@
 <meta name="twitter:image" content="https://www.biostatquest.com/og-image.png" />
 <meta name="twitter:image:alt" content="BioStat Quest — biostatistics prep that actually sticks." />
 
+<!-- Auth-aware nav: hides "Sign in" for signed-in visitors and shows the
+     account chip. Runs sync in <head> so there's no flash. Reads Supabase's
+     localStorage session directly (no network, no JS dependency). -->
+<style>
+  html.bq-authed [data-authed-hide]{display:none!important}
+  html:not(.bq-authed) [data-authed-show]{display:none!important}
+</style>
+<script>
+(function(){try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(!k||k.indexOf("sb-")!==0||k.indexOf("-auth-token")===-1)continue;var raw=localStorage.getItem(k);if(!raw)continue;var s=JSON.parse(raw);if(!s)continue;var exp=s.expires_at||(s.currentSession&&s.currentSession.expires_at);if(!exp||Date.now()/1000>=exp)continue;var u=(s.user&&s.user.email)||(s.currentSession&&s.currentSession.user&&s.currentSession.user.email)||"";var name=u?String(u).split("@")[0]:"";window.__bqUsername=name;document.documentElement.classList.add("bq-authed");document.addEventListener("DOMContentLoaded",function(){try{var initial=name?name.charAt(0).toUpperCase():"";var els=document.querySelectorAll("[data-username]");for(var j=0;j<els.length;j++)els[j].textContent=name;var iEls=document.querySelectorAll("[data-user-initial]");for(var k=0;k<iEls.length;k++)iEls[k].textContent=initial;}catch(e){}});return;}}catch(e){}})();
+</script>
+
 <link rel="canonical" href="https://www.biostatquest.com/privacy.html" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -79,7 +90,7 @@
   .t-subtitle  { font-size: 1.125rem; font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; color: var(--ink-1); }
   .t-body      { font-size: 1rem; font-weight: 400; line-height: 1.7; color: var(--ink-2); }
   .t-lead      { font-size: clamp(1.05rem, 1.25vw, 1.25rem); font-weight: 400; line-height: 1.6; color: var(--ink-2); }
-  .t-caption   { font-size: 0.8125rem; font-weight: 500; line-height: 1.5; color: var(--ink-3); }
+  .t-caption   { font-size: 0.8125rem; font-weight: 500; line-height: 1.5; color: #a8b4c7; }
   .t-eyebrow   { font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3); }
 
   .card {
@@ -195,12 +206,22 @@
         <circle cx="26" cy="8" r="2.3" fill="#fde68a" stroke="#f59e0b" stroke-width="0.8"/>
         <circle cx="26" cy="8" r="0.9" fill="#fff"/>
       </svg>
-      <div class="font-extrabold text-lg text-white tracking-tight">BioStat <span class="gold-text">Quest</span></div>
+      <div class="font-extrabold text-lg text-white tracking-tight whitespace-nowrap">BioStat <span class="gold-text">Quest</span></div>
     </a>
     <div class="flex items-center gap-1 sm:gap-2 text-sm">
-      <a href="/about.html" class="hidden sm:inline px-3 py-2 rounded-lg text-slate-300 hover:text-white transition">About</a>
-      <a href="biostat-quest.html?auth=1" class="px-3 py-2 rounded-lg text-slate-300 hover:text-white transition">Sign in</a>
-      <a href="biostat-quest.html" class="btn btn-primary px-4 py-2 rounded-lg">Play</a>
+      <a href="/about.html" class="hidden sm:inline px-3 py-2 rounded-lg text-slate-400 hover:text-white transition">About</a>
+      <a id="nav-signin" href="biostat-quest.html?auth=1" class="whitespace-nowrap px-3 py-2 rounded-lg text-slate-300 hover:text-white transition" data-authed-hide>Sign in</a>
+      <div id="nav-account" class="relative inline-block" data-authed-show>
+        <button id="nav-account-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Account menu" class="whitespace-nowrap inline-flex items-center gap-1.5 text-xs px-2.5 sm:px-3 py-1.5 rounded-lg bg-emerald-900/40 text-emerald-200 hover:bg-emerald-900/60 border border-emerald-800 transition">
+          <span class="inline-flex items-center gap-1.5"><span data-user-initial aria-hidden="true" class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-700/60 text-emerald-50 text-[10px] font-bold leading-none uppercase"></span><span class="hidden sm:inline"><span data-username></span></span></span>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 3.5 L5 6.5 L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div id="nav-account-menu" role="menu" hidden class="absolute right-0 mt-2 w-44 rounded-lg border border-slate-700 bg-slate-900/95 backdrop-blur shadow-lg overflow-hidden z-50">
+          <a href="biostat-quest.html" role="menuitem" class="block px-3 py-2 text-xs text-slate-200 hover:bg-slate-800 transition">Launch Quest</a>
+          <button id="nav-account-signout" type="button" role="menuitem" class="w-full text-left block px-3 py-2 text-xs text-slate-200 hover:bg-slate-800 transition border-t border-slate-800">Sign out</button>
+        </div>
+      </div>
+      <a href="biostat-quest.html" class="btn btn-primary px-4 py-2 rounded-lg"><span class="sm:hidden">Launch</span><span class="hidden sm:inline">Launch Quest</span></a>
     </div>
   </div>
 </nav>
@@ -404,12 +425,12 @@
         </svg>
         <span class="font-extrabold text-white">BioStat <span class="gold-text">Quest</span></span>
       </div>
-      <p class="t-caption">A gamified biostatistics trainer. Built with care by a researcher who wished this existed in grad school.</p>
+      <p class="t-caption">Case-based biostatistics training with spaced repetition. Built by a researcher who wished this existed in grad school.</p>
     </div>
     <div>
       <div class="t-eyebrow mb-3">Links</div>
       <ul class="space-y-2 text-sm">
-        <li><a href="biostat-quest.html" class="text-slate-400 hover:text-white transition">Play</a></li>
+        <li><a href="biostat-quest.html" class="text-slate-400 hover:text-white transition">Launch Quest</a></li>
         <li><a href="/about.html" class="text-slate-400 hover:text-white transition">About</a></li>
         <li><a href="/sources.html" class="text-slate-400 hover:text-white transition">Sources</a></li>
         <li><a href="/privacy.html" class="text-slate-400 hover:text-white transition">Privacy</a></li>
@@ -428,6 +449,31 @@
     </div>
   </div>
 </footer>
+
+<script>
+(function(){
+  var wrap=document.getElementById("nav-account");
+  var btn=document.getElementById("nav-account-btn");
+  var menu=document.getElementById("nav-account-menu");
+  var out=document.getElementById("nav-account-signout");
+  if(!wrap||!btn||!menu||!out)return;
+  function setOpen(o){menu.hidden=!o;btn.setAttribute("aria-expanded",o?"true":"false");}
+  btn.addEventListener("click",function(e){e.stopPropagation();setOpen(menu.hidden);});
+  document.addEventListener("click",function(e){if(!wrap.contains(e.target))setOpen(false);});
+  document.addEventListener("keydown",function(e){if(e.key==="Escape")setOpen(false);});
+  out.addEventListener("click",function(){
+    try{
+      var toRemove=[];
+      for(var i=0;i<localStorage.length;i++){
+        var k=localStorage.key(i);
+        if(k&&k.indexOf("sb-")===0&&k.indexOf("-auth-token")!==-1)toRemove.push(k);
+      }
+      toRemove.forEach(function(k){localStorage.removeItem(k);});
+    }catch(e){}
+    window.location.reload();
+  });
+})();
+</script>
 
 </body>
 </html>

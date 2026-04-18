@@ -16,7 +16,7 @@
 //                                  when the cron fires)
 //
 //   Optional:
-//     REENGAGEMENT_FROM           default: "BioStat Quest <hello@biostatquest.com>"
+//     REENGAGEMENT_FROM           default: "BioStat Quest <info@biostatquest.com>"
 //     REENGAGEMENT_DRY_RUN        "1" to log recipients without sending
 //     REENGAGEMENT_DORMANT_DAYS   default: 7
 //     REENGAGEMENT_MAX_PER_RUN    default: 50  (protects Resend free tier)
@@ -32,7 +32,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { supabaseAdmin } from "../_lib/supabaseAdmin";
 
-const DEFAULT_FROM = "BioStat Quest <hello@biostatquest.com>";
+const DEFAULT_FROM = "BioStat Quest <info@biostatquest.com>";
 const DEFAULT_CAMPAIGN = "reengage_v1";
 const DEFAULT_DORMANT_DAYS = 7;
 const DEFAULT_MAX_PER_RUN = 50;
