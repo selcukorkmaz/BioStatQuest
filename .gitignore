@@ -1,5 +1,17 @@
+# Vercel
 .vercel
+
+# Dependencies / build output
 node_modules
 dist
+*.tsbuildinfo
+
+# Local env (Vite)
 *.local
+
+# OS / editor
 .DS_Store
+.claude
+
+# Office lockfiles
+~$*

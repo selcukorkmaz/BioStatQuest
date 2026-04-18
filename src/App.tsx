@@ -16,12 +16,9 @@ const FREE_CASES_LIMIT = 20;
 const PRO_PRICE_MONTHLY_USD = 9;
 const PRO_PRICE_YEARLY_USD = 60;
 
-function isCaseLockedForUser(caseId: string, userType: string | undefined | null): boolean {
-  if (!caseId) return false;
-  if (userType === "pro" || userType === "institutional") return false;
-  const idx = CASES.findIndex((c) => c.id === caseId);
-  if (idx < 0) return false;
-  return idx >= FREE_CASES_LIMIT;
+function isCaseLockedForUser(_caseId: string, _userType: string | undefined | null): boolean {
+  // Pro gating disabled — all cases free for now.
+  return false;
 }
 
 // Hook: current subscription state. Returns null while loading. Auto-refreshes
@@ -1925,20 +1922,8 @@ function SubscriptionPanel() {
     );
   }
 
-  // Free
-  return (
-    <div className="rounded-xl bg-slate-800/40 border border-slate-700 p-4 mb-4">
-      <div className="flex items-center justify-between gap-3 mb-2">
-        <div className="font-semibold text-white text-sm">Plan</div>
-        <span className="chip text-[10px] bg-slate-900/60 text-slate-400">Free</span>
-      </div>
-      <p className="text-xs text-slate-400 leading-relaxed mb-3">
-        First {FREE_CASES_LIMIT} cases free. Pro unlocks all {CASES.length} — including advanced regression, survival, causal inference, and Bayesian methods.
-      </p>
-      <button onClick={() => setPaywallOpen(true)} className="btn btn-primary px-4 py-2 rounded-lg text-sm">Upgrade to Pro →</button>
-      {paywallOpen && <PaywallModal reason="upgrade" onClose={() => setPaywallOpen(false)}/>}
-    </div>
-  );
+  // Free — upgrade CTA hidden for now.
+  return null;
 }
 
 function AuthButton({ state, setState }) {
