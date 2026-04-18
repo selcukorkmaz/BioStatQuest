@@ -5,17 +5,13 @@
 //   await billing.startCheckout("monthly");   // redirects to Stripe Checkout
 //   await billing.openPortal();               // redirects to Stripe Billing Portal
 
+import { createClient } from "@supabase/supabase-js";
+
 async function getAccessToken(): Promise<string | null> {
   const anyWin = window as any;
   const BQ = anyWin?.BQAuth;
   if (!BQ || !BQ.enabled) return null;
-  // There's no public API for the session token, so pull it from the Supabase
-  // client cache. We keep BQAuth small; here we dig into its internals safely.
   try {
-    // Use the global supabase client by reaching through BQAuth.
-    // BQAuth exposes .getUser() but we need the session; call the underlying
-    // createClient again (it will read the existing localStorage session).
-    const { createClient } = await import("@supabase/supabase-js");
     const url = (import.meta as any).env.VITE_SUPABASE_URL || anyWin.__SUPABASE_URL || "";
     const anonKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY || anyWin.__SUPABASE_ANON_KEY || "";
     if (!url || !anonKey) return null;

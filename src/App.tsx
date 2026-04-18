@@ -5,6 +5,15 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import "./lib/auth";
 import { gradeCard as srsGradeCard, getDueCount as srsGetDueCount, getDueQids as srsGetDueQids, getMasteryByMethod as srsGetMasteryByMethod } from "./lib/srs";
 import { billing } from "./lib/billing";
+import { SubscriptionPanel, useSubscription } from "./components/SubscriptionPanel";
+import { NAV_ICON, BRANCH_ICON, LESSON_ICON, UI_ICON, ICON_MARKUP, renderIconMarkup, iconSvgFragment, Ico, BranchGlyph } from "./components/Icons";
+import { Confetti } from "./components/Confetti";
+import { AuthButton, SignInCard } from "./components/AuthButton";
+import { DeepDive } from "./components/DeepDive";
+import { CasePlay } from "./components/CasePlay";
+import { levelFromXP, xpForLevel } from "./lib/xp";
+import { DIFFICULTIES, REVIEW_CASE_ID } from "./lib/difficulty";
+import { getMethodMastery } from "./lib/mastery";
 
 // ============================================================
 // BILLING / GATING (Phase 3a — consumer Pro tier)
@@ -23,40 +32,6 @@ function isCaseLockedForUser(_caseId: string, _userType: string | undefined | nu
 
 // Hook: current subscription state. Returns null while loading. Auto-refreshes
 // on auth change and when the app refocuses (covers the Stripe-return roundtrip).
-function useSubscription() {
-  const [sub, setSub] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
-
-  const load = React.useCallback(async () => {
-    const BQ = (window as any).BQAuth;
-    if (!BQ?.getUser?.()) {
-      setSub(null); setLoading(false);
-      return;
-    }
-    try {
-      const s = await BQ.fetchSubscription();
-      setSub(s);
-    } catch {
-      setSub(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    load();
-    const BQ = (window as any).BQAuth;
-    const unsub = BQ?.onAuthChange?.(() => load());
-    const onFocus = () => load();
-    window.addEventListener("focus", onFocus);
-    return () => {
-      if (typeof unsub === "function") unsub();
-      window.removeEventListener("focus", onFocus);
-    };
-  }, [load]);
-
-  return { sub, loading, reload: load };
-}
 import { BRANCHES } from "./data/branches";
 import { METHODS } from "./data/methods";
 import { CASES } from "./data/cases";
@@ -64,12 +39,6 @@ import { DIAGNOSTIC } from "./data/diagnostic";
 import { getNarrative, getNarrativeQids, getActForQid } from "./data/caseNarratives";
 import { GLOSSARY, GLOSSARY_BY_ID, GLOSSARY_KIND_META, normalizeGlossaryText } from "./data/glossary";
 
-const DIFFICULTIES = {
-  intern:   { name: "Intern",    label: "Easy",     color: "#4ade80", xpMult: 1.0, desc: "Heavy scaffolding, plain-language hints.", time: 90 },
-  resident: { name: "Resident",  label: "Moderate", color: "#facc15", xpMult: 1.6, desc: "Med/MPH level. Pick tests yourself.",     time: 60 },
-  fellow:   { name: "Fellow",    label: "Hard",     color: "#fb923c", xpMult: 2.4, desc: "PhD level. Messy data & assumption checks.", time: 45 },
-  pi:       { name: "Principal Investigator", label: "Expert", color: "#f87171", xpMult: 3.5, desc: "Peer-review. Find the errors in published work.", time: 35 },
-};
 
 // ============================================================
 // MASSIVE QUESTION BANK — organized by case.
@@ -102,93 +71,93 @@ const BADGE_CATEGORIES = [
 // used to render a progress bar on locked, measurable badges.
 const BADGES = [
   // CASES
-  { id:"first_case",   name:"First Blood",           icon:"🩸", cat:"cases",    desc:"Complete your first case",
+  { id:"first_case",   name:"First Blood",           icon:"droplet", cat:"cases",    desc:"Complete your first case",
     check: s => s.completed.length >= 1 },
-  { id:"five_cases",   name:"Case Closer",           icon:"📁", cat:"cases",    desc:"Complete 5 cases",
+  { id:"five_cases",   name:"Case Closer",           icon:"folder", cat:"cases",    desc:"Complete 5 cases",
     check: s => s.completed.length >= 5,
     progress: s => [Math.min(s.completed.length, 5), 5] },
-  { id:"ten_cases",    name:"Veteran Investigator",  icon:"🎖️", cat:"cases",    desc:"Complete 10 cases",
+  { id:"ten_cases",    name:"Veteran Investigator",  icon:"medal-ribbon", cat:"cases",    desc:"Complete 10 cases",
     check: s => s.completed.length >= 10,
     progress: s => [Math.min(s.completed.length, 10), 10] },
-  { id:"all_cases",    name:"Full Dossier",          icon:"📚", cat:"cases",    desc:"Complete every case at least once",
+  { id:"all_cases",    name:"Full Dossier",          icon:"books", cat:"cases",    desc:"Complete every case at least once",
     check: s => s.completed.length >= CASES.length,
     progress: s => [Math.min(s.completed.length, CASES.length), CASES.length] },
 
   // MASTERY
-  { id:"perfectionist",name:"Perfectionist",         icon:"💯", cat:"mastery",  desc:"Achieve 100% on a case",
+  { id:"perfectionist",name:"Perfectionist",         icon:"hundred", cat:"mastery",  desc:"Achieve 100% on a case",
     check: s => s.perfectRuns >= 1 },
-  { id:"triple_perf",  name:"Triple Threat",         icon:"🔥", cat:"mastery",  desc:"3 perfect runs",
+  { id:"triple_perf",  name:"Triple Threat",         icon:"flame", cat:"mastery",  desc:"3 perfect runs",
     check: s => s.perfectRuns >= 3,
     progress: s => [Math.min(s.perfectRuns, 3), 3] },
-  { id:"branched",     name:"Well-Rounded",          icon:"🌳", cat:"mastery",  desc:"Complete cases in 4 branches",
+  { id:"branched",     name:"Well-Rounded",          icon:"tree", cat:"mastery",  desc:"Complete cases in 4 branches",
     check: s => new Set(s.completed.map(c => CASES.find(k=>k.id===c)?.branch)).size >= 4,
     progress: s => [Math.min(new Set(s.completed.map(c => CASES.find(k=>k.id===c)?.branch)).size, 4), 4] },
-  { id:"all_branches", name:"Polymath",              icon:"🌐", cat:"mastery",  desc:"Cases in ALL 8 branches",
+  { id:"all_branches", name:"Polymath",              icon:"globe", cat:"mastery",  desc:"Cases in ALL 8 branches",
     check: s => new Set(s.completed.map(c => CASES.find(k=>k.id===c)?.branch)).size >= 8,
     progress: s => [Math.min(new Set(s.completed.map(c => CASES.find(k=>k.id===c)?.branch)).size, 8), 8] },
-  { id:"bayesian",     name:"Bayesian Convert",      icon:"🔮", cat:"mastery",  desc:"Complete a Bayesian case",
+  { id:"bayesian",     name:"Bayesian Convert",      icon:"orb", cat:"mastery",  desc:"Complete a Bayesian case",
     check: s => s.completed.includes("b1") },
-  { id:"p_hacker",     name:"P-Value Police",        icon:"👮", cat:"mastery",  desc:"Complete the P-Value Courtroom",
+  { id:"p_hacker",     name:"P-Value Police",        icon:"shield", cat:"mastery",  desc:"Complete the P-Value Courtroom",
     check: s => s.completed.includes("t2") },
 
   // DIFFICULTY
-  { id:"hard_mode",    name:"Rising Fellow",         icon:"⚔️", cat:"difficulty", desc:"Complete on Fellow+ with ≥70%",
+  { id:"hard_mode",    name:"Rising Fellow",         icon:"swords", cat:"difficulty", desc:"Complete on Fellow+ with ≥70%",
     check: s => s.hardWins >= 1 },
-  { id:"pi_mode",      name:"Peer Reviewer",         icon:"🔍", cat:"difficulty", desc:"Complete on PI difficulty",
+  { id:"pi_mode",      name:"Peer Reviewer",         icon:"magnifier", cat:"difficulty", desc:"Complete on PI difficulty",
     check: s => s.piWins >= 1 },
 
   // STREAKS
-  { id:"streak3",      name:"Hot Streak",            icon:"⚡", cat:"streak",   desc:"Answer 10 in a row correctly",
+  { id:"streak3",      name:"Hot Streak",            icon:"bolt", cat:"streak",   desc:"Answer 10 in a row correctly",
     check: s => s.bestStreak >= 10,
     progress: s => [Math.min(s.bestStreak, 10), 10] },
-  { id:"streak5",      name:"Unstoppable",           icon:"💥", cat:"streak",   desc:"Answer 25 in a row correctly",
+  { id:"streak5",      name:"Unstoppable",           icon:"burst", cat:"streak",   desc:"Answer 25 in a row correctly",
     check: s => s.bestStreak >= 25,
     progress: s => [Math.min(s.bestStreak, 25), 25] },
 
   // R LAB (new)
-  { id:"rlab_first",   name:"First Line",            icon:"💻", cat:"rlab",     desc:"Run R code successfully for the first time",
+  { id:"rlab_first",   name:"First Line",            icon:"laptop", cat:"rlab",     desc:"Run R code successfully for the first time",
     check: s => (s.rLabRunsOk || 0) >= 1 },
-  { id:"rlab_5",       name:"Lab Rat",               icon:"🧬", cat:"rlab",     desc:"Complete the quiz on 5 R Lab lessons",
+  { id:"rlab_5",       name:"Lab Rat",               icon:"dna", cat:"rlab",     desc:"Complete the quiz on 5 R Lab lessons",
     check: s => (s.rLabCompleted || []).length >= 5,
     progress: s => [Math.min((s.rLabCompleted || []).length, 5), 5] },
-  { id:"rlab_all",     name:"R Fluent",              icon:"💎", cat:"rlab",     desc:"Complete every R Lab lesson",
+  { id:"rlab_all",     name:"R Fluent",              icon:"diamond", cat:"rlab",     desc:"Complete every R Lab lesson",
     check: s => (s.rLabCompleted || []).length >= R_LESSONS.length,
     progress: s => [Math.min((s.rLabCompleted || []).length, R_LESSONS.length), R_LESSONS.length] },
-  { id:"rlab_perf",    name:"Statistics Savant",     icon:"🧠", cat:"rlab",     desc:"Score perfect on 3 R Lab lesson quizzes",
+  { id:"rlab_perf",    name:"Statistics Savant",     icon:"brain", cat:"rlab",     desc:"Score perfect on 3 R Lab lesson quizzes",
     check: s => (s.rLabPerfect || []).length >= 3,
     progress: s => [Math.min((s.rLabPerfect || []).length, 3), 3] },
 
   // ENGAGEMENT (new)
-  { id:"sims_all",     name:"Simulator Scout",       icon:"🧪", cat:"engagement", desc:"Open every Interactive Lab simulator",
+  { id:"sims_all",     name:"Simulator Scout",       icon:"beaker", cat:"engagement", desc:"Open every Interactive Lab simulator",
     check: s => (s.labSimsSeen || []).length >= LAB_SIM_IDS.length,
     progress: s => [Math.min((s.labSimsSeen || []).length, LAB_SIM_IDS.length), LAB_SIM_IDS.length] },
-  { id:"diagnostic_done", name:"Self-Aware",         icon:"🧭", cat:"engagement", desc:"Complete the diagnostic assessment",
+  { id:"diagnostic_done", name:"Self-Aware",         icon:"compass", cat:"engagement", desc:"Complete the diagnostic assessment",
     check: s => !!s.onboardingCompletedAt },
-  { id:"daily_3",      name:"Disciplined",           icon:"📅", cat:"engagement", desc:"Study on 3 consecutive days",
+  { id:"daily_3",      name:"Disciplined",           icon:"calendar", cat:"engagement", desc:"Study on 3 consecutive days",
     check: s => Math.max(s.dailyStreak || 0, s.dailyStreakBest || 0) >= 3,
     progress: s => [Math.min(Math.max(s.dailyStreak || 0, s.dailyStreakBest || 0), 3), 3] },
-  { id:"daily_7",      name:"Consistent",            icon:"📆", cat:"engagement", desc:"Study on 7 consecutive days",
+  { id:"daily_7",      name:"Consistent",            icon:"calendar-week", cat:"engagement", desc:"Study on 7 consecutive days",
     check: s => Math.max(s.dailyStreak || 0, s.dailyStreakBest || 0) >= 7,
     progress: s => [Math.min(Math.max(s.dailyStreak || 0, s.dailyStreakBest || 0), 7), 7] },
-  { id:"srs_first",    name:"Spaced Apprentice",     icon:"♻️", cat:"engagement", desc:"Complete your first Daily Review",
+  { id:"srs_first",    name:"Spaced Apprentice",     icon:"recycle", cat:"engagement", desc:"Complete your first Daily Review",
     check: s => (s.srsReviewsDone || 0) >= 1 },
 
   // ACCURACY (new)
-  { id:"sharpshooter", name:"Sharpshooter",          icon:"🎯", cat:"accuracy", desc:"Hold 90% overall accuracy (with ≥50 answers)",
+  { id:"sharpshooter", name:"Sharpshooter",          icon:"target", cat:"accuracy", desc:"Hold 90% overall accuracy (with ≥50 answers)",
     check: s => s.stats.totalAnswered >= 50 && (s.stats.totalCorrect / s.stats.totalAnswered) >= 0.90,
     progress: s => [Math.min(s.stats.totalAnswered, 50), 50] },
 
   // MILESTONES
-  { id:"level_5",      name:"Senior Scientist",      icon:"🎓", cat:"milestone", desc:"Reach level 5",
+  { id:"level_5",      name:"Senior Scientist",      icon:"cap", cat:"milestone", desc:"Reach level 5",
     check: s => levelFromXP(s.xp) >= 5,
     progress: s => [Math.min(levelFromXP(s.xp), 5), 5] },
-  { id:"level_10",     name:"Principal Investigator",icon:"🏆", cat:"milestone", desc:"Reach level 10",
+  { id:"level_10",     name:"Principal Investigator",icon:"trophy", cat:"milestone", desc:"Reach level 10",
     check: s => levelFromXP(s.xp) >= 10,
     progress: s => [Math.min(levelFromXP(s.xp), 10), 10] },
-  { id:"level_20",     name:"World-Class",           icon:"🌟", cat:"milestone", desc:"Reach level 20",
+  { id:"level_20",     name:"World-Class",           icon:"star-shine", cat:"milestone", desc:"Reach level 20",
     check: s => levelFromXP(s.xp) >= 20,
     progress: s => [Math.min(levelFromXP(s.xp), 20), 20] },
-  { id:"speed",        name:"Fast Thinker",          icon:"⏱️", cat:"milestone", desc:"Finish a case with time bonus",
+  { id:"speed",        name:"Fast Thinker",          icon:"stopwatch", cat:"milestone", desc:"Finish a case with time bonus",
     check: s => s.speedRuns >= 1 },
 ];
 
@@ -247,8 +216,6 @@ function applyBadgeChecks(state) {
   return { state: { ...state, badges }, newly };
 }
 
-const levelFromXP = (xp) => Math.floor(Math.sqrt(xp / 50)) + 1;
-const xpForLevel  = (lvl) => ((lvl-1)**2) * 50;
 
 // ============================================================
 // STORAGE
@@ -406,29 +373,7 @@ function getDueQuestionsAcrossCases(srs, limit = 20) {
   return due.slice(0, limit);
 }
 
-// Per-method mastery — derived live from srs + CASES.
-// `reviewed`  = questions the user has answered ≥1 time correctly (reps ≥ 2).
-// `mastered`  = questions on a long interval (reps ≥ 4, interval ≥ 21 days).
-function getMethodMastery(methodId, srs) {
-  if (!methodId) return { total: 0, attempted: 0, reviewed: 0, mastered: 0 };
-  const qids = [];
-  for (const c of CASES) {
-    for (const q of c.bank) {
-      if (q.method === methodId) qids.push(q.qid);
-    }
-  }
-  let attempted = 0, reviewed = 0, mastered = 0;
-  for (const qid of qids) {
-    const s = srs && srs[qid];
-    if (!s) continue;
-    attempted++;
-    if ((s.reps || 0) >= 2) reviewed++;
-    if ((s.reps || 0) >= 4 && (s.interval || 0) >= 21) mastered++;
-  }
-  return { total: qids.length, attempted, reviewed, mastered };
-}
 
-const REVIEW_CASE_ID = "__review";
 
 // ============================================================
 // DIAGNOSTIC scoring + study-path generation
@@ -548,598 +493,6 @@ function pickQuestions(caseObj, seenArr, srs) {
 // ============================================================
 // UI COMPONENTS
 // ============================================================
-function Confetti({ count=80 }) {
-  const colors = ["#8b5cf6","#06b6d4","#fbbf24","#10b981","#ec4899","#f59e0b"];
-  return <>{Array.from({length:count}).map((_,i)=>{
-    const s = {
-      left: `${Math.random()*100}vw`,
-      background: colors[i%colors.length],
-      animationDelay: `${Math.random()*0.8}s`,
-      animationDuration: `${2 + Math.random()*1.5}s`,
-      borderRadius: Math.random()>0.5?"50%":"2px",
-    };
-    return <div key={i} className="confetti-piece" style={s}/>;
-  })}</>;
-}
-
-// Premium custom nav icons — unified stroke-based set (currentColor inherits
-// from the button's text color, so active/inactive states just work).
-const NAV_ICON = {
-  home: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3.2 11.2 12 3.5l8.8 7.7V20a1 1 0 0 1-1 1h-4.5v-6.2h-6.6V21H4.2a1 1 0 0 1-1-1z"/>
-    </svg>
-  ),
-  // Skill tree — root node branching up to two leaves (graph/tree metaphor)
-  tree: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="19.5" r="2.25"/>
-      <circle cx="6"  cy="5.5"  r="2.25"/>
-      <circle cx="18" cy="5.5"  r="2.25"/>
-      <path d="M12 17.25v-4M12 13.25c0-2 -2-3.5 -4-4.5M12 13.25c0-2 2-3.5 4-4.5"/>
-    </svg>
-  ),
-  // Lab — Erlenmeyer flask with a subtle liquid line
-  lab: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M9 3.5h6"/>
-      <path d="M10 3.5v5.7L4.6 19a1.2 1.2 0 0 0 1.05 1.8h12.7A1.2 1.2 0 0 0 19.4 19L14 9.2V3.5"/>
-      <path d="M7.2 15.2h9.6"/>
-    </svg>
-  ),
-  // R Lab — terminal window framing the R letter
-  rlab: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="4" width="18" height="16" rx="2.2"/>
-      <path d="M3 8h18"/>
-      <circle cx="6"  cy="6" r="0.4" fill="currentColor"/>
-      <circle cx="8"  cy="6" r="0.4" fill="currentColor"/>
-      <circle cx="10" cy="6" r="0.4" fill="currentColor"/>
-      {/* stylized "R" */}
-      <path d="M9.5 17v-5h2.6c1.1 0 1.9.8 1.9 1.8s-.8 1.8-1.9 1.8H9.5M12.5 15.6 14.7 17"/>
-    </svg>
-  ),
-  // Badges — shield outline (monochrome) with a gold gradient-filled star.
-  // Gold pairs with the app's .gold-text ramp (fbbf24 → f59e0b) used on XP/level chips.
-  badges: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <defs>
-        <linearGradient id="navGoldBadges" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%"  stopColor="#fde68a"/>
-          <stop offset="55%" stopColor="#fbbf24"/>
-          <stop offset="100%" stopColor="#f59e0b"/>
-        </linearGradient>
-      </defs>
-      <path d="M12 3 4.5 5.5v6c0 4.3 3.2 8.3 7.5 10 4.3-1.7 7.5-5.7 7.5-10v-6z"/>
-      <path d="m12 8.8 1.25 2.55 2.8.4-2.03 1.98.48 2.79L12 15.3l-2.5 1.22.48-2.79-2.03-1.98 2.8-.4z"
-            fill="url(#navGoldBadges)" stroke="#b45309" strokeWidth="0.8"/>
-    </svg>
-  ),
-  // Leaders — monochrome podium with a gold gradient-filled "1st place" star on top.
-  board: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <defs>
-        <linearGradient id="navGoldBoard" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%"  stopColor="#fde68a"/>
-          <stop offset="55%" stopColor="#fbbf24"/>
-          <stop offset="100%" stopColor="#f59e0b"/>
-        </linearGradient>
-      </defs>
-      <path d="M3 21h18"/>
-      <rect x="4"  y="13" width="5" height="8" rx="0.6"/>
-      <rect x="9.5" y="7"  width="5" height="14" rx="0.6"/>
-      <rect x="15" y="10" width="5" height="11" rx="0.6"/>
-      <path d="M12 4.7l.55 1.1 1.22.18-.88.86.21 1.22-1.1-.58-1.1.58.21-1.22-.88-.86 1.22-.18z"
-            fill="url(#navGoldBoard)" stroke="#b45309" strokeWidth="0.7"/>
-    </svg>
-  ),
-  // Stats — three ascending bars, no axis (cleaner than typical chart icon)
-  stats: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 20h18"/>
-      <rect x="5"    y="14" width="3.2" height="6" rx="0.5"/>
-      <rect x="10.4" y="9"  width="3.2" height="11" rx="0.5"/>
-      <rect x="15.8" y="4.5" width="3.2" height="15.5" rx="0.5"/>
-    </svg>
-  ),
-  // Glossary — open book with page lines
-  glossary: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 5.5V20"/>
-      <path d="M12 5.5C9.5 3.9 7 3.5 4 3.5a.5.5 0 0 0-.5.5v14a.5.5 0 0 0 .5.5c3 0 5.5.4 8 2 2.5-1.6 5-2 8-2a.5.5 0 0 0 .5-.5V4a.5.5 0 0 0-.5-.5c-3 0-5.5.4-8 2z"/>
-      <path d="M6.5 8h3M6.5 11h3M14.5 8h3M14.5 11h3"/>
-    </svg>
-  ),
-};
-
-// Premium custom branch icons — unified stroke-based set, inherit branch color
-// via currentColor. Statistically meaningful (CI bracket, bell curve, DAG, …)
-// rather than generic (flask, compass, brain). Sized by parent container.
-const BRANCH_ICON = {
-  // Foundations — ascending bars with data points (descriptive statistics)
-  foundations: (
-    <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 20.5h18"/>
-      <rect x="5.5" y="13"  width="3" height="7.5"  rx="0.4"/>
-      <rect x="10.5" y="8"  width="3" height="12.5" rx="0.4"/>
-      <rect x="15.5" y="11" width="3" height="9.5"  rx="0.4"/>
-      <circle cx="7"  cy="10" r="0.9" fill="currentColor" stroke="none"/>
-      <circle cx="12" cy="5"  r="0.9" fill="currentColor" stroke="none"/>
-      <circle cx="17" cy="8"  r="0.9" fill="currentColor" stroke="none"/>
-    </svg>
-  ),
-  // Probability & Sampling — normal curve with sample point at the mean
-  probability: (
-    <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 19h18"/>
-      <path d="M3.5 19 C 6 19, 8 17.5, 10 11 C 11 8, 11.5 7, 12 7 C 12.5 7, 13 8, 14 11 C 16 17.5, 18 19, 20.5 19"/>
-      <circle cx="12" cy="7" r="1.5" fill="currentColor" stroke="none"/>
-    </svg>
-  ),
-  // Estimation & Inference — confidence interval with point estimate + axis ticks
-  estimation_inference: (
-    <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 8v8"/>
-      <path d="M20 8v8"/>
-      <path d="M4 12h16"/>
-      <circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/>
-      <path d="M4 19.5v2 M12 19.5v2 M20 19.5v2" strokeWidth="1.3"/>
-    </svg>
-  ),
-  // Regression — scatter cloud with trend line (in an x/y frame)
-  regression: (
-    <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 3v18h18"/>
-      <path d="M5.5 18 L 20 5.5"/>
-      <circle cx="7"    cy="17" r="1.05" fill="currentColor" stroke="none"/>
-      <circle cx="10.5" cy="13.5" r="1.05" fill="currentColor" stroke="none"/>
-      <circle cx="13.5" cy="12.5" r="1.05" fill="currentColor" stroke="none"/>
-      <circle cx="16"   cy="9"  r="1.05" fill="currentColor" stroke="none"/>
-      <circle cx="18.5" cy="7"  r="1.05" fill="currentColor" stroke="none"/>
-    </svg>
-  ),
-  // Study Design & Bias — randomization tree (source → two arms)
-  design_bias: (
-    <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="5" r="2.5"/>
-      <rect x="3"  y="16" width="7" height="5" rx="1"/>
-      <rect x="14" y="16" width="7" height="5" rx="1"/>
-      <path d="M11 7 Q 7  12 6.5 16"/>
-      <path d="M13 7 Q 17 12 17.5 16"/>
-    </svg>
-  ),
-  // Missing Data & Measurement — 3×3 grid with a dashed missing cell
-  missing_measurement: (
-    <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="3" width="18" height="18" rx="1.5"/>
-      <path d="M9 3v18 M15 3v18 M3 9h18 M3 15h18"/>
-      <path d="M10.5 10.5l3 3 M13.5 10.5l-3 3" strokeDasharray="1.6 1.6" strokeWidth="1.5"/>
-    </svg>
-  ),
-  // Causal Inference — DAG with directed arrows (classic confounder triangle)
-  causal: (
-    <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="5"  cy="6"  r="2.2" fill="currentColor" stroke="none"/>
-      <circle cx="19" cy="6"  r="2.2" fill="currentColor" stroke="none"/>
-      <circle cx="12" cy="19" r="2.2" fill="currentColor" stroke="none"/>
-      <path d="M6.7 7.8 L 10.5 16.8"/>
-      <path d="M17.3 7.8 L 13.5 16.8"/>
-      {/* arrowhead chevrons */}
-      <path d="M9.3 15.4 L 10.6 17.1 L 11.6 15.1" strokeWidth="1.4"/>
-      <path d="M14.7 15.4 L 13.4 17.1 L 12.4 15.1" strokeWidth="1.4"/>
-    </svg>
-  ),
-  // Advanced & Bayesian — prior (wider, faded) overlaid with posterior (sharper)
-  advanced_bayesian: (
-    <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 20h18"/>
-      <path d="M3.5 20 C 6 20, 8 18, 10 13 C 11 10, 11.5 9, 12 9 C 12.5 9, 13 10, 14 13 C 16 18, 18 20, 20.5 20" opacity="0.4"/>
-      <path d="M7 20 C 9 20, 10.3 18, 11 12 C 11.3 8, 11.7 5, 12 5 C 12.3 5, 12.7 8, 13 12 C 13.7 18, 15 20, 17 20"/>
-    </svg>
-  ),
-};
-
-// ======================================================================
-// Custom icon library — unified stroke-based set, viewBox 24×24, stroke
-// currentColor, strokeWidth 1.75. Used across R Lab lessons, Interactive
-// Lab cards/tabs, and UI chrome buttons. Emojis stay only in content
-// positions (badge rewards, celebration, streak indicators, prose).
-// ======================================================================
-
-// R Lab lesson icons — keyed by lesson id. Each aims to be statistically
-// meaningful (a histogram for descriptives, a step curve for KM, a forest
-// plot for Cox, a bullseye for power, …) rather than generic.
-const LESSON_ICON = {
-  desc: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 20.5h18"/>
-      <rect x="4"    y="13"  width="2.8" height="7.5"  rx="0.4"/>
-      <rect x="7.8"  y="9"   width="2.8" height="11.5" rx="0.4"/>
-      <rect x="11.6" y="6.5" width="2.8" height="14"   rx="0.4"/>
-      <rect x="15.4" y="10"  width="2.8" height="10.5" rx="0.4"/>
-      <path d="M13 4.5v17" strokeDasharray="1.4 1.6" opacity="0.8"/>
-    </svg>
-  ),
-  correlation: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 3v18h18"/>
-      <path d="M6 18 L 20 5" strokeDasharray="1.6 1.6"/>
-      <circle cx="7.5"  cy="17"   r="1.05" fill="currentColor" stroke="none"/>
-      <circle cx="10.5" cy="14"   r="1.05" fill="currentColor" stroke="none"/>
-      <circle cx="13"   cy="11.5" r="1.05" fill="currentColor" stroke="none"/>
-      <circle cx="16"   cy="8.5"  r="1.05" fill="currentColor" stroke="none"/>
-      <circle cx="18.5" cy="6"    r="1.05" fill="currentColor" stroke="none"/>
-    </svg>
-  ),
-  ttest: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 20h18"/>
-      {/* group 1 — point + CI */}
-      <path d="M7 8v10"/>
-      <path d="M5 8h4 M5 18h4" strokeWidth="1.4"/>
-      <circle cx="7" cy="13" r="1.6" fill="currentColor" stroke="none"/>
-      {/* group 2 — shifted down, wider CI */}
-      <path d="M17 5v11"/>
-      <path d="M15 5h4 M15 16h4" strokeWidth="1.4"/>
-      <circle cx="17" cy="10" r="1.6" fill="currentColor" stroke="none"/>
-    </svg>
-  ),
-  paired: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M5 20h14" strokeDasharray="1.2 2"/>
-      {/* baseline on left, post on right, linked */}
-      <circle cx="7" cy="15" r="1.4" fill="currentColor" stroke="none"/>
-      <circle cx="17" cy="8" r="1.4" fill="currentColor" stroke="none"/>
-      <path d="M7 15 C 10 13, 14 10, 17 8"/>
-      <circle cx="7" cy="12" r="1.4" fill="currentColor" stroke="none"/>
-      <circle cx="17" cy="6" r="1.4" fill="currentColor" stroke="none"/>
-      <path d="M7 12 C 10 10, 14 7, 17 6" opacity="0.7"/>
-      <circle cx="7" cy="9" r="1.4" fill="currentColor" stroke="none"/>
-      <circle cx="17" cy="4.5" r="1.4" fill="currentColor" stroke="none"/>
-      <path d="M7 9 C 10 8, 14 5.5, 17 4.5" opacity="0.5"/>
-    </svg>
-  ),
-  wilcoxon: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {/* rank ticks ascending above a base line */}
-      <path d="M4 17h17"/>
-      <path d="M19 15l2 2-2 2" strokeWidth="1.4"/>
-      <path d="M6 14v3 M9 12v5 M12 10v7 M15 8v9 M18 6v11" strokeWidth="1.3"/>
-      <circle cx="9"  cy="17" r="1.2" fill="currentColor" stroke="none"/>
-      <circle cx="12" cy="17" r="1.2" fill="currentColor" stroke="none"/>
-      <circle cx="15" cy="17" r="1.2" fill="currentColor" stroke="none"/>
-    </svg>
-  ),
-  chisq: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="3" width="18" height="18" rx="1.8"/>
-      <path d="M12 3v18 M3 12h18"/>
-      <circle cx="7.5"  cy="7.5"  r="1.5" fill="currentColor" stroke="none"/>
-      <circle cx="16.5" cy="7.5"  r="0.9" fill="currentColor" stroke="none"/>
-      <circle cx="7.5"  cy="16.5" r="0.9" fill="currentColor" stroke="none"/>
-      <circle cx="16.5" cy="16.5" r="1.5" fill="currentColor" stroke="none"/>
-    </svg>
-  ),
-  lm: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 3v18h18"/>
-      <path d="M5.5 18 L 20 5.5"/>
-      <circle cx="7"    cy="17"   r="1.05" fill="currentColor" stroke="none"/>
-      <circle cx="10.5" cy="13.5" r="1.05" fill="currentColor" stroke="none"/>
-      <circle cx="13.5" cy="12.5" r="1.05" fill="currentColor" stroke="none"/>
-      <circle cx="16"   cy="9"    r="1.05" fill="currentColor" stroke="none"/>
-      <circle cx="18.5" cy="7"    r="1.05" fill="currentColor" stroke="none"/>
-      {/* residual tick — signals this is a FIT, not just scatter */}
-      <path d="M13.5 12.5 v2.5" strokeDasharray="1 1.2" opacity="0.7"/>
-    </svg>
-  ),
-  logit: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 3v18h18"/>
-      <path d="M5 19 C 10 19, 11 6, 20 5"/>
-      <path d="M4 12h16" strokeDasharray="1.4 1.6" opacity="0.5"/>
-    </svg>
-  ),
-  anova: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 20h18"/>
-      <rect x="3.5"  y="10" width="4" height="6" rx="0.5"/>
-      <path d="M3.5 13h4 M5.5 6v4 M5.5 16v3 M4.2 6h2.6 M4.2 19h2.6"/>
-      <rect x="10" y="7"  width="4" height="7" rx="0.5"/>
-      <path d="M10 10.5h4 M12 3v4 M12 14v5 M10.7 3h2.6 M10.7 19h2.6"/>
-      <rect x="16.5" y="12" width="4" height="4" rx="0.5"/>
-      <path d="M16.5 14h4 M18.5 8v4 M18.5 16v3 M17.2 8h2.6 M17.2 19h2.6"/>
-    </svg>
-  ),
-  diagnostic: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="3" width="18" height="18" rx="1.8"/>
-      <path d="M12 3v18 M3 12h18"/>
-      {/* TP (top-left) highlighted + check */}
-      <rect x="3.5" y="3.5" width="8.5" height="8.5" rx="1" fill="currentColor" opacity="0.18" stroke="none"/>
-      <path d="M5.5 8l2 2 3-3.5" strokeWidth="1.5"/>
-      {/* TN (bottom-right) highlighted */}
-      <rect x="12" y="12" width="8.5" height="8.5" rx="1" fill="currentColor" opacity="0.18" stroke="none"/>
-      <path d="M14.5 16.5l2 2 3-3.5" strokeWidth="1.5"/>
-    </svg>
-  ),
-  power: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="11" cy="13" r="8"/>
-      <circle cx="11" cy="13" r="5"/>
-      <circle cx="11" cy="13" r="2" fill="currentColor" stroke="none"/>
-      {/* arrow striking the target */}
-      <path d="M21 3 L 11 13" strokeWidth="1.6"/>
-      <path d="M18 3h3v3" strokeWidth="1.4"/>
-    </svg>
-  ),
-  cox: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {/* forest plot — HR CIs and points around the null */}
-      <path d="M12 3v18" strokeDasharray="1.4 1.6" opacity="0.6"/>
-      <path d="M6 6h8"/>
-      <circle cx="9" cy="6" r="1.5" fill="currentColor" stroke="none"/>
-      <path d="M6 6v1.5 M14 6v1.5" strokeWidth="1.3"/>
-      <path d="M10 12h9"/>
-      <circle cx="15" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-      <path d="M10 12v1.5 M19 12v1.5" strokeWidth="1.3"/>
-      <path d="M8 18h5"/>
-      <circle cx="10" cy="18" r="1.5" fill="currentColor" stroke="none"/>
-      <path d="M8 18v1.5 M13 18v1.5" strokeWidth="1.3"/>
-    </svg>
-  ),
-  km: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 3v18h18"/>
-      {/* step-down survival curve */}
-      <path d="M4 5 h3 v4 h3 v3 h3 v4 h3 v3 h4"/>
-      {/* censor tick marks on steps */}
-      <path d="M8.5 6.5 v2.5 M11.5 10.5 v2.5 M14.5 13.5 v2.5" strokeWidth="1.3"/>
-    </svg>
-  ),
-  poisson: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 20h18"/>
-      <rect x="3.5"  y="15" width="2.3" height="5"  rx="0.3"/>
-      <rect x="6.6"  y="8"  width="2.3" height="12" rx="0.3"/>
-      <rect x="9.7"  y="4"  width="2.3" height="16" rx="0.3"/>
-      <rect x="12.8" y="7"  width="2.3" height="13" rx="0.3"/>
-      <rect x="15.9" y="12" width="2.3" height="8"  rx="0.3"/>
-      <rect x="19"   y="17" width="2.3" height="3"  rx="0.3"/>
-    </svg>
-  ),
-  boot: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {/* circular resampling arrow around a small sample */}
-      <path d="M20 12 A 8 8 0 1 1 12 4"/>
-      <path d="M12 2 L 14 4 L 12 6" strokeWidth="1.4"/>
-      <circle cx="10" cy="10" r="1.3" fill="currentColor" stroke="none"/>
-      <circle cx="13.5" cy="12" r="1.3" fill="currentColor" stroke="none"/>
-      <circle cx="11" cy="14" r="1.3" fill="currentColor" stroke="none"/>
-    </svg>
-  ),
-};
-
-// UI chrome icons — used inside buttons, headers, and status chips.
-// Each is a self-contained <svg/> sized via CSS (w-X h-X on the parent span).
-const UI_ICON = {
-  bolt: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M13 2 L 4 14 h6 l-2 8 11-13 h-7 z"/>
-    </svg>
-  ),
-  notebook: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="5" y="3" width="14" height="18" rx="1.6"/>
-      <path d="M5 7h2 M5 11h2 M5 15h2 M5 19h2"/>
-      <path d="M10 7h6 M10 11h6 M10 15h4"/>
-    </svg>
-  ),
-  bulb: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M9 18h6"/>
-      <path d="M10 21h4"/>
-      <path d="M8.5 14a5 5 0 1 1 7 0c-.8.7-1.5 1.5-1.5 2.5v1h-4v-1c0-1-.7-1.8-1.5-2.5z"/>
-    </svg>
-  ),
-  target: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="8.5"/>
-      <circle cx="12" cy="12" r="5"/>
-      <circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none"/>
-    </svg>
-  ),
-  book: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 5.5V20"/>
-      <path d="M12 5.5C9.5 3.9 7 3.5 4 3.5a.5.5 0 0 0-.5.5v14a.5.5 0 0 0 .5.5c3 0 5.5.4 8 2 2.5-1.6 5-2 8-2a.5.5 0 0 0 .5-.5V4a.5.5 0 0 0-.5-.5c-3 0-5.5.4-8 2z"/>
-    </svg>
-  ),
-  download: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 4v12"/>
-      <path d="M7 11l5 5 5-5"/>
-      <path d="M4 20h16"/>
-    </svg>
-  ),
-  reset: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20 12a8 8 0 1 1-3-6.3"/>
-      <path d="M20 3v5h-5"/>
-    </svg>
-  ),
-  copy: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="8" y="8" width="12" height="12" rx="1.5"/>
-      <path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/>
-    </svg>
-  ),
-  play: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="currentColor" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M7 4.5 L 19 12 L 7 19.5 z"/>
-    </svg>
-  ),
-  hourglass: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M6 3h12 M6 21h12"/>
-      <path d="M6 3c0 4 6 6 6 9 0 3-6 5-6 9"/>
-      <path d="M18 3c0 4-6 6-6 9 0 3 6 5 6 9"/>
-    </svg>
-  ),
-  check: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 12.5l5 5 11-12"/>
-    </svg>
-  ),
-  bell: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {/* bell curve — not a ringing bell — matches CLT */}
-      <path d="M3 19h18"/>
-      <path d="M3.5 19 C 6 19, 8 17.5, 10 11 C 11 8, 11.5 7, 12 7 C 12.5 7, 13 8, 14 11 C 16 17.5, 18 19, 20.5 19"/>
-      <circle cx="12" cy="7" r="1.3" fill="currentColor" stroke="none"/>
-    </svg>
-  ),
-  stethoscope: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {/* ROC curve — L-shape rising to (1,1) */}
-      <path d="M4 3v18h18"/>
-      <path d="M4 21 C 6 9, 10 5, 21 4"/>
-      <path d="M4 21 L 21 4" strokeDasharray="1.4 1.6" opacity="0.5"/>
-    </svg>
-  ),
-  swap: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 8h14 l-3-3 M18 8 l-3 3"/>
-      <path d="M20 16H6 l3-3 M6 16 l3 3"/>
-    </svg>
-  ),
-  grid: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="3" width="18" height="18" rx="1.5"/>
-      <path d="M9 3v18 M15 3v18 M3 9h18 M3 15h18"/>
-      <circle cx="6" cy="6"   r="1" fill="currentColor" stroke="none"/>
-      <circle cx="18" cy="6"  r="1" fill="currentColor" stroke="none"/>
-      <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>
-      <circle cx="6" cy="18"  r="1" fill="currentColor" stroke="none"/>
-    </svg>
-  ),
-  dice: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/>
-      <circle cx="8"  cy="8"  r="1.2" fill="currentColor" stroke="none"/>
-      <circle cx="16" cy="8"  r="1.2" fill="currentColor" stroke="none"/>
-      <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/>
-      <circle cx="8"  cy="16" r="1.2" fill="currentColor" stroke="none"/>
-      <circle cx="16" cy="16" r="1.2" fill="currentColor" stroke="none"/>
-    </svg>
-  ),
-  beaker: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M9 3.5h6"/>
-      <path d="M10 3.5v5.7L4.6 19a1.2 1.2 0 0 0 1.05 1.8h12.7A1.2 1.2 0 0 0 19.4 19L14 9.2V3.5"/>
-      <path d="M7.2 15.2h9.6"/>
-    </svg>
-  ),
-  terminal: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="4" width="18" height="16" rx="2.2"/>
-      <path d="M3 8h18"/>
-      <path d="M7 12l2.5 2.5L7 17"/>
-      <path d="M12.5 17h4"/>
-    </svg>
-  ),
-  warning: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 3.5 L 22 20 H 2 Z"/>
-      <path d="M12 10v5"/>
-      <circle cx="12" cy="17.5" r="0.8" fill="currentColor" stroke="none"/>
-    </svg>
-  ),
-  package: (
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 7.5 L 12 3 L 21 7.5 V 17 L 12 21 L 3 17 Z"/>
-      <path d="M3 7.5 L 12 12 L 21 7.5 M 12 12 V 21"/>
-    </svg>
-  ),
-  ruler: (
-    // CI bracket [——•——] — an estimate with bars on each end
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 12h18"/>
-      <path d="M3 9v6 M21 9v6"/>
-      <circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/>
-    </svg>
-  ),
-  mask: (
-    // Biased spectacles — two circles connected (sampling frame metaphor)
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="7" cy="13" r="4"/>
-      <circle cx="17" cy="13" r="4"/>
-      <path d="M11 13h2"/>
-      <path d="M3 11 c1-3 3-3 4-3 M21 11 c-1-3-3-3-4-3"/>
-    </svg>
-  ),
-  p: (
-    // a "p" histogram bin — uniform stretched toward 0 (p-value dist)
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 20h18"/>
-      <rect x="3.5"  y="4"   width="2.3" height="16" rx="0.3"/>
-      <rect x="6.6"  y="10"  width="2.3" height="10" rx="0.3"/>
-      <rect x="9.7"  y="13"  width="2.3" height="7"  rx="0.3"/>
-      <rect x="12.8" y="14"  width="2.3" height="6"  rx="0.3"/>
-      <rect x="15.9" y="15"  width="2.3" height="5"  rx="0.3"/>
-      <rect x="19"   y="15.5" width="2.3" height="4.5" rx="0.3"/>
-    </svg>
-  ),
-  link: (
-    // Two chain links — for "Share link" buttons
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M10 14 a4 4 0 0 1 0-5.5 l2-2 a4 4 0 0 1 5.6 5.6 l-1.3 1.3"/>
-      <path d="M14 10 a4 4 0 0 1 0 5.5 l-2 2 a4 4 0 0 1 -5.6 -5.6 l1.3 -1.3"/>
-    </svg>
-  ),
-  image: (
-    // Picture frame — for "Copy image" button
-    <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="4" width="18" height="16" rx="2"/>
-      <circle cx="8.5" cy="9.5" r="1.5"/>
-      <path d="M4 18 l5-5 4 4 3-3 4 4"/>
-    </svg>
-  ),
-};
-
-// Lightweight wrapper so we can write <Ico name="bolt" size={16}/>. Picks
-// its color from the parent's text color via currentColor. An inline-flex
-// span keeps it aligned with adjacent text (button labels, chip copy).
-function Ico({ name, size = 16, className = "" }) {
-  const svg = UI_ICON[name] || LESSON_ICON[name] || null;
-  if (!svg) return null;
-  return (
-    <span
-      className={`inline-flex items-center justify-center shrink-0 align-[-0.15em] ${className}`}
-      style={{ width: size, height: size }}
-      aria-hidden="true"
-    >
-      {svg}
-    </span>
-  );
-}
-
-// Small inline branch icon — used next to branch names in text lines
-// (Daily Challenge card, CaseSelect header, etc.). Picks up the branch's
-// color and falls back to the emoji if an SVG isn't defined yet.
-function BranchGlyph({ k, className = "w-4 h-4" }) {
-  const b = BRANCHES[k];
-  if (!b) return null;
-  return (
-    <span
-      className={`inline-flex items-center justify-center shrink-0 align-[-0.2em] ${className}`}
-      style={{ color: b.color }}
-      aria-hidden="true"
-    >
-      {BRANCH_ICON[k] || <span className="leading-none">{b.icon}</span>}
-    </span>
-  );
-}
 
 function TopBar({ state, setState, onReset, onNav, current }) {
   const level = levelFromXP(state.xp);
@@ -1266,763 +619,9 @@ function TopBar({ state, setState, onReset, onNav, current }) {
   );
 }
 
-function GoogleButton({ onClick, label }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full py-3 rounded-xl bg-white hover:bg-slate-100 text-slate-800 font-medium flex items-center justify-center gap-2 border border-slate-300 transition"
-    >
-      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.75h3.57c2.08-1.92 3.28-4.74 3.28-8.07z"/>
-        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.75c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-        <path fill="#FBBC05" d="M5.84 14.12c-.22-.66-.35-1.36-.35-2.12s.13-1.46.35-2.12V7.04H2.18A10.99 10.99 0 0 0 1 12c0 1.77.42 3.45 1.18 4.96l3.66-2.84z"/>
-        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.04l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/>
-      </svg>
-      {label || "Continue with Google"}
-    </button>
-  );
-}
 
-// Length of the OTP code Supabase emails. Must match
-// Supabase Dashboard → Authentication → Settings → OTP Length.
-const OTP_LENGTH = 6;
 
-// N-slot OTP input. Length is controlled via the `length` prop (defaulting
-// to OTP_LENGTH). Auto-advances on digit entry, auto-backspaces, handles paste.
-function OtpInput({ value, onChange, onComplete, disabled, autoFocus, length = OTP_LENGTH }) {
-  const inputsRef = React.useRef([]);
-  const digits = value.padEnd(length, " ").slice(0, length).split("");
 
-  React.useEffect(() => {
-    if (autoFocus) inputsRef.current[0]?.focus();
-  }, [autoFocus]);
-
-  const setAt = (i, ch) => {
-    const next = value.padEnd(length, " ").slice(0, length).split("");
-    next[i] = ch;
-    const joined = next.join("").replace(/\s+$/, "");
-    onChange(joined);
-    if (ch && joined.length === length && onComplete) onComplete(joined);
-  };
-
-  const handleChange = (i, raw) => {
-    const ch = raw.replace(/\D/g, "").slice(-1);
-    if (!ch) { setAt(i, " "); return; }
-    setAt(i, ch);
-    if (i < length - 1) inputsRef.current[i + 1]?.focus();
-  };
-
-  const handleKeyDown = (i, e) => {
-    if (e.key === "Backspace" && !digits[i].trim() && i > 0) {
-      inputsRef.current[i - 1]?.focus();
-    }
-    if (e.key === "ArrowLeft" && i > 0) inputsRef.current[i - 1]?.focus();
-    if (e.key === "ArrowRight" && i < length - 1) inputsRef.current[i + 1]?.focus();
-  };
-
-  const handlePaste = (e) => {
-    const pasted = (e.clipboardData?.getData("text") || "").replace(/\D/g, "").slice(0, length);
-    if (!pasted) return;
-    e.preventDefault();
-    onChange(pasted);
-    if (pasted.length === length && onComplete) onComplete(pasted);
-    inputsRef.current[Math.min(pasted.length, length - 1)]?.focus();
-  };
-
-  // Narrower slots when there are many, to keep the row fitting on mobile.
-  const slotCls =
-    length >= 8
-      ? "w-9 h-12 sm:w-10 sm:h-14 text-xl sm:text-2xl"
-      : "w-11 h-14 sm:w-12 sm:h-16 text-2xl";
-
-  return (
-    <div className="flex gap-1.5 sm:gap-2 justify-center" onPaste={handlePaste}>
-      {digits.map((d, i) => (
-        <input
-          key={i}
-          ref={(el) => (inputsRef.current[i] = el)}
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          maxLength={1}
-          autoComplete={i === 0 ? "one-time-code" : "off"}
-          disabled={disabled}
-          value={d.trim()}
-          onChange={(e) => handleChange(i, e.target.value)}
-          onKeyDown={(e) => handleKeyDown(i, e)}
-          onFocus={(e) => e.target.select()}
-          className={`${slotCls} text-center font-bold mono rounded-xl bg-slate-800 border-2 border-slate-700 text-white focus:outline-none focus:border-cyan-500 focus:bg-slate-900 transition disabled:opacity-50`}
-          aria-label={`Digit ${i + 1}`}
-        />
-      ))}
-    </div>
-  );
-}
-
-// Live-validating email input. Green check when valid, soft grey while typing.
-// Enter submits via form submission — parent controls <form>.
-function EmailField({ value, onChange, disabled, autoFocus }) {
-  const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-  const touched = value.length > 2;
-  return (
-    <div className="relative">
-      <input
-        type="email"
-        autoFocus={autoFocus}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-        placeholder="you@example.com"
-        autoComplete="email"
-        className={`w-full px-4 py-3 pr-10 rounded-xl bg-slate-800 border text-white placeholder-slate-500 focus:outline-none transition ${
-          touched && !valid
-            ? "border-red-500/60 focus:border-red-500"
-            : touched && valid
-            ? "border-emerald-500/60 focus:border-emerald-500"
-            : "border-slate-700 focus:border-cyan-500"
-        }`}
-      />
-      {touched && valid && (
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400 text-lg" aria-hidden>✓</span>
-      )}
-    </div>
-  );
-}
-
-// Premium "this syncs when you sign in" block.
-// Shown to guests: either their real progress ("here's what we'll save") or,
-// if they have none yet, a three-point value pitch explaining what sync unlocks.
-function ProgressPreview({ state }) {
-  const xp = state?.xp || 0;
-  const badges = (state?.badges || []).length;
-  const completed = (state?.completed || []).length;
-  const streak = state?.bestStreak || 0;
-  const hasProgress = xp > 0 || badges > 0 || completed > 0;
-
-  // No progress yet → show *why* sign-in matters (loss-aversion > feature list).
-  if (!hasProgress) {
-    const perks = [
-      { label: "Sync across devices",   desc: "Pick up on your phone, finish on your laptop." },
-      { label: "Never lose a streak",   desc: "Your daily streak survives cleared cookies and new browsers." },
-      { label: "Join the leaderboard",  desc: "Opt-in, display-name only — no real name required." },
-    ];
-    return (
-      <div className="relative rounded-2xl border border-cyan-900/30 bg-gradient-to-br from-cyan-950/25 via-slate-900/40 to-violet-950/20 p-4 mb-5 overflow-hidden">
-        <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full blur-3xl opacity-20" style={{ background: "radial-gradient(circle, #22d3ee 0%, transparent 70%)" }} />
-        <div className="relative">
-          <div className="text-[10px] uppercase tracking-widest text-cyan-300 font-bold mb-3">What you unlock</div>
-          <ul className="space-y-2.5">
-            {perks.map((p) => (
-              <li key={p.label} className="flex items-start gap-2.5">
-                <span className="mt-0.5 shrink-0 w-4 h-4 rounded-full bg-cyan-500/20 border border-cyan-400/50 flex items-center justify-center">
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                </span>
-                <div className="min-w-0">
-                  <div className="text-[13px] font-semibold text-slate-100 leading-tight">{p.label}</div>
-                  <div className="text-[11px] text-slate-400 leading-snug mt-0.5">{p.desc}</div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    );
-  }
-
-  // Has progress → show concrete stats with "don't lose this" framing.
-  const lvl = levelFromXP(xp);
-  const pills = [
-    { label: "Level", value: lvl },
-    { label: "XP", value: xp },
-    badges > 0 ? { label: "Badges", value: badges } : null,
-    completed > 0 ? { label: "Cases", value: completed } : null,
-    streak >= 5 ? { label: "Best streak", value: streak } : null,
-  ].filter(Boolean).slice(0, 4);
-  return (
-    <div className="relative rounded-2xl border border-cyan-900/40 bg-gradient-to-br from-cyan-950/35 via-slate-900/40 to-violet-950/25 p-4 mb-5 overflow-hidden">
-      <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full blur-3xl opacity-25" style={{ background: "radial-gradient(circle, #22d3ee 0%, transparent 70%)" }} />
-      <div className="relative">
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-[10px] uppercase tracking-widest text-cyan-300 font-bold">Your progress, safely synced</div>
-          <div className="text-[10px] text-slate-500 mono">locally only →</div>
-        </div>
-        <div className={`grid gap-2 ${pills.length === 2 ? "grid-cols-2" : pills.length === 3 ? "grid-cols-3" : "grid-cols-4"}`}>
-          {pills.map((p) => (
-            <div key={p.label} className="text-center py-1">
-              <div className="text-xl sm:text-2xl font-extrabold stat-number mono leading-none">{p.value}</div>
-              <div className="text-[10px] text-slate-400 uppercase tracking-wider mt-1">{p.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Unified sign-in card — used by TopBar modal and SoftWallModal alike.
-// Handles: Google OAuth, email → OTP verification, resend countdown,
-// rate-limit errors, inline validation, and a brief welcome-back celebration.
-// Last successfully signed-in email, remembered across sign-outs so the
-// user doesn't retype it every time. Cleared only when user picks "Use a
-// different email" explicitly.
-const LAST_EMAIL_KEY = "bq_last_email";
-const readLastEmail = () => {
-  try { return localStorage.getItem(LAST_EMAIL_KEY) || ""; } catch { return ""; }
-};
-const writeLastEmail = (v) => {
-  try { if (v) localStorage.setItem(LAST_EMAIL_KEY, v); else localStorage.removeItem(LAST_EMAIL_KEY); } catch {}
-};
-
-function SignInCard({ state, context = "general", onSuccess, onCancel }) {
-  const remembered = readLastEmail();
-  // "remembered" stage short-circuits the email form when we already know the user.
-  const [stage, setStage] = React.useState(remembered ? "remembered" : "start");
-  const [email, setEmail] = React.useState(remembered);
-  const [code, setCode] = React.useState("");
-  const [status, setStatus] = React.useState(""); // '' | 'sending' | 'verifying' | 'error'
-  const [errMsg, setErrMsg] = React.useState("");
-  const [resendAt, setResendAt] = React.useState(0); // epoch ms when resend is allowed
-  const [now, setNow] = React.useState(Date.now());
-  // Show Google button only when the provider is actually configured in Supabase.
-  // Flip VITE_GOOGLE_AUTH_ENABLED=true in your Vercel env (and local .env.local)
-  // once Google OAuth is set up, otherwise users hit a Supabase error page.
-  const googleAvailable = String(import.meta.env.VITE_GOOGLE_AUTH_ENABLED || "").toLowerCase() === "true";
-
-  // 1Hz tick while a resend countdown is active.
-  React.useEffect(() => {
-    if (resendAt <= Date.now()) return;
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [resendAt]);
-
-  const resendSecs = Math.max(0, Math.ceil((resendAt - now) / 1000));
-  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-
-  async function sendCode(e) {
-    if (e) e.preventDefault();
-    if (!emailValid) { setStatus("error"); setErrMsg("Enter a valid email."); return; }
-    setStatus("sending"); setErrMsg("");
-    try {
-      await window.BQAuth.signInWithEmail(email.trim());
-      setStage("code");
-      setStatus("");
-      setResendAt(Date.now() + 60_000);
-      setNow(Date.now());
-    } catch (err) {
-      setStatus("error");
-      const msg = err?.message || "Could not send code. Try again.";
-      if (/rate|too many/i.test(msg)) {
-        setErrMsg("Too many requests — wait a minute, then try again.");
-        setResendAt(Date.now() + 60_000);
-        setNow(Date.now());
-      } else {
-        setErrMsg(msg);
-      }
-    }
-  }
-
-  async function verify(fullCode) {
-    const token = (fullCode ?? code).replace(/\D/g, "");
-    if (token.length !== OTP_LENGTH) { setStatus("error"); setErrMsg(`Enter the ${OTP_LENGTH}-digit code.`); return; }
-    setStatus("verifying"); setErrMsg("");
-    try {
-      await window.BQAuth.verifyEmailCode(email.trim(), token);
-      writeLastEmail(email.trim());
-      setStage("success");
-      setStatus("");
-      // Let the celebration play; parent dismisses.
-      setTimeout(() => onSuccess && onSuccess(), 1900);
-    } catch (err) {
-      setStatus("error");
-      setErrMsg(err?.message || "That code didn't work. Double-check the email.");
-    }
-  }
-
-  function useDifferentEmail() {
-    writeLastEmail("");
-    setEmail("");
-    setStage("start");
-    setStatus("");
-    setErrMsg("");
-  }
-
-  async function googleSignIn() {
-    setStatus("sending"); setErrMsg("");
-    try { await window.BQAuth.signInWithGoogle(); }
-    catch (err) {
-      setStatus("error");
-      setErrMsg(err?.message || "Google sign-in failed.");
-    }
-  }
-
-  // ------- REMEMBERED (returning user, one-tap send) -------
-  if (stage === "remembered") {
-    const maskedLocal = email.split("@")[0];
-    const domain = email.split("@")[1] || "";
-    return (
-      <div>
-        <h3 className="text-xl sm:text-2xl font-extrabold text-white mb-1">
-          {context === "post-case" ? "Save your run" : "Welcome back"}
-        </h3>
-        <p className="text-sm text-slate-400 mb-4">
-          Continue as the account you used last time, or switch.
-        </p>
-        {state && <ProgressPreview state={state} />}
-        <button
-          onClick={async () => { await sendCode(); }}
-          disabled={status === "sending"}
-          className="w-full btn btn-primary py-3 rounded-xl text-left px-4 flex items-center justify-between gap-3 disabled:opacity-50"
-        >
-          <span className="flex items-center gap-3 min-w-0">
-            <span className="w-8 h-8 rounded-full bg-cyan-900/40 border border-cyan-700 flex items-center justify-center text-cyan-300 font-bold text-sm shrink-0">
-              {(maskedLocal[0] || "?").toUpperCase()}
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold truncate">Continue as {maskedLocal}</span>
-              <span className="block text-[11px] opacity-80 truncate">@{domain}</span>
-            </span>
-          </span>
-          <span className="shrink-0">{status === "sending" ? "…" : "→"}</span>
-        </button>
-        {status === "error" && errMsg && (
-          <div className="text-xs text-red-400 mt-2 text-center">{errMsg}</div>
-        )}
-        {googleAvailable && (
-          <>
-            <div className="flex items-center gap-2 my-4">
-              <div className="flex-1 h-px bg-slate-700"></div>
-              <span className="text-xs text-slate-500">or</span>
-              <div className="flex-1 h-px bg-slate-700"></div>
-            </div>
-            <GoogleButton onClick={googleSignIn} />
-          </>
-        )}
-        <button
-          onClick={useDifferentEmail}
-          className="w-full mt-3 text-xs text-slate-400 hover:text-white py-2"
-        >Use a different email</button>
-        {onCancel && (
-          <button onClick={onCancel} className="w-full mt-1 text-xs text-slate-500 hover:text-slate-300">
-            Cancel — keep playing as guest
-          </button>
-        )}
-      </div>
-    );
-  }
-
-  // ------- SUCCESS -------
-  if (stage === "success") {
-    const lvl = levelFromXP(state?.xp || 0);
-    const isReturning = !!remembered;
-    return (
-      <div className="relative text-center py-6">
-        <Confetti count={80} />
-        <div className="relative inline-flex items-center justify-center mb-4">
-          <div className="absolute inset-0 rounded-full blur-2xl opacity-60" style={{ background: "radial-gradient(circle, #22d3ee 0%, transparent 70%)" }} />
-          <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-cyan-400 to-violet-500 flex items-center justify-center bounce-in shadow-2xl shadow-cyan-500/40">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          </div>
-        </div>
-        <h3 className="text-2xl font-extrabold text-white mb-1">{isReturning ? "Welcome back" : "You're in"}</h3>
-        <p className="text-slate-300 text-sm">
-          {(state?.xp || 0) > 0
-            ? <>Level <span className="mono font-bold text-cyan-300">{lvl}</span> · <span className="mono font-bold text-cyan-300">{state?.xp || 0}</span> XP synced</>
-            : "Your progress will sync across every device."}
-        </p>
-        <p className="text-[11px] text-slate-500 mt-3 flex items-center justify-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          Syncing to the cloud
-        </p>
-      </div>
-    );
-  }
-
-  // ------- CODE ENTRY -------
-  if (stage === "code") {
-    return (
-      <div>
-        <button
-          type="button"
-          onClick={() => { setStage("start"); setCode(""); setStatus(""); setErrMsg(""); }}
-          className="text-xs text-slate-400 hover:text-white mb-4 inline-flex items-center gap-1"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Different email
-        </button>
-        <div className="text-center mb-6">
-          <div className="relative inline-flex items-center justify-center mb-3">
-            <div className="absolute inset-0 rounded-2xl blur-xl opacity-50" style={{ background: "radial-gradient(circle, #22d3ee 0%, transparent 70%)" }} />
-            <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-violet-500/20 border border-cyan-500/30 flex items-center justify-center">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="3" y="5" width="18" height="14" rx="2" />
-                <path d="m3 7 9 6 9-6" />
-              </svg>
-            </div>
-          </div>
-          <h3 className="text-xl sm:text-2xl font-extrabold text-white mb-1.5 tracking-tight">Check your inbox</h3>
-          <p className="text-sm text-slate-400">We sent a {OTP_LENGTH}-digit code to</p>
-          <p className="text-sm text-cyan-300 font-semibold mt-0.5 break-all">{email}</p>
-        </div>
-        <OtpInput
-          value={code}
-          onChange={(v) => { setCode(v); if (status === "error") setErrMsg(""); }}
-          onComplete={(full) => verify(full)}
-          disabled={status === "verifying"}
-          autoFocus
-        />
-        {status === "error" && errMsg && (
-          <div className="text-xs text-red-400 mt-3 text-center">{errMsg}</div>
-        )}
-        {status === "verifying" && (
-          <div className="text-xs text-cyan-300 mt-3 text-center flex items-center justify-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-            Verifying…
-          </div>
-        )}
-        <button
-          onClick={() => verify()}
-          disabled={code.length !== OTP_LENGTH || status === "verifying"}
-          className="btn btn-primary w-full py-3.5 rounded-xl mt-5 disabled:opacity-40 text-sm"
-        >{status === "verifying" ? "Verifying…" : "Verify & sign in →"}</button>
-        <div className="text-center mt-4">
-          {resendSecs > 0 ? (
-            <span className="text-xs text-slate-500">Resend available in {resendSecs}s</span>
-          ) : (
-            <button
-              type="button"
-              onClick={() => sendCode()}
-              className="text-xs text-cyan-300 hover:text-cyan-200 font-semibold"
-            >Resend code</button>
-          )}
-        </div>
-        <p className="text-[10px] text-slate-600 text-center mt-3">Can't find it? Check spam — or use the magic link in the email.</p>
-      </div>
-    );
-  }
-
-  // ------- START (email entry) -------
-  // Value-led headings. Context-aware: post-case leans on the run they just
-  // completed; general pitch leads with cross-device sync — the single biggest
-  // reason a guest should care about signing in.
-  const heading = context === "post-case" ? "Save this run" : "Your progress, everywhere";
-  const sub = context === "post-case"
-    ? "Add this run to your permanent history — and sync across every device."
-    : "Sync XP, streaks, and mastery across every device you study on.";
-
-  return (
-    <div>
-      <div className="mb-4">
-        <h3 className="text-2xl sm:text-[26px] font-extrabold text-white tracking-tight leading-tight">{heading}</h3>
-        <p className="text-sm text-slate-400 mt-1.5 leading-snug">{sub}</p>
-      </div>
-      {state && <ProgressPreview state={state} />}
-      {googleAvailable && (
-        <>
-          <GoogleButton onClick={googleSignIn} label={context === "post-case" ? "Save with Google" : "Continue with Google"} />
-          <div className="flex items-center gap-2 my-4">
-            <div className="flex-1 h-px bg-slate-700/70"></div>
-            <span className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">or email</span>
-            <div className="flex-1 h-px bg-slate-700/70"></div>
-          </div>
-        </>
-      )}
-      <form onSubmit={sendCode}>
-        <EmailField value={email} onChange={setEmail} disabled={status === "sending"} autoFocus />
-        {status === "error" && errMsg && (
-          <div className="text-xs text-red-400 mt-2">{errMsg}</div>
-        )}
-        <button
-          type="submit"
-          disabled={!emailValid || status === "sending"}
-          className="mt-3 w-full btn btn-primary py-3.5 rounded-xl disabled:opacity-40 text-sm"
-        >{status === "sending" ? "Sending…" : `Send ${OTP_LENGTH}-digit code`}</button>
-      </form>
-      <div className="flex items-center justify-center gap-4 mt-4 text-[10px] text-slate-500">
-        <span className="flex items-center gap-1">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
-          No password
-        </span>
-        <span className="w-1 h-1 rounded-full bg-slate-700" />
-        <span>~10 seconds</span>
-        <span className="w-1 h-1 rounded-full bg-slate-700" />
-        <span>No spam</span>
-      </div>
-      <div className="text-[10px] text-slate-600 mt-4 text-center">
-        By continuing, you agree to our{" "}
-        <a href="/privacy.html" className="underline hover:text-slate-400">privacy policy</a>.
-      </div>
-      {onCancel && (
-        <button onClick={onCancel} className="w-full mt-4 text-xs text-slate-500 hover:text-slate-300 py-1.5">
-          Keep playing as guest
-        </button>
-      )}
-    </div>
-  );
-}
-
-// Signed-in-only account settings: display name, leaderboard opt-in, sign out.
-// Deliberately separate from SignInCard — keeps both screens single-purpose.
-function AccountCard({ state, setState, user, onClose }) {
-  const [nameDraft, setNameDraft] = React.useState(state?.display_name || "");
-  const [saveStatus, setSaveStatus] = React.useState(""); // '' | 'saving' | 'saved'
-  React.useEffect(() => { setNameDraft(state?.display_name || ""); }, [state?.display_name]);
-  const lvl = levelFromXP(state?.xp || 0);
-
-  async function handleSignOut() {
-    // Clear remembered email so the next user on this browser doesn't see it
-    // pre-filled in the Welcome Back screen.
-    writeLastEmail("");
-    await window.BQAuth.signOut();
-    onClose?.();
-  }
-
-  async function handleSaveName() {
-    const next = { ...state, display_name: trimmed.slice(0, 24), showOnLeaderboard: trimmed ? state.showOnLeaderboard : false };
-    setState(next);
-    setSaveStatus("saving");
-    try {
-      await window.BQAuth.saveRemoteStateNow(next);
-      setSaveStatus("saved");
-      setTimeout(() => setSaveStatus(""), 1500);
-    } catch {
-      setSaveStatus("");
-    }
-  }
-
-  const trimmed = (nameDraft || "").trim();
-  const dirty = trimmed !== (state?.display_name || "");
-
-  return (
-    <div>
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div className="min-w-0">
-          <h3 className="text-xl font-extrabold text-white truncate">{user.email?.split("@")[0] || "Your account"}</h3>
-          <div className="text-xs text-slate-500 truncate">{user.email}</div>
-        </div>
-        <div className="text-right shrink-0">
-          <div className="text-2xl font-extrabold stat-number">Lv {lvl}</div>
-          <div className="text-[10px] text-slate-500 uppercase tracking-wider">{state?.xp || 0} XP</div>
-        </div>
-      </div>
-
-      <div className="rounded-xl bg-slate-800/40 border border-slate-700 p-4 mb-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="font-semibold text-white text-sm">Public leaderboard</div>
-          <span className="chip bg-slate-900/60 text-slate-400 text-[10px]">optional</span>
-        </div>
-        <div>
-          <div className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-1">Display name</div>
-          <div className="flex gap-2 flex-wrap">
-            <input
-              type="text"
-              value={nameDraft}
-              maxLength={24}
-              onChange={(e) => setNameDraft(e.target.value)}
-              placeholder="e.g. epi-owl"
-              className="flex-1 min-w-[140px] px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 text-sm"
-            />
-            <button
-              onClick={handleSaveName}
-              disabled={!dirty || saveStatus === "saving"}
-              className="btn btn-primary px-3 py-2 rounded-lg text-sm disabled:opacity-40 min-w-[64px]"
-            >{saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved ✓" : "Save"}</button>
-          </div>
-          <div className="text-[11px] text-slate-500 mt-1">Up to 24 chars. Blank = hidden from the leaderboard.</div>
-        </div>
-        <label className="flex items-start gap-2 cursor-pointer select-none text-sm text-slate-200">
-          <input
-            type="checkbox"
-            checked={!!state?.showOnLeaderboard}
-            disabled={!state?.display_name}
-            onChange={() => state?.display_name && setState({ ...state, showOnLeaderboard: !state.showOnLeaderboard })}
-            className="mt-1"
-          />
-          <span>
-            Show me on the public leaderboard
-            {!state?.display_name && <span className="text-[11px] text-slate-500 block">Set a display name first.</span>}
-          </span>
-        </label>
-      </div>
-
-      <SubscriptionPanel/>
-
-      <div className="flex gap-2">
-        <button onClick={onClose} className="flex-1 py-2 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700">Close</button>
-        <button onClick={handleSignOut} className="flex-1 py-2 rounded-lg bg-red-900/50 text-red-200 hover:bg-red-900/80 border border-red-800">Sign out</button>
-      </div>
-    </div>
-  );
-}
-
-// Subscription block inside the account card. Shows current plan, next
-// billing date (if Pro), and the right affordance (Upgrade / Manage billing).
-function SubscriptionPanel() {
-  const { sub, loading } = useSubscription();
-  const [paywallOpen, setPaywallOpen] = React.useState(false);
-  const [busy, setBusy] = React.useState(false);
-  const [err, setErr] = React.useState("");
-
-  async function openPortal() {
-    setBusy(true); setErr("");
-    try { await billing.openPortal(); }
-    catch (e) { setErr(e?.message || "Could not open billing portal."); setBusy(false); }
-  }
-
-  if (loading) {
-    return (
-      <div className="rounded-xl bg-slate-800/40 border border-slate-700 p-4 mb-4 text-sm text-slate-500">
-        Loading subscription…
-      </div>
-    );
-  }
-
-  const userType = sub?.user_type || "free";
-  const status = sub?.status;
-  const periodEnd = sub?.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null;
-
-  if (userType === "institutional") {
-    return (
-      <div className="rounded-xl bg-cyan-950/30 border border-cyan-700/40 p-4 mb-4">
-        <div className="flex items-center justify-between gap-3 mb-1">
-          <div className="font-semibold text-white text-sm">Plan</div>
-          <span className="chip text-[10px] bg-cyan-900/40 text-cyan-200">Institutional</span>
-        </div>
-        <p className="text-xs text-slate-400 leading-relaxed">All content unlocked. Managed by your institution — contact your admin for billing.</p>
-      </div>
-    );
-  }
-
-  if (userType === "pro") {
-    return (
-      <div className="rounded-xl bg-amber-950/20 border border-amber-700/30 p-4 mb-4">
-        <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
-          <div className="font-semibold text-white text-sm flex items-center gap-2">Plan <span className="chip text-[10px] bg-amber-900/40 text-amber-300">Pro</span></div>
-          {status && <span className="text-[11px] text-slate-400 mono">status: {status}</span>}
-        </div>
-        {periodEnd && (
-          <div className="text-xs text-slate-400 mb-3">
-            {status === "canceled" ? "Access until" : "Renews on"}{" "}
-            <span className="text-slate-200">{periodEnd.toLocaleDateString()}</span>
-          </div>
-        )}
-        {err && <div className="text-xs text-red-400 mb-2">{err}</div>}
-        <button onClick={openPortal} disabled={busy} className="btn btn-ghost px-3 py-2 rounded-lg text-xs disabled:opacity-40">
-          {busy ? "Opening…" : "Manage billing →"}
-        </button>
-      </div>
-    );
-  }
-
-  // Free — upgrade CTA hidden for now.
-  return null;
-}
-
-function AuthButton({ state, setState }) {
-  const [user, setUser] = React.useState(null);
-  const [open, setOpen] = React.useState(() => {
-    try { return new URLSearchParams(window.location.search).get("auth") === "1"; } catch { return false; }
-  });
-
-  // Strip ?auth=1 from the URL once we've consumed it, so refreshing or
-  // navigating back doesn't keep re-opening the modal.
-  React.useEffect(() => {
-    try {
-      const url = new URL(window.location.href);
-      if (url.searchParams.has("auth")) {
-        url.searchParams.delete("auth");
-        const qs = url.searchParams.toString();
-        window.history.replaceState(null, "", url.pathname + (qs ? `?${qs}` : "") + url.hash);
-      }
-    } catch {}
-  }, []);
-
-  React.useEffect(() => {
-    if (!window.BQAuth) return;
-    const unsub = window.BQAuth.onAuthChange(u => setUser(u));
-    return unsub;
-  }, []);
-
-  const authConfigured = window.BQAuth && window.BQAuth.enabled;
-
-  const trigger = !authConfigured ? (
-    <button
-      onClick={() => setOpen(true)}
-      className="text-xs px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700"
-      title="Accounts not yet configured"
-    >Sign in</button>
-  ) : user ? (
-    <button
-      onClick={() => setOpen(true)}
-      className="text-xs px-3 py-1.5 rounded-lg bg-emerald-900/40 text-emerald-200 hover:bg-emerald-900/60 border border-emerald-800"
-    >
-      <span className="hidden sm:inline">✓ </span>{user.email?.split("@")[0] || "Account"}
-    </button>
-  ) : (
-    <button
-      onClick={() => setOpen(true)}
-      className="text-xs px-3 py-1.5 rounded-lg bg-gradient-to-br from-cyan-500 to-violet-600 text-white hover:from-cyan-400 hover:to-violet-500 font-semibold shadow-lg shadow-cyan-900/40"
-    >Sign in</button>
-  );
-
-  if (!open) return trigger;
-
-  return (
-    <>
-      {trigger}
-      {ReactDOM.createPortal((
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-md p-4 fade-in"
-          onClick={() => setOpen(false)}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div
-            className="premium-border rounded-2xl max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto"
-            style={{ background: "linear-gradient(180deg, #0a0f1e 0%, #07091a 100%)" }}
-            onClick={e => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setOpen(false)}
-              aria-label="Close"
-              className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-slate-800/60 hover:bg-slate-700/80 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </button>
-            <div className="p-6 sm:p-7 relative">
-              {!authConfigured ? (
-                <>
-                  <h3 className="text-xl font-bold text-white mb-2">Accounts are coming soon</h3>
-                  <p className="text-sm text-slate-400 mb-4">Progress currently saves in this browser only. Sign-in is being set up — check back shortly to sync your XP and streaks across devices.</p>
-                  <button onClick={() => setOpen(false)} className="btn btn-primary w-full py-2 rounded-lg">Keep playing as guest</button>
-                </>
-              ) : user ? (
-                <AccountCard state={state} setState={setState} user={user} onClose={() => setOpen(false)} />
-              ) : (
-                <SignInCard
-                  state={state}
-                  context="general"
-                  onSuccess={() => setOpen(false)}
-                  onCancel={() => setOpen(false)}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      ), document.body)}
-    </>
-  );
-}
 
 function Home({ state, onStartCase, onNav, onOpenBranch, onReview }) {
   const level = levelFromXP(state.xp);
@@ -2215,7 +814,7 @@ function Home({ state, onStartCase, onNav, onOpenBranch, onReview }) {
               return (
                 <li key={s.caseId} className={`flex items-start gap-3 rounded-lg p-3 border ${isNext ? "border-cyan-900/60 bg-cyan-950/20" : "border-slate-800/60 bg-slate-900/30"}`}>
                   <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${done ? "bg-emerald-900/40 text-emerald-300" : isNext ? "bg-cyan-900/60 text-cyan-100" : "bg-slate-800 text-slate-400"}`}>
-                    {done ? "✓" : i + 1}
+                    {done ? <Ico name="check" size={14}/> : i + 1}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -2234,76 +833,6 @@ function Home({ state, onStartCase, onNav, onOpenBranch, onReview }) {
   );
 }
 
-function DeepDive({ methodId, compact, srs, onOpenGlossary }) {
-  const [open, setOpen] = useState(false);
-  const m = methodId && METHODS[methodId];
-  if (!m) return null;
-  const mastery = getMethodMastery(methodId, srs || {});
-  const masteryPct = mastery.total > 0 ? Math.round((mastery.reviewed / mastery.total) * 100) : 0;
-  return (
-    <div className={`mt-3 rounded-xl border border-slate-700/60 ${compact?"bg-slate-900/30":"bg-slate-900/50"}`}>
-      <button
-        onClick={()=>setOpen(o=>!o)}
-        className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-slate-800/40 rounded-xl gap-2"
-      >
-        <span className="text-sm font-semibold text-cyan-300 truncate">Deep dive: {m.title}</span>
-        <span className="flex items-center gap-2 shrink-0">
-          {mastery.total > 0 && (
-            <span
-              className="chip bg-slate-800/80 text-cyan-200"
-              title={`${mastery.attempted}/${mastery.total} seen · ${mastery.reviewed} reviewed · ${mastery.mastered} mastered`}
-            >
-              {mastery.mastered > 0 ? "★ " : ""}{masteryPct}% mastery
-            </span>
-          )}
-          <span className="text-xs text-slate-500">{open?"▲ collapse":"▼ learn more"}</span>
-        </span>
-      </button>
-      {open && (
-        <div className="px-4 pb-4 pt-1 space-y-3 text-sm text-slate-200 leading-relaxed fade-in">
-          <div>
-            <div className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-1">Intuition</div>
-            <div>{m.intuition}</div>
-          </div>
-          {m.formula && (
-            <div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-1">Formula</div>
-              <div className="mono text-cyan-200 bg-slate-950/60 rounded px-3 py-2 text-xs">{m.formula}</div>
-            </div>
-          )}
-          {m.assumptions && m.assumptions.length > 0 && (
-            <div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-1">Assumptions</div>
-              <ul className="list-disc pl-5 space-y-1 text-slate-300">{m.assumptions.map((a,i)=><li key={i}>{a}</li>)}</ul>
-            </div>
-          )}
-          {m.pitfalls && m.pitfalls.length > 0 && (
-            <div>
-              <div className="text-[10px] uppercase tracking-widest text-amber-500 font-semibold mb-1">Common pitfalls</div>
-              <ul className="list-disc pl-5 space-y-1 text-slate-300">{m.pitfalls.map((a,i)=><li key={i}>{a}</li>)}</ul>
-            </div>
-          )}
-          {m.reading && m.reading.length > 0 && (
-            <div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-1">Further reading</div>
-              <ul className="list-disc pl-5 space-y-1 text-slate-400">{m.reading.map((a,i)=><li key={i}>{a}</li>)}</ul>
-            </div>
-          )}
-          {onOpenGlossary && (
-            <div className="pt-1">
-              <button
-                onClick={() => onOpenGlossary({ selectedId: `method:${methodId}` })}
-                className="text-xs text-cyan-300 hover:text-cyan-200 underline underline-offset-4 decoration-cyan-500/40 hover:decoration-cyan-300"
-              >
-                Open in glossary →
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function StatCard({ label, value, gradient }) {
   return (
@@ -2459,6 +988,135 @@ function DiagnosticPlay({ onFinish, onExit }) {
   );
 }
 
+// Inline signup card shown on the diagnostic results page — the highest-intent
+// moment for a guest to create an account. Self-contained: handles email →
+// 6-digit code → verify, and auto-hides once BQAuth reports a signed-in user.
+function PostDiagnosticSavePrompt() {
+  const DISMISS_KEY = "bq_postdiag_signup_dismissed";
+  const [user, setUser] = React.useState(null);
+  const [dismissed, setDismissed] = React.useState(() => {
+    try { return localStorage.getItem(DISMISS_KEY) === "1"; } catch { return false; }
+  });
+  const [stage, setStage] = React.useState("email"); // email | code | success
+  const [email, setEmail] = React.useState("");
+  const [code, setCode] = React.useState("");
+  const [status, setStatus] = React.useState(""); // '' | sending | verifying | error
+  const [err, setErr] = React.useState("");
+
+  React.useEffect(() => {
+    if (!window.BQAuth) return;
+    const unsub = window.BQAuth.onAuthChange?.(u => setUser(u));
+    return unsub;
+  }, []);
+
+  if (!window.BQAuth?.enabled || user || dismissed) return null;
+
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const codeClean = code.replace(/\D/g, "");
+
+  async function sendCode(e) {
+    if (e) e.preventDefault();
+    if (!emailValid) { setStatus("error"); setErr("Enter a valid email."); return; }
+    setStatus("sending"); setErr("");
+    try {
+      await window.BQAuth.signInWithEmail(email.trim());
+      setStage("code");
+      setStatus("");
+      window.BQAuth.logEvent?.("postdiag_code_sent");
+    } catch (e2) {
+      setStatus("error");
+      setErr(e2?.message || "Could not send code. Try again.");
+    }
+  }
+
+  async function verify(e) {
+    if (e) e.preventDefault();
+    if (codeClean.length !== OTP_LENGTH) {
+      setStatus("error"); setErr(`Enter the ${OTP_LENGTH}-digit code.`); return;
+    }
+    setStatus("verifying"); setErr("");
+    try {
+      await window.BQAuth.verifyEmailCode(email.trim(), codeClean);
+      writeLastEmail(email.trim());
+      setStage("success");
+      setStatus("");
+      window.BQAuth.logEvent?.("postdiag_signup_success");
+    } catch (e2) {
+      setStatus("error");
+      setErr(e2?.message || "That code didn't work. Double-check your email.");
+    }
+  }
+
+  function dismiss() {
+    try { localStorage.setItem(DISMISS_KEY, "1"); } catch {}
+    setDismissed(true);
+    window.BQAuth.logEvent?.("postdiag_signup_dismiss");
+  }
+
+  return (
+    <div className="premium-border rounded-2xl p-5 sm:p-6" style={{background: "linear-gradient(145deg, rgba(16,185,129,0.10), rgba(22,28,54,0.70))"}}>
+      {stage === "success" ? (
+        <div className="flex items-start gap-3">
+          <span className="text-emerald-300 leading-none inline-flex items-center"><Ico name="check" size={24}/></span>
+          <div>
+            <div className="text-white font-semibold text-sm sm:text-base">You're signed in.</div>
+            <div className="text-xs text-slate-400 mt-0.5">Your study path is synced. Pick it up on any device.</div>
+          </div>
+        </div>
+      ) : stage === "code" ? (
+        <form onSubmit={verify} className="space-y-3">
+          <div>
+            <div className="text-white font-semibold text-sm sm:text-base mb-1">Enter the 6-digit code</div>
+            <div className="text-xs text-slate-400">We sent it to <span className="text-slate-200">{email}</span>. Check spam if it's slow.</div>
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={OTP_LENGTH}
+              value={code} onChange={(e) => setCode(e.target.value)}
+              placeholder="123456"
+              className="flex-1 min-w-0 px-3 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 text-base tracking-widest font-mono"
+            />
+            <button
+              type="submit"
+              disabled={codeClean.length !== OTP_LENGTH || status === "verifying"}
+              className="btn btn-primary px-4 py-2.5 rounded-lg text-sm disabled:opacity-40 shrink-0"
+            >{status === "verifying" ? "Verifying…" : "Verify"}</button>
+          </div>
+          {status === "error" && <div className="text-xs text-rose-400">{err}</div>}
+          <div className="flex items-center gap-3 text-xs">
+            <button type="button" onClick={() => { setStage("email"); setStatus(""); setErr(""); setCode(""); }} className="text-slate-500 hover:text-slate-300 underline underline-offset-4 decoration-slate-700">Use a different email</button>
+            <span className="text-slate-700">·</span>
+            <button type="button" onClick={dismiss} className="text-slate-500 hover:text-slate-300 underline underline-offset-4 decoration-slate-700">Maybe later</button>
+          </div>
+        </form>
+      ) : (
+        <form onSubmit={sendCode} className="space-y-3">
+          <div>
+            <div className="tag text-emerald-300 mb-1.5">Don't lose this</div>
+            <h3 className="text-lg sm:text-xl font-bold text-white leading-tight">Save your study path</h3>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1">Sync XP and streaks across devices. Resume any case. One email, no password.</p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="email" autoComplete="email" required
+              value={email} onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@email.com"
+              className="flex-1 min-w-0 px-3 py-2.5 rounded-lg bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 text-sm"
+            />
+            <button
+              type="submit"
+              disabled={!emailValid || status === "sending"}
+              className="btn btn-primary px-5 py-2.5 rounded-lg text-sm disabled:opacity-40 shrink-0"
+            >{status === "sending" ? "Sending…" : "Save my progress"}</button>
+          </div>
+          {status === "error" && <div className="text-xs text-rose-400">{err}</div>}
+          <button type="button" onClick={dismiss} className="text-xs text-slate-500 hover:text-slate-300 underline underline-offset-4 decoration-slate-700">Maybe later</button>
+        </form>
+      )}
+    </div>
+  );
+}
+
 function DiagnosticResults({ profile, studyPath, onStartCase, onNav, learnerGoal }) {
   if (!profile) return null;
 
@@ -2559,6 +1217,9 @@ function DiagnosticResults({ profile, studyPath, onStartCase, onNav, learnerGoal
         </div>
       </div>
 
+      {/* Inline signup — highest-intent moment for guests */}
+      <PostDiagnosticSavePrompt />
+
       {/* CTA */}
       {nextCase && (
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-2">
@@ -2598,7 +1259,7 @@ function SkillTree({ state, onStartCase, initialBranch }) {
                 <div className="flex justify-between items-center gap-3">
                   <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                     <span className="w-9 h-9 sm:w-11 sm:h-11 shrink-0 inline-block" style={{color: b.color}}>
-                      {BRANCH_ICON[k] || <span className="text-3xl sm:text-4xl">{b.icon}</span>}
+                      {BRANCH_ICON[k] || <Ico name={b.icon} size={36}/>}
                     </span>
                     <div className="min-w-0">
                       <div className="font-bold text-white text-base sm:text-lg truncate">{b.name}</div>
@@ -2624,7 +1285,7 @@ function SkillTree({ state, onStartCase, initialBranch }) {
                         <div className="flex justify-between items-start gap-3 flex-wrap">
                           <div className="flex-1 min-w-0">
                             <div className="font-bold text-white flex items-center gap-2 flex-wrap">
-                              {isDone && <span className="text-emerald-400">✓</span>}
+                              {isDone && <span className="text-emerald-400 inline-flex items-center"><Ico name="check" size={14}/></span>}
                               <span className={locked ? "text-slate-300" : ""}>{c.title}</span>
                               {locked && <span className="chip text-[10px] bg-amber-900/40 text-amber-300">
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="inline mr-0.5"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
@@ -3508,11 +2169,11 @@ function WebRPane({ onProgress } = {}) {
       await w.init();
       setWebR(w);
       setStatus("ready");
-      appendMsg("ok", "✅ R is ready. Select a lesson and press Run (or ⌘/Ctrl + Enter).");
+      appendMsg("ok", "R is ready. Select a lesson and press Run (or ⌘/Ctrl + Enter).");
     } catch (e) {
       console.error(e);
       setStatus("error");
-      appendMsg("err", "❌ " + (e && e.message ? e.message : String(e)));
+      appendMsg("err", (e && e.message ? e.message : String(e)));
     }
   };
 
@@ -3526,7 +2187,7 @@ function WebRPane({ onProgress } = {}) {
     missing.forEach(p => next.add(p));
     installedRef.current = next;
     setInstalled(next);
-    appendMsg("ok", `✅ Installed ${missing.join(", ")}`);
+    appendMsg("ok", `Installed ${missing.join(", ")}`);
   };
 
   const run = async () => {
@@ -3559,8 +2220,8 @@ function WebRPane({ onProgress } = {}) {
         if (m.type === "stdout") msgs.push({ type: "stdout", text: m.data });
         else if (m.type === "stderr") msgs.push({ type: "stderr", text: m.data });
         else if (m.type === "message") msgs.push({ type: "info", text: (m.data && m.data.message) || String(m.data) });
-        else if (m.type === "warning") msgs.push({ type: "stderr", text: "⚠ Warning: " + ((m.data && m.data.message) || String(m.data)) });
-        else if (m.type === "error") msgs.push({ type: "err", text: "❌ Error: " + ((m.data && m.data.message) || String(m.data)) });
+        else if (m.type === "warning") msgs.push({ type: "stderr", text: "Warning: " + ((m.data && m.data.message) || String(m.data)) });
+        else if (m.type === "error") msgs.push({ type: "err", text: "Error: " + ((m.data && m.data.message) || String(m.data)) });
       });
       if (!msgs.length) msgs.push({ type: "info", text: "(no text output — check Plots pane)" });
       setMessages(msgs);
@@ -3586,7 +2247,7 @@ function WebRPane({ onProgress } = {}) {
     } catch (e) {
       console.error(e);
       if (myToken === runTokenRef.current) {
-        appendMsg("err", "❌ " + (e && e.message ? e.message : String(e)));
+        appendMsg("err", (e && e.message ? e.message : String(e)));
         setHistory(h => [{ lessonId: startLesson, ok: false, ms: 0, at: Date.now() }, ...h].slice(0, 20));
       }
     } finally {
@@ -3721,10 +2382,10 @@ ${l.code}
             <span className="chip mono" style={{background:"rgba(148,163,184,0.08)", color:"#94a3b8"}}>{runMs} ms</span>
           )}
           {xp > 0 && (
-            <span className="chip mono" style={{background:"rgba(251,191,36,0.12)", color:"#fbbf24"}}>★ {xp} XP</span>
+            <span className="chip mono inline-flex items-center gap-1.5" style={{background:"rgba(251,191,36,0.12)", color:"#fbbf24"}}><Ico name="star" size={12}/> {xp} XP</span>
           )}
           {doneCount > 0 && (
-            <span className="chip mono" style={{background:"rgba(16,185,129,0.12)", color:"#10b981"}}>✓ {doneCount}/{R_LESSONS.length}</span>
+            <span className="chip mono inline-flex items-center gap-1.5" style={{background:"rgba(16,185,129,0.12)", color:"#10b981"}}><Ico name="check" size={12}/> {doneCount}/{R_LESSONS.length}</span>
           )}
         </div>
       </div>
@@ -3791,7 +2452,7 @@ ${l.code}
                     <span className="flex-1 min-w-0">
                       <span className="flex items-center gap-1">
                         <span className="block text-[13px] font-semibold text-slate-100 truncate">{l.title}</span>
-                        {done && <span className="text-[10px] text-emerald-400">✓</span>}
+                        {done && <span className="text-emerald-400 inline-flex items-center"><Ico name="check" size={10}/></span>}
                       </span>
                       <span className="block text-[10px] uppercase tracking-wider mono" style={{color: lvColor}}>
                         {l.level}{l.packages?.length ? ` · ${l.packages.join(",")}` : ""}
@@ -4026,7 +2687,7 @@ ${l.code}
                           className="btn btn-primary mt-2 px-4 py-1.5 rounded-lg text-xs disabled:opacity-40">Check</button>
                       ) : (
                         <div className={`mt-2 p-3 rounded-lg text-sm ${picked===q.correct?"bg-emerald-900/25 text-emerald-200":"bg-rose-900/25 text-rose-200"}`}>
-                          {picked===q.correct ? "✓ " : "✗ "}{q.explain}
+                          <span className="inline-flex items-center mr-1 align-[-0.1em]">{picked===q.correct ? <Ico name="check" size={12}/> : <Ico name="cross" size={12}/>}</span>{q.explain}
                         </div>
                       )}
                     </div>
@@ -4038,7 +2699,7 @@ ${l.code}
               {quizAllRevealed && (
                 <div className="mt-5 pt-4 border-t border-cyan-500/15 flex items-center gap-3 flex-wrap">
                   <div className="text-[12.5px] text-slate-300 flex-1 min-w-0">
-                    <span className="mono text-emerald-400">✓ Lesson complete</span>
+                    <span className="mono text-emerald-400 inline-flex items-center gap-1.5"><Ico name="check" size={14}/> Lesson complete</span>
                     {quizScore === lesson.quiz.length && <span className="ml-2 text-amber-400 mono">· perfect score!</span>}
                   </div>
                   <button onClick={resetCurrent} className="btn btn-ghost text-xs px-3 py-1.5 rounded-md inline-flex items-center gap-1.5"><Ico name="reset" size={13}/> Retry</button>
@@ -4070,7 +2731,7 @@ ${l.code}
                         <span className="text-slate-400 group-hover:text-cyan-300"><Ico name={rl.icon} size={14}/></span>
                         <span className="text-slate-200 group-hover:text-cyan-300">{rl.title}</span>
                         <span className="mono text-[10px] text-slate-600">{rl.level}</span>
-                        {done && <span className="text-emerald-400 text-[10px]">✓</span>}
+                        {done && <span className="text-emerald-400 inline-flex items-center"><Ico name="check" size={10}/></span>}
                       </button>
                     );
                   })}
@@ -4085,7 +2746,7 @@ ${l.code}
                 <div className="space-y-1 text-[12px] mono text-slate-400 max-h-40 overflow-auto">
                   {history.map((h,i) => (
                     <div key={i} className="flex items-center gap-3">
-                      <span style={{color: h.ok ? "#10b981" : "#ef4444"}}>{h.ok ? "✓" : "✗"}</span>
+                      <span className="inline-flex items-center" style={{color: h.ok ? "#10b981" : "#ef4444"}}><Ico name={h.ok ? "check" : "cross"} size={12}/></span>
                       <span className="text-slate-500">{new Date(h.at).toLocaleTimeString()}</span>
                       <span className="text-slate-200">{(R_LESSONS.find(l=>l.id===h.lessonId)||{}).title}</span>
                       {h.ok && <span className="ml-auto">{h.ms} ms</span>}
@@ -4147,7 +2808,7 @@ function PaywallModal({ reason, onClose, caseTitle }) {
                 : "Unlock all 50 cases."}
             </h3>
           </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-white shrink-0" aria-label="Close">✕</button>
+          <button onClick={onClose} className="text-slate-500 hover:text-white shrink-0 inline-flex items-center" aria-label="Close"><Ico name="close" size={18}/></button>
         </div>
 
         <p className="text-sm text-slate-300 leading-relaxed mb-5">
@@ -4182,11 +2843,11 @@ function PaywallModal({ reason, onClose, caseTitle }) {
         </div>
 
         <ul className="text-xs text-slate-400 space-y-1.5 mb-5">
-          <li className="flex items-start gap-2"><span className="text-emerald-400 shrink-0">✓</span> All 50 cases unlocked — advanced regression, survival, causal, Bayesian</li>
-          <li className="flex items-start gap-2"><span className="text-emerald-400 shrink-0">✓</span> FSRS-6 scheduling across every card</li>
-          <li className="flex items-start gap-2"><span className="text-emerald-400 shrink-0">✓</span> Per-method mastery analytics</li>
-          <li className="flex items-start gap-2"><span className="text-emerald-400 shrink-0">✓</span> All future content included</li>
-          <li className="flex items-start gap-2"><span className="text-emerald-400 shrink-0">✓</span> Cancel anytime from your account — no long-term lock-in</li>
+          <li className="flex items-start gap-2"><span className="text-emerald-400 shrink-0 inline-flex items-center mt-0.5"><Ico name="check" size={14}/></span> All 50 cases unlocked — advanced regression, survival, causal, Bayesian</li>
+          <li className="flex items-start gap-2"><span className="text-emerald-400 shrink-0 inline-flex items-center mt-0.5"><Ico name="check" size={14}/></span> FSRS-6 scheduling across every card</li>
+          <li className="flex items-start gap-2"><span className="text-emerald-400 shrink-0 inline-flex items-center mt-0.5"><Ico name="check" size={14}/></span> Per-method mastery analytics</li>
+          <li className="flex items-start gap-2"><span className="text-emerald-400 shrink-0 inline-flex items-center mt-0.5"><Ico name="check" size={14}/></span> All future content included</li>
+          <li className="flex items-start gap-2"><span className="text-emerald-400 shrink-0 inline-flex items-center mt-0.5"><Ico name="check" size={14}/></span> Cancel anytime from your account — no long-term lock-in</li>
         </ul>
 
         {err && <div className="text-xs text-red-400 mb-3">{err}</div>}
@@ -4210,393 +2871,8 @@ function PaywallModal({ reason, onClose, caseTitle }) {
   ), document.body);
 }
 
-// Small, unobtrusive "Report an issue" link shown after an answer is revealed.
-// Opens a modal where signed-in users can flag a question (wrong answer key,
-// wrong explanation, typo, ambiguous wording, other). Guests see a hint to sign in.
-// Writes to public.question_reports (RLS: users can only read their own).
-function ReportQuestionLink({ qid, caseId }) {
-  const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState("wrong_answer");
-  const [comment, setComment] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
-  const [err, setErr] = useState("");
-  const signedIn = !!(window.BQAuth && window.BQAuth.getUser && window.BQAuth.getUser());
 
-  async function submit() {
-    setBusy(true); setErr("");
-    try {
-      await window.BQAuth.submitQuestionReport({ qid, caseId, reason, comment });
-      window.BQAuth?.logEvent?.("report_filed", { qid, caseId, data: { reason } });
-      setDone(true);
-    } catch (e) {
-      setErr((e && e.message) || "Could not send. Try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
 
-  return (
-    <>
-      <div className="mt-4 pt-3 border-t border-slate-700/50 flex items-center justify-between gap-3 flex-wrap">
-        <div className="text-[11px] uppercase tracking-widest text-slate-500 mono">qid: {qid}</div>
-        <button
-          onClick={() => { setOpen(true); setDone(false); setErr(""); setComment(""); setReason("wrong_answer"); }}
-          className="text-xs text-slate-400 hover:text-white underline underline-offset-2">
-          Report an issue with this question
-        </button>
-      </div>
-      {open && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{background: "rgba(2,6,23,0.7)"}}>
-          <div className="card premium-border rounded-2xl max-w-md w-full p-6" onClick={e=>e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-white">Report a question</h3>
-              <button onClick={()=>setOpen(false)} className="text-slate-400 hover:text-white">✕</button>
-            </div>
-            {done ? (
-              <div className="text-sm text-slate-200">
-                <p className="mb-3">Thanks — flagged for review. Typical triage within 72 hours.</p>
-                <p className="text-xs text-slate-400 mono">qid: {qid}</p>
-                <button onClick={()=>setOpen(false)} className="btn btn-primary px-5 py-2 rounded-lg mt-4 text-sm">Close</button>
-              </div>
-            ) : !signedIn ? (
-              <div className="text-sm text-slate-300">
-                <p className="mb-3">Sign in to flag a question — it lets us follow up if needed and prevents spam.</p>
-                <button onClick={()=>setOpen(false)} className="btn btn-ghost px-5 py-2 rounded-lg text-sm">Close</button>
-              </div>
-            ) : (
-              <div className="text-sm">
-                <label className="block text-xs uppercase tracking-widest text-slate-400 mb-2">What's wrong?</label>
-                <div className="space-y-1.5 mb-4">
-                  {[
-                    ["wrong_answer", "The answer key is wrong"],
-                    ["wrong_explain", "The explanation is wrong or misleading"],
-                    ["typo", "Typo or formatting issue"],
-                    ["ambiguous", "Ambiguous — more than one option fits"],
-                    ["other", "Something else"],
-                  ].map(([val, label]) => (
-                    <label key={val} className="flex items-center gap-2 p-2 rounded hover:bg-slate-800/40 cursor-pointer">
-                      <input type="radio" name="report-reason" value={val} checked={reason===val} onChange={()=>setReason(val)}/>
-                      <span className="text-slate-200">{label}</span>
-                    </label>
-                  ))}
-                </div>
-                <label className="block text-xs uppercase tracking-widest text-slate-400 mb-2">Optional: what should it be?</label>
-                <textarea
-                  value={comment} onChange={e=>setComment(e.target.value.slice(0, 1000))}
-                  rows={3} placeholder="e.g. the correct option is B, not C, because…"
-                  className="w-full p-3 rounded-lg bg-slate-950/60 border border-slate-700 text-slate-100 text-sm placeholder-slate-500"/>
-                <div className="text-[10px] text-slate-500 mono text-right mt-1">{comment.length}/1000</div>
-                {err && <div className="text-xs text-red-400 mt-2">{err}</div>}
-                <div className="flex gap-2 mt-4">
-                  <button onClick={()=>setOpen(false)} className="btn btn-ghost px-4 py-2 rounded-lg text-sm flex-1">Cancel</button>
-                  <button onClick={submit} disabled={busy} className="btn btn-primary px-4 py-2 rounded-lg text-sm flex-1 disabled:opacity-40">
-                    {busy ? "Sending…" : "Send report"}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs, onOpenGlossary }) {
-  const isReview = caseId === REVIEW_CASE_ID;
-  const c = isReview
-    ? { id: REVIEW_CASE_ID, title: "Daily Review", branch: "foundations", bank: questions, qPerRun: questions.length, story: "" }
-    : CASES.find(x => x.id === caseId);
-  const narrative = isReview ? null : getNarrative(caseId);
-  const diff = DIFFICULTIES[difficulty];
-  const [stepIdx, setStepIdx] = useState(0);
-  const [answers, setAnswers] = useState([]);
-  const [current, setCurrent] = useState(null);
-  const [showExplain, setShowExplain] = useState(false);
-  const [correct, setCorrect] = useState(null);
-  const [timeLeft, setTimeLeft] = useState(diff.time);
-  const [streak, setStreak] = useState(0);
-  const [totalTimeBonus, setTotalTimeBonus] = useState(0);
-  // When the current question is the first of a new act, we pause the play
-  // loop and show an act-intro card until the user clicks through. The first
-  // question naturally starts Act 1 so this is true on mount.
-  const [showActIntro, setShowActIntro] = useState(!!narrative);
-
-  const step = questions[stepIdx];
-  const isLast = stepIdx === questions.length - 1;
-  // Narrative act metadata for the current question. `indexInAct === 0`
-  // means this is the first question of that act — time for an intro card.
-  const actInfo = narrative && step ? getActForQid(caseId, step.qid) : null;
-
-  useEffect(() => {
-    if (showExplain || showActIntro) return;   // Pause the timer during act intros.
-    if (timeLeft <= 0) { checkAnswer(true); return; }
-    const t = setTimeout(()=>setTimeLeft(timeLeft-1), 1000);
-    return ()=>clearTimeout(t);
-  }, [timeLeft, showExplain, showActIntro]);
-
-  useEffect(() => { setTimeLeft(diff.time); }, [stepIdx]);
-
-  const checkAnswer = (timedOut=false) => {
-    let ok = false;
-    if (!timedOut) {
-      if (step.type === "mcq") ok = current === step.answer;
-      else if (step.type === "multi") {
-        const a = (current||[]).slice().sort().join(",");
-        const b = step.answer.slice().sort().join(",");
-        ok = a === b;
-      } else if (step.type === "numeric") {
-        ok = current !== null && current !== "" && Math.abs(parseFloat(current) - step.answer) <= (step.tol||0);
-      }
-    }
-    setCorrect(ok);
-    setShowExplain(true);
-    const bonusFromTime = ok ? Math.round(timeLeft / 3) : 0;
-    setTotalTimeBonus(t => t + bonusFromTime);
-    setStreak(ok ? streak+1 : 0);
-    setAnswers([...answers, { qid: step.qid, q: step.q, user: current, correct: ok, explain: step.explain, method: step.method, timedOut, timeBonus: bonusFromTime }]);
-  };
-
-  const nextStep = () => {
-    if (isLast) onFinish(caseId, difficulty, answers, totalTimeBonus);
-    else {
-      const nextIdx = stepIdx + 1;
-      // If the next question is the first of a new act, pause and show the
-      // act-intro card before the question appears.
-      let showIntro = false;
-      if (narrative) {
-        const nextQ = questions[nextIdx];
-        const nextActInfo = nextQ ? getActForQid(caseId, nextQ.qid) : null;
-        if (nextActInfo && nextActInfo.indexInAct === 0) showIntro = true;
-      }
-      setStepIdx(nextIdx); setCurrent(null); setShowExplain(false); setCorrect(null);
-      setShowActIntro(showIntro);
-    }
-  };
-
-  const progress = ((stepIdx) / questions.length) * 100;
-  const timePct = (timeLeft / diff.time) * 100;
-
-  const renderInput = () => {
-    if (step.type === "mcq") {
-      return (
-        <div className="space-y-2">
-          {step.options.map((o, i) => {
-            const cls = showExplain
-              ? i===step.answer ? "option-btn correct" : current===i ? "option-btn incorrect" : "option-btn opacity-50"
-              : current===i ? "option-btn selected" : "option-btn";
-            return (
-              <button key={i} onClick={()=>!showExplain && setCurrent(i)} disabled={showExplain}
-                className={`w-full p-3 sm:p-4 rounded-xl text-sm sm:text-base ${cls}`}>
-                <span className="mono text-slate-500 mr-3 text-sm">{String.fromCharCode(65+i)}</span>
-                <span className="text-white">{o}</span>
-                {showExplain && i===step.answer && <span className="ml-2 text-emerald-400 font-bold">✓</span>}
-              </button>
-            );
-          })}
-        </div>
-      );
-    }
-    if (step.type === "multi") {
-      const sel = current || [];
-      return (
-        <div className="space-y-2">
-          <div className="text-xs text-purple-300 mb-1 font-semibold uppercase tracking-wider">Select all that apply</div>
-          {step.options.map((o, i) => {
-            const checked = sel.includes(i);
-            const cls = showExplain
-              ? step.answer.includes(i) ? "option-btn correct" : checked ? "option-btn incorrect" : "option-btn opacity-50"
-              : checked ? "option-btn selected" : "option-btn";
-            return (
-              <button key={i} onClick={()=>{ if(!showExplain) setCurrent(checked?sel.filter(x=>x!==i):[...sel,i]); }} disabled={showExplain}
-                className={`w-full p-3 sm:p-4 rounded-xl text-sm sm:text-base ${cls}`}>
-                <span className={`inline-block w-5 h-5 mr-3 rounded border-2 text-center text-xs leading-4 ${checked?"bg-purple-500 border-purple-500 text-white":"border-slate-500"}`}>{checked?"✓":""}</span>
-                <span className="text-white">{o}</span>
-              </button>
-            );
-          })}
-        </div>
-      );
-    }
-    if (step.type === "numeric") {
-      return (
-        <div>
-          <input type="number" step="any" value={current??""} onChange={e=>setCurrent(e.target.value)} disabled={showExplain}
-            placeholder="Enter numeric answer..." autoFocus />
-          <div className="text-xs text-slate-500 mt-2 mono">Tolerance: ± {step.tol}</div>
-        </div>
-      );
-    }
-  };
-
-  const hasAnswer = step.type === "multi" ? (current||[]).length > 0 : current !== null && current !== "" && current !== undefined;
-
-  return (
-    <div className="max-w-3xl mx-auto p-4 sm:p-6 fade-in">
-      <div className="flex justify-between items-center mb-4 flex-wrap gap-2 sm:gap-3">
-        <div className="flex items-center gap-1.5 sm:gap-2 text-sm flex-wrap min-w-0">
-          <button onClick={onExit} className="text-slate-500 hover:text-white">← Exit</button>
-          <span className="text-slate-700">|</span>
-          <span className="chip" style={{background: diff.color+"25", color: diff.color}}>{diff.name}</span>
-          <span className="text-slate-400 whitespace-nowrap">Q {stepIdx+1}/{questions.length}</span>
-          {streak >= 3 && <span className="chip bg-orange-900/40 text-orange-300 bounce-in">🔥 {streak}</span>}
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <svg width="40" height="40" className="timer-ring">
-            <circle cx="20" cy="20" r="16" fill="none" stroke="#334155" strokeWidth="3"/>
-            <circle cx="20" cy="20" r="16" fill="none"
-              stroke={timeLeft < 10 ? "#ef4444" : timeLeft < 20 ? "#f59e0b" : "#8b5cf6"}
-              strokeWidth="3" strokeLinecap="round"
-              strokeDasharray={2*Math.PI*16}
-              strokeDashoffset={2*Math.PI*16*(1 - timePct/100)}/>
-          </svg>
-          <span className={`mono font-bold ${timeLeft<10?"text-red-400":"text-white"}`}>{timeLeft}s</span>
-        </div>
-      </div>
-      <div className="bar mb-5 sm:mb-6"><div style={{width: progress+"%"}}></div></div>
-
-      {/* Act-intro card — renders only for narrative cases, at the first
-          question of each act. Timer is paused while it's shown. */}
-      {narrative && showActIntro && actInfo && (
-        <div className="card premium-border rounded-2xl p-6 sm:p-8 mb-4" style={{background: "linear-gradient(145deg, rgba(22,28,54,0.55), rgba(12,16,36,0.65))"}}>
-          <div className="tag text-violet-300 mb-3">{actInfo.act.title}</div>
-          <p className="text-sm sm:text-base text-slate-200 leading-relaxed mb-4" dangerouslySetInnerHTML={{__html: actInfo.act.hook.replace(/\*\*(.+?)\*\*/g, '<strong class="text-white">$1</strong>')}}/>
-          {actInfo.act.reveal && (
-            <div className="rounded-xl border border-amber-900/40 bg-amber-950/20 p-4 mb-5">
-              <div className="text-[10px] uppercase tracking-widest text-amber-300 font-bold mb-1.5">New information</div>
-              <p className="text-sm text-amber-100/90 leading-relaxed">{actInfo.act.reveal}</p>
-            </div>
-          )}
-          <button onClick={() => setShowActIntro(false)} className="btn btn-primary px-6 py-3 rounded-xl text-base">
-            {actInfo.actIndex === 0 ? "Begin the case →" : "Continue →"}
-          </button>
-        </div>
-      )}
-
-      <div className={`card rounded-2xl p-5 sm:p-6 md:p-8 ${showActIntro ? "hidden" : ""}`}>
-        <div className="text-[10px] uppercase tracking-widest text-purple-400 font-bold mb-2">{c.title}</div>
-        <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-4 leading-snug">{step.q}</h3>
-        {step.output && (
-          <div className="mb-6 rounded-xl border border-slate-700 bg-slate-950/80 overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-2 bg-slate-900/80 border-b border-slate-700">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-              <span className="ml-2 text-[10px] uppercase tracking-widest text-slate-400 mono">R console {step.outputLang?`· ${step.outputLang}`:""}</span>
-            </div>
-            <pre className="mono text-[12px] leading-relaxed text-slate-200 p-4 overflow-x-auto whitespace-pre">{step.output}</pre>
-          </div>
-        )}
-        {renderInput()}
-
-        {showExplain && (
-          <div className={`mt-6 p-5 rounded-xl border-l-4 bounce-in ${correct?"bg-emerald-900/20 border-emerald-500":"bg-red-900/20 border-red-500"}`}>
-            <div className={`font-bold mb-2 text-lg ${correct?"text-emerald-400":"text-red-400"}`}>
-              {answers[answers.length-1]?.timedOut ? "⏰ Time's up!" : correct ? "✓ Correct!" : "✗ Not quite."}
-              {correct && totalTimeBonus > 0 && <span className="ml-2 text-amber-400 text-sm">+{answers[answers.length-1]?.timeBonus||0} time bonus</span>}
-            </div>
-            <div className="text-sm text-slate-200 leading-relaxed">{step.explain}</div>
-            {step.method && <DeepDive methodId={step.method} srs={srs} onOpenGlossary={onOpenGlossary}/>}
-            <ReportQuestionLink qid={step.qid} caseId={c.id}/>
-          </div>
-        )}
-
-        <div className="mt-6">
-          {!showExplain ? (
-            <button onClick={()=>checkAnswer(false)} disabled={!hasAnswer}
-              className="btn btn-primary w-full py-4 rounded-xl text-lg disabled:opacity-40 disabled:cursor-not-allowed">
-              Submit Answer
-            </button>
-          ) : (
-            <FSRSGradeBar
-              qid={step.qid}
-              isLast={isLast}
-              correct={!!correct}
-              timedOut={!!answers[answers.length-1]?.timedOut}
-              onAdvance={nextStep}/>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// FSRS-6 grading bar. Shown after an answer is revealed. Writes to
-// public.reviews and advances to the next question. For signed-in users,
-// picks one of Again/Hard/Good/Easy. For guests, collapses to a plain
-// "Next Question" since server scheduling requires an account.
-//
-// Wrong answers and timeouts still show all four so a user who "knew it
-// but misclicked" can mark Good. Anki convention.
-function FSRSGradeBar({ qid, isLast, correct, timedOut, onAdvance }) {
-  const [busy, setBusy] = React.useState(false);
-  const [picked, setPicked] = React.useState(null);
-  const [nextDue, setNextDue] = React.useState(null);
-  const signedIn = !!(window.BQAuth && window.BQAuth.getUser && window.BQAuth.getUser());
-
-  // Suggested default for quick-advance: wrong/timeout → Again; correct → Good.
-  const defaultRating = correct && !timedOut ? 3 : 1; // Rating: 1=Again 2=Hard 3=Good 4=Easy
-
-  async function grade(rating) {
-    if (busy) return;
-    setBusy(true); setPicked(rating);
-    try {
-      const due = await srsGradeCard(qid, rating);
-      if (due) setNextDue(due);
-    } catch {}
-    setBusy(false);
-    onAdvance();
-  }
-
-  if (!signedIn) {
-    // Guests: no server-side FSRS, just advance.
-    return (
-      <button onClick={onAdvance} className="btn btn-primary w-full py-4 rounded-xl text-lg">
-        {isLast ? "Finish Case →" : "Next Question →"}
-      </button>
-    );
-  }
-
-  const buttons = [
-    { rating: 1, label: "Again",  hint: "Didn't know",       cls: "bg-red-900/30 hover:bg-red-800/50 text-red-200 border border-red-700/40" },
-    { rating: 2, label: "Hard",   hint: "Struggled",         cls: "bg-amber-900/30 hover:bg-amber-800/50 text-amber-200 border border-amber-700/40" },
-    { rating: 3, label: "Good",   hint: "Got it",            cls: "bg-emerald-900/30 hover:bg-emerald-800/50 text-emerald-200 border border-emerald-700/40" },
-    { rating: 4, label: "Easy",   hint: "Trivial",           cls: "bg-cyan-900/30 hover:bg-cyan-800/50 text-cyan-200 border border-cyan-700/40" },
-  ];
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-[10px] uppercase tracking-widest text-slate-500">How well did you know that?</div>
-        <div className="text-[10px] text-slate-600 mono hidden sm:block">schedules next review</div>
-      </div>
-      <div className="grid grid-cols-4 gap-2">
-        {buttons.map(b => (
-          <button
-            key={b.rating}
-            onClick={() => grade(b.rating)}
-            disabled={busy}
-            title={b.hint}
-            className={`rounded-xl py-3 text-center transition disabled:opacity-40 ${b.cls} ${picked === b.rating ? "ring-2 ring-white/40" : ""} ${b.rating === defaultRating && !picked ? "ring-1 ring-slate-500/50" : ""}`}>
-            <div className="font-semibold text-sm">{b.label}</div>
-            <div className="text-[10px] opacity-70 mt-0.5">{b.hint}</div>
-          </button>
-        ))}
-      </div>
-      {nextDue && (
-        <div className="mt-2 text-[11px] text-slate-500 text-center mono">
-          Next review · {new Date(nextDue).toLocaleDateString()}
-        </div>
-      )}
-      <div className="mt-3 text-center">
-        <button onClick={onAdvance} className="text-xs text-slate-500 hover:text-slate-300 underline underline-offset-2">
-          Skip grading · {isLast ? "Finish case" : "Next question"}
-        </button>
-      </div>
-    </div>
-  );
-}
 
 function SoftWallModal({ state, totalXP, onClose }) {
   const authConfigured = window.BQAuth && window.BQAuth.enabled;
@@ -4610,7 +2886,7 @@ function SoftWallModal({ state, totalXP, onClose }) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 fade-in" onClick={dismiss} role="dialog" aria-modal="true">
       <div className="premium-border bg-slate-900 border border-cyan-600/40 rounded-2xl p-5 sm:p-7 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="text-center mb-3">
-          <div className="text-5xl mb-1">🎉</div>
+          <div className="mb-1 text-cyan-300 inline-flex items-center justify-center"><Ico name="confetti" size={56}/></div>
           <p className="text-cyan-300 font-semibold">+{totalXP} XP just earned</p>
         </div>
         {authConfigured ? (
@@ -4841,7 +3117,9 @@ function CaseResult({ result, onHome, onReplay, onNext, onShare, srs, state, onO
       {showSoftWall && <SoftWallModal state={state} totalXP={totalXP} onClose={()=>setShowSoftWall(false)} />}
       {isMilestone && <Confetti/>}
       <div className="card premium-border rounded-2xl sm:rounded-3xl p-5 sm:p-8 text-center">
-        <div className={`text-6xl sm:text-7xl mb-3 sm:mb-4 ${isMilestone ? "bounce-in" : ""}`}>{score === 100 ? "🏆" : score >= 80 ? "🎉" : score >= 60 ? "👍" : "📚"}</div>
+        <div className={`mb-3 sm:mb-4 inline-flex items-center justify-center ${score === 100 ? "text-amber-300" : score >= 80 ? "text-cyan-300" : score >= 60 ? "text-emerald-300" : "text-slate-300"} ${isMilestone ? "bounce-in" : ""}`}>
+          <Ico name={score === 100 ? "trophy" : score >= 80 ? "confetti" : score >= 60 ? "thumbs-up" : "books"} size={72}/>
+        </div>
         <h2 className="text-2xl sm:text-4xl font-extrabold text-white mb-1 leading-tight">
           {score === 100 ? "Flawless Victory!" : score >= 80 ? "Excellent!" : score >= 60 ? "Case Closed" : "Keep Going"}
         </h2>
@@ -4880,7 +3158,7 @@ function CaseResult({ result, onHome, onReplay, onNext, onShare, srs, state, onO
 
         {result.newBadges && result.newBadges.length > 0 && (
           <div className="mb-6 p-5 rounded-2xl card card-glow bounce-in">
-            <div className="gold-text font-bold text-lg mb-3">🏅 New Badge{result.newBadges.length>1?"s":""} Unlocked!</div>
+            <div className="gold-text font-bold text-lg mb-3 inline-flex items-center gap-2"><Ico name="medal" size={20}/> New Badge{result.newBadges.length>1?"s":""} Unlocked!</div>
             <div className="flex justify-center gap-2 flex-wrap">
               {result.newBadges.map(b => (
                 <button
@@ -4888,7 +3166,7 @@ function CaseResult({ result, onHome, onReplay, onNext, onShare, srs, state, onO
                   onClick={() => onShare && onShare({ id: "badge:"+b.id, icon: b.icon, kindLabel: "Badge", title: b.name, subtitle: b.desc })}
                   className="badge bg-amber-600/30 text-amber-200 hover:bg-amber-600/50 transition text-sm py-2 px-3"
                   title="Share this badge"
-                >{b.icon} {b.name} <span className="text-amber-300/70 text-[10px] ml-1">share ↗</span></button>
+                ><span className="inline-flex items-center gap-1.5"><Ico name={b.icon} size={14}/> {b.name} <span className="text-amber-300/70 text-[10px] ml-1 inline-flex items-center gap-0.5">share <Ico name="arrow-up-right" size={10}/></span></span></button>
               ))}
             </div>
           </div>
@@ -4899,12 +3177,12 @@ function CaseResult({ result, onHome, onReplay, onNext, onShare, srs, state, onO
             <button
               onClick={() => onShare && onShare({
                 id: `perfect:${result.caseId}:${result.difficulty}:${Date.now()}`,
-                icon: "💯", kindLabel: "Flawless Victory",
+                icon: "hundred", kindLabel: "Flawless Victory",
                 title: "Perfect run",
                 subtitle: `${c.title} · ${DIFFICULTIES[result.difficulty].name}`
               })}
-              className="btn btn-ghost py-2 px-4 rounded-lg text-xs"
-            >📸 Create share card</button>
+              className="btn btn-ghost py-2 px-4 rounded-lg text-xs inline-flex items-center gap-2"
+            ><Ico name="camera" size={14}/> Create share card</button>
           </div>
         )}
 
@@ -4913,11 +3191,11 @@ function CaseResult({ result, onHome, onReplay, onNext, onShare, srs, state, onO
         <MasteryPanel/>
 
         <div className="text-left bg-slate-900/40 rounded-2xl p-4 sm:p-5 mb-6 scrollbar" style={{maxHeight:"400px", overflowY:"auto"}}>
-          <div className="font-bold text-white mb-3">📋 Debrief — Full Solutions</div>
+          <div className="font-bold text-white mb-3 inline-flex items-center gap-2"><Ico name="clipboard" size={16}/> Debrief — Full Solutions</div>
           {result.answers.map((a,i)=>(
             <div key={i} className="mb-3 pb-3 border-b border-slate-800 last:border-0">
               <div className="text-sm flex items-start gap-3">
-                <span className={`mt-0.5 flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${a.correct?"bg-emerald-500/20 text-emerald-400":"bg-red-500/20 text-red-400"}`}>{a.correct?"✓":"✗"}</span>
+                <span className={`mt-0.5 flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${a.correct?"bg-emerald-500/20 text-emerald-400":"bg-red-500/20 text-red-400"}`}><Ico name={a.correct?"check":"cross"} size={12}/></span>
                 <div>
                   <div className="text-slate-200 font-medium">{a.q}</div>
                   <div className="text-xs text-slate-400 mt-1 leading-relaxed">{a.explain}</div>
@@ -4931,7 +3209,7 @@ function CaseResult({ result, onHome, onReplay, onNext, onShare, srs, state, onO
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <button onClick={onReplay} className="btn btn-ghost py-3 rounded-xl inline-flex items-center justify-center gap-2"><Ico name="reset" size={14}/> Replay (new Qs)</button>
           {nextCase && <button onClick={()=>onNext(nextCase.id)} className="btn btn-primary py-3 rounded-xl">Next Case →</button>}
-          <button onClick={onHome} className="btn btn-ghost py-3 rounded-xl">🏠 Home</button>
+          <button onClick={onHome} className="btn btn-ghost py-3 rounded-xl inline-flex items-center justify-center gap-2"><Ico name="home" size={14}/> Home</button>
         </div>
       </div>
     </div>
@@ -5020,13 +3298,13 @@ function Badges({ state, onShare }) {
                   }`;
                   const content = (
                     <>
-                      <div className={`text-4xl sm:text-5xl mb-3 ${isEarned ? "" : "grayscale opacity-70"}`}>
-                        {isEarned ? b.icon : "🔒"}
+                      <div className={`mb-3 inline-flex items-center justify-center ${isEarned ? "text-amber-300" : "text-slate-500 opacity-70"}`}>
+                        <Ico name={isEarned ? b.icon : "lock"} size={40}/>
                       </div>
                       <div className="font-bold text-white text-sm sm:text-base leading-tight">{b.name}</div>
                       <div className="text-xs text-slate-400 mt-1 leading-snug">{b.desc}</div>
                       {isEarned && (
-                        <div className="text-xs gold-text mt-2 font-semibold">✓ Unlocked · share ↗</div>
+                        <div className="text-xs gold-text mt-2 font-semibold inline-flex items-center gap-1"><Ico name="check" size={10}/> Unlocked · share <Ico name="arrow-up-right" size={10}/></div>
                       )}
                       {!isEarned && prog && (
                         <div className="mt-3">
@@ -5050,7 +3328,7 @@ function Badges({ state, onShare }) {
         {BADGE_CATEGORIES.every(cat => (grouped[cat.id] || []).filter(matchesFilter).length === 0) && (
           <div className="text-center text-slate-500 text-sm py-12">
             {filter === "earned" ? "You haven't unlocked any badges yet — complete a case to begin." :
-             filter === "locked" ? "You've unlocked every badge. 🎉" : "No badges to show."}
+             filter === "locked" ? "You've unlocked every badge." : "No badges to show."}
           </div>
         )}
       </div>
@@ -5073,14 +3351,16 @@ function svgEscape(s) {
 
 // Build an SVG string for an achievement. 1200×630 is the canonical OG ratio.
 function buildShareCardSVG({ icon, kindLabel, title, subtitle, xp, level, streak, tagline }) {
-  const safeIcon = svgEscape(icon || "🏅");
+  const iconName = icon && ICON_MARKUP[icon] ? icon : "medal";
+  const iconFragment = iconSvgFragment(iconName, 72, 238, 108, "#fbbf24", 1.6);
   const safeKind = svgEscape((kindLabel || "Achievement").toUpperCase());
   const safeTitle = svgEscape(title || "");
   const safeSub   = svgEscape(subtitle || "");
   const safeTag   = svgEscape(tagline || "BioStat Quest · biostat-quest.vercel.app");
   const xpStr     = (xp ?? 0).toLocaleString("en-US");
   const lvlStr    = `LV ${level ?? 1}`;
-  const streakStr = streak ? `🔥 ${streak}` : "";
+  const streakNum = streak ? String(streak) : "";
+  const streakIcon = streak ? iconSvgFragment("flame", 524, 52, 28, "#fbbf24", 2) : "";
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <defs>
@@ -5130,8 +3410,7 @@ function buildShareCardSVG({ icon, kindLabel, title, subtitle, xp, level, streak
         letter-spacing="4" fill="#22d3ee">${safeKind}</text>
 
   <!-- Icon + title -->
-  <text x="72" y="340" font-family="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif"
-        font-size="108">${safeIcon}</text>
+  ${iconFragment}
   <text x="220" y="330" font-family="Inter, system-ui, sans-serif" font-size="72" font-weight="800"
         fill="#f1f5f9">${safeTitle}</text>
   <text x="220" y="385" font-family="Inter, system-ui, sans-serif" font-size="28" font-weight="500"
@@ -5157,8 +3436,9 @@ function buildShareCardSVG({ icon, kindLabel, title, subtitle, xp, level, streak
           fill="rgba(251,191,36,0.08)" stroke="rgba(251,191,36,0.35)" stroke-width="1"/>
     <text x="524" y="38" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="700"
           letter-spacing="2" fill="#94a3b8">STREAK</text>
-    <text x="524" y="78" font-family="JetBrains Mono, monospace" font-size="36" font-weight="700"
-          fill="url(#gold)">${svgEscape(streakStr)}</text>` : ""}
+    ${streakIcon}
+    <text x="560" y="78" font-family="JetBrains Mono, monospace" font-size="36" font-weight="700"
+          fill="url(#gold)">${svgEscape(streakNum)}</text>` : ""}
   </g>
 
   <!-- Footer -->
@@ -5201,7 +3481,7 @@ function ShareCardModal({ achievement, state, onClose, onDismiss }) {
   const blobRef = React.useRef(null);
 
   const data = React.useMemo(() => ({
-    icon: achievement.icon || "🏅",
+    icon: achievement.icon || "medal",
     kindLabel: achievement.kindLabel || "Achievement",
     title: achievement.title,
     subtitle: achievement.subtitle,
@@ -5261,7 +3541,7 @@ function ShareCardModal({ achievement, state, onClose, onDismiss }) {
       <div className="bg-slate-900 border border-slate-700 rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-2xl max-h-[92vh] overflow-y-auto"
            onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-2xl">{achievement.icon || "🏅"}</span>
+          <span className="text-amber-300 inline-flex items-center"><Ico name={achievement.icon || "medal"} size={24}/></span>
           <h3 className="text-xl font-extrabold text-white">Share your win</h3>
         </div>
         <p className="text-sm text-slate-400 mb-4">
@@ -5318,7 +3598,7 @@ function selectAchievementForSharing(result, newState, prevXp) {
       const c = CASES.find(x => x.id === result.caseId);
       pool.push({
         id: `perfect:${result.caseId}:${result.difficulty}:${Date.now()}`,
-        icon: "💯", kindLabel: "Flawless Victory",
+        icon: "hundred", kindLabel: "Flawless Victory",
         title: "Perfect run",
         subtitle: `${c ? c.title : "Case"} · ${DIFFICULTIES[result.difficulty].name}`,
         rank: 3,
@@ -5329,7 +3609,7 @@ function selectAchievementForSharing(result, newState, prevXp) {
   const newLvl  = levelFromXP(newState.xp || 0);
   if (newLvl > prevLvl) {
     pool.push({
-      id: `level:${newLvl}`, icon: "🎓", kindLabel: "Level up",
+      id: `level:${newLvl}`, icon: "cap", kindLabel: "Level up",
       title: `Level ${newLvl}`,
       subtitle: newLvl >= 10 ? "Principal Investigator" : newLvl >= 6 ? "Fellow" : newLvl >= 3 ? "Resident" : "Intern",
       rank: newLvl >= 5 ? 4 : 1,
@@ -5370,7 +3650,7 @@ function StreakBanner({ state, onDismiss, onStartCase }) {
          style={{background:"linear-gradient(90deg, rgba(251,191,36,0.10), rgba(239,68,68,0.04))"}}>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 mb-1">
-          <span className="tag text-amber-300">🔥 Streak at risk</span>
+          <span className="tag text-amber-300 inline-flex items-center gap-1.5"><Ico name="flame" size={12}/> Streak at risk</span>
           <span className="chip bg-amber-900/40 text-amber-200">{state.currentStreak}-in-a-row</span>
         </div>
         <div className="text-white font-semibold">
@@ -5504,7 +3784,7 @@ function Leaderboard({ state, setState, onNav }) {
     <div className="max-w-4xl mx-auto p-4 sm:p-6 fade-in space-y-4">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-1">🏆 Leaderboard</h2>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-1 inline-flex items-center gap-2.5"><span className="text-amber-300"><Ico name="trophy" size={26}/></span> Leaderboard</h2>
           <p className="text-slate-400 text-sm">
             {!live ? (
               <>Supabase isn't wired up here — showing a simulated cohort of legendary statisticians.</>
@@ -5556,7 +3836,7 @@ function Leaderboard({ state, setState, onNav }) {
                   <button onClick={saveName}
                           disabled={savingName || (nameInput||"").trim() === (state.display_name||"")}
                           className="btn btn-primary px-4 py-2 rounded-lg text-sm disabled:opacity-50">
-                    {savingName ? "Saved ✓" : "Save"}
+                    {savingName ? (<span className="inline-flex items-center gap-1.5">Saved <Ico name="check" size={14}/></span>) : "Save"}
                   </button>
                 </div>
                 <div className="text-xs text-slate-500 mt-1">Up to 24 characters. Visible on the public leaderboard only when the toggle below is on.</div>
@@ -5602,12 +3882,12 @@ function Leaderboard({ state, setState, onNav }) {
               ) : displayRows.map((p,i)=>(
                 <tr key={`${p.name}-${p.xp}-${i}${p.isMe?"-me":""}`} className={`border-t border-slate-800/50 ${p.isMe?"bg-purple-900/20":""}`}>
                   <td className="p-3 sm:p-4 font-bold text-slate-500">
-                    {i===0 ? "🥇" : i===1 ? "🥈" : i===2 ? "🥉" : (i+1)}
+                    {i<3 ? (<span className={i===0?"text-amber-300":i===1?"text-slate-300":"text-orange-400"}><Ico name={i===0?"medal-1":i===1?"medal-2":"medal-3"} size={20}/></span>) : (i+1)}
                   </td>
-                  <td className="p-3 sm:p-4 font-semibold text-white whitespace-nowrap">{p.isMe ? <>⭐ {p.name}</> : p.name}</td>
+                  <td className="p-3 sm:p-4 font-semibold text-white whitespace-nowrap">{p.isMe ? <span className="inline-flex items-center gap-1.5 text-amber-300"><Ico name="star" size={12}/><span className="text-white">{p.name}</span></span> : p.name}</td>
                   <td className="p-3 sm:p-4 text-slate-300">Lv {p.level}</td>
                   <td className="p-3 sm:p-4 text-slate-300 hidden sm:table-cell">{p.cases}</td>
-                  <td className="p-3 sm:p-4 text-slate-300 hidden sm:table-cell">{p.streak ? `🔥 ${p.streak}` : "—"}</td>
+                  <td className="p-3 sm:p-4 text-slate-300 hidden sm:table-cell">{p.streak ? (<span className="inline-flex items-center gap-1.5 text-orange-300"><Ico name="flame" size={12}/> {p.streak}</span>) : "—"}</td>
                   <td className="p-3 sm:p-4 text-right gold-text font-extrabold text-base sm:text-lg">{p.xp.toLocaleString("en-US")}</td>
                 </tr>
               ))}
@@ -6978,7 +5258,7 @@ function PowerSim() {
             </div>
           </div>
           <div className="text-xs text-slate-400 mt-3 leading-relaxed">
-            {power < 0.5 && "⚠ Severely underpowered. Expect Type M (magnitude) errors in any 'significant' findings."}
+            {power < 0.5 && (<span className="inline-flex items-start gap-1.5"><span className="text-amber-400 inline-flex mt-0.5"><Ico name="warning" size={12}/></span> Severely underpowered. Expect Type M (magnitude) errors in any 'significant' findings.</span>)}
             {power >= 0.5 && power < 0.8 && "Below conventional 80% target — consider more n."}
             {power >= 0.8 && power < 0.95 && "Adequate power for a primary endpoint."}
             {power >= 0.95 && "Very high power. May suggest n is larger than needed."}
@@ -7502,9 +5782,9 @@ function RegressionSim() {
           <Slider label="True slope" value={slope} min={-2} max={2} step={0.1} onChange={setSlope}/>
           <Slider label="Noise σ" value={noise} min={0.1} max={5} step={0.1} onChange={setNoise}/>
           <button onClick={()=>setOutlier(!outlier)} className={`mt-2 w-full px-4 py-2 rounded-lg text-sm font-semibold ${outlier?"bg-rose-600 text-white":"bg-slate-800 text-slate-300"}`}>
-            {outlier?"✓ Outlier ON":"Add high-leverage outlier"}
+            {outlier ? (<span className="inline-flex items-center gap-1.5"><Ico name="check" size={12}/> Outlier ON</span>) : "Add high-leverage outlier"}
           </button>
-          <button onClick={()=>setSeed(Math.random())} className="mt-2 w-full px-4 py-2 rounded-lg bg-purple-600/80 hover:bg-purple-500 text-white text-sm font-semibold">🔄 Resample</button>
+          <button onClick={()=>setSeed(Math.random())} className="mt-2 w-full px-4 py-2 rounded-lg bg-purple-600/80 hover:bg-purple-500 text-white text-sm font-semibold inline-flex items-center justify-center gap-2"><Ico name="refresh" size={14}/> Resample</button>
           <div className="grid grid-cols-2 gap-2 mt-4">
             <Metric label="β̂₁" value={b1.toFixed(3)} color="#8b5cf6"/>
             <Metric label="β̂₀" value={b0.toFixed(3)} color="#06b6d4"/>
@@ -7699,7 +5979,7 @@ function BootstrapSim() {
               <button key={k} onClick={()=>setStat(k)} className={`flex-1 px-2 py-1.5 rounded text-xs font-semibold ${stat===k?"bg-purple-600 text-white":"bg-slate-800 text-slate-300"}`}>{l}</button>
             ))}
           </div>
-          <button onClick={()=>setSeed(Math.random())} className="w-full px-4 py-2 rounded-lg bg-purple-600/80 text-white text-sm font-semibold">🔄 New sample</button>
+          <button onClick={()=>setSeed(Math.random())} className="w-full px-4 py-2 rounded-lg bg-purple-600/80 text-white text-sm font-semibold inline-flex items-center justify-center gap-2"><Ico name="refresh" size={14}/> New sample</button>
           <div className="grid grid-cols-2 gap-2 mt-4">
             <Metric label="Observed" value={obs.toFixed(3)} color="#06b6d4"/>
             <Metric label="Boot SE" value={bSE.toFixed(3)} color="#8b5cf6"/>
@@ -8212,7 +6492,7 @@ function AdminUsers({ users, onRefresh }) {
                           onClick={() => !isCurrent && handlePlanChange(u.user_id, p)}
                           disabled={planBusyFor === u.user_id || isCurrent}
                           className={`chip text-xs ${isCurrent ? (p==='pro'?'bg-amber-900/60 text-amber-200 ring-1 ring-amber-500/50':p==='institutional'?'bg-cyan-900/60 text-cyan-200 ring-1 ring-cyan-500/50':'bg-slate-700 text-slate-100 ring-1 ring-slate-500/50') : 'bg-slate-800 text-slate-400 hover:text-white'} disabled:cursor-not-allowed`}>
-                          {isCurrent ? `✓ ${p}` : p}
+                          {isCurrent ? (<span className="inline-flex items-center gap-1.5"><Ico name="check" size={10}/> {p}</span>) : p}
                         </button>
                       );
                     })}
@@ -8385,7 +6665,7 @@ function AdminContent({ users, reports, events }) {
                             {acc && <span className="text-slate-600"> ({acc.total})</span>}
                           </span>
                           <span className="shrink-0 w-10 text-right">
-                            {rpt > 0 ? <span className="chip text-[10px] bg-amber-900/40 text-amber-300">⚑ {rpt}</span> : <span className="text-slate-700">–</span>}
+                            {rpt > 0 ? <span className="chip text-[10px] bg-amber-900/40 text-amber-300 inline-flex items-center gap-1"><Ico name="flag" size={10}/> {rpt}</span> : <span className="text-slate-700">–</span>}
                           </span>
                         </div>
                       );
@@ -8496,17 +6776,17 @@ function AdminActivity({ events }) {
   });
 
   const iconFor = (t) => {
-    if (t === "signup") return { ch: "●", cls: "bg-emerald-900/40 text-emerald-300" };
-    if (t === "session_start") return { ch: "→", cls: "bg-slate-800 text-slate-400" };
-    if (t === "guest_visit") return { ch: "◌", cls: "bg-slate-800 text-slate-500" };
-    if (t === "case_start") return { ch: "▶", cls: "bg-purple-900/40 text-purple-300" };
-    if (t === "case_complete") return { ch: "✓", cls: "bg-cyan-900/40 text-cyan-300" };
-    if (t === "answer_correct") return { ch: "✓", cls: "bg-emerald-950/40 text-emerald-400" };
-    if (t === "answer_wrong") return { ch: "✗", cls: "bg-red-950/40 text-red-400" };
-    if (t === "report_filed") return { ch: "⚑", cls: "bg-amber-900/40 text-amber-300" };
-    if (t === "diagnostic_complete") return { ch: "◎", cls: "bg-cyan-900/40 text-cyan-300" };
-    if (t === "diagnostic_skipped") return { ch: "↷", cls: "bg-slate-800 text-slate-400" };
-    return { ch: "·", cls: "bg-slate-800 text-slate-400" };
+    if (t === "signup") return { node: <span className="w-1.5 h-1.5 rounded-full bg-current"/>, cls: "bg-emerald-900/40 text-emerald-300" };
+    if (t === "session_start") return { node: "→", cls: "bg-slate-800 text-slate-400" };
+    if (t === "guest_visit") return { node: "◌", cls: "bg-slate-800 text-slate-500" };
+    if (t === "case_start") return { node: "▶", cls: "bg-purple-900/40 text-purple-300" };
+    if (t === "case_complete") return { node: <Ico name="check" size={12}/>, cls: "bg-cyan-900/40 text-cyan-300" };
+    if (t === "answer_correct") return { node: <Ico name="check" size={12}/>, cls: "bg-emerald-950/40 text-emerald-400" };
+    if (t === "answer_wrong") return { node: <Ico name="cross" size={12}/>, cls: "bg-red-950/40 text-red-400" };
+    if (t === "report_filed") return { node: <Ico name="flag" size={12}/>, cls: "bg-amber-900/40 text-amber-300" };
+    if (t === "diagnostic_complete") return { node: "◎", cls: "bg-cyan-900/40 text-cyan-300" };
+    if (t === "diagnostic_skipped") return { node: "↷", cls: "bg-slate-800 text-slate-400" };
+    return { node: "·", cls: "bg-slate-800 text-slate-400" };
   };
 
   const fmt = (iso) => {
@@ -8550,7 +6830,7 @@ function AdminActivity({ events }) {
             const ic = iconFor(e.type);
             return (
               <div key={e.id} className="flex items-start gap-3 px-4 py-2.5 text-sm hover:bg-slate-900/40 transition">
-                <span className={`shrink-0 w-6 h-6 rounded inline-flex items-center justify-center text-xs font-bold ${ic.cls}`}>{ic.ch}</span>
+                <span className={`shrink-0 w-6 h-6 rounded inline-flex items-center justify-center text-xs font-bold ${ic.cls}`}>{ic.node}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="mono text-xs text-slate-300">{e.type}</span>
@@ -8639,7 +6919,7 @@ function AdminReportsTab() {
       {rows === null && <div className="text-slate-500 text-sm">Loading…</div>}
       {rows && rows.length === 0 && (
         <div className="card rounded-xl p-10 text-center text-slate-400">
-          <div className="text-4xl mb-3">✓</div>
+          <div className="mb-3 text-emerald-400 inline-flex items-center justify-center"><Ico name="check" size={40}/></div>
           <div className="font-semibold text-white mb-1">No {statusFilter || ""} reports.</div>
           <div className="text-sm">You're caught up.</div>
         </div>
@@ -8814,6 +7094,9 @@ function App() {
     if (typeof window !== "undefined") {
       const qs = new URLSearchParams(window.location.search);
       if (qs.get("admin") === "1" || window.location.hash === "#admin") return "admin";
+      // Intent-to-sign-in (e.g. landing page "Sign in" → ?auth=1) should mount
+      // the TopBar so AuthButton can open its modal; skip onboarding for now.
+      if (qs.get("auth") === "1") return "home";
     }
     const glossaryHash = typeof window !== "undefined" ? parseGlossaryHash(window.location.hash) : null;
     if (glossaryHash) return "glossary";
@@ -9219,12 +7502,12 @@ function App() {
       {billingToast === "success" && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[120] card premium-border rounded-xl px-5 py-3 max-w-md w-[92vw] fade-in" style={{background: "linear-gradient(145deg, rgba(16,185,129,0.15), rgba(22,28,54,0.85))"}}>
           <div className="flex items-center gap-3">
-            <span className="text-emerald-300 text-xl">✓</span>
+            <span className="text-emerald-300 inline-flex items-center"><Ico name="check" size={20}/></span>
             <div className="flex-1 min-w-0">
               <div className="text-white font-semibold text-sm">Welcome to Pro.</div>
               <div className="text-xs text-slate-300">All 50 cases unlocked. Your receipt is in your inbox.</div>
             </div>
-            <button onClick={() => setBillingToast(null)} className="text-slate-400 hover:text-white">✕</button>
+            <button onClick={() => setBillingToast(null)} className="text-slate-400 hover:text-white inline-flex items-center"><Ico name="close" size={14}/></button>
           </div>
         </div>
       )}

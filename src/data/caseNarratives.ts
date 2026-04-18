@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Authored case narratives — optional per case.
 //
 // A narrative upgrades a case from "flat story + random question slice" into a

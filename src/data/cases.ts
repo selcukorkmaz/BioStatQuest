@@ -1,8 +1,33 @@
-// @ts-nocheck
 // Case bank — each case has a sequence of questions with exactly one correct option.
-const Q = (bank, arr) => arr.map((q, i) => ({ ...q, qid: `${bank}_${i}` }));
+export type QuestionType = "mcq" | "numeric" | "multi";
 
-const CASES = [
+export type Question = {
+  qid?: string;
+  q: string;
+  type: QuestionType;
+  options?: string[];
+  answer: number | number[];
+  tol?: number;
+  explain: string;
+  method: string;
+  output?: string;
+  outputLang?: string;
+};
+
+export type Case = {
+  id: string;
+  branch: string;
+  title: string;
+  diffMin: "intern" | "resident" | "fellow" | "pi" | string;
+  story: string;
+  qPerRun: number;
+  bank: Question[];
+};
+
+const Q = (bank: string, arr: Question[]): Question[] =>
+  arr.map((q, i) => ({ ...q, qid: `${bank}_${i}` }));
+
+const CASES: Case[] = [
 
 // ========== FOUNDATIONS ==========
 {
@@ -561,7 +586,7 @@ const CASES = [
       options:["Low R²","High VIF (>5 or >10)","Large n","Zero correlation"], answer:1,
       explain:"Variance Inflation Factor quantifies multicollinearity.", method:"regression_diagnostics" },
     { q: "Interaction term (X1 × X2) tests:", type:"mcq",
-      options:["Whether slope of X1","Main effect of X1","Normality","Total R²"], answer:0,
+      options:["Whether the slope of X1 depends on X2","Main effect of X1 only","Normality of residuals","Total R² of the model"], answer:0,
       explain:"Interaction: effect of one predictor varies with the level of another (effect modification).", method:"lm" },
     { q: "Ordinary least squares minimizes:", type:"mcq",
       options:["Sum of residuals","Sum of squared residuals","Maximum residual","Variance of X"], answer:1,
@@ -3523,7 +3548,7 @@ NOTE: n is number in *each* group`,
       explain:"Uncorrelated ≠ independent in general.", method:"prob_dist" },
     { q: "If X~N(50,10²) and Y~N(40,10²) independent, Var(X−Y) =", type:"numeric", answer:200, tol:1,
       explain:"For independent X, Y: Var(X ± Y) = Var(X) + Var(Y), always a sum. The difference of two normals has inflated variance — why paired designs help.", method:"prob_dist" },
-    { q: "SD of X−Y in the above is approximately:", type:"numeric", answer:14.14, tol:0.1,
+    { q: "If X~N(50,10²) and Y~N(40,10²) are independent, SD of X−Y is approximately:", type:"numeric", answer:14.14, tol:0.1,
       explain:"SD = √Var ≈ 14.14. Standard deviations are not additive for differences even when variances are — why SEs of differences grow quickly.", method:"spread_variability" },
     { q: "Poisson with mean λ has variance:", type:"mcq",
       options:["λ","λ²","√λ","Always 1"], answer:0,

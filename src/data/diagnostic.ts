@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Curated 8-question diagnostic — one item per branch, hand-picked to expose
 // the single most-common misconception in that area. NOT generated from the
 // full bank. Hand-authored so the diagnostic is short, believable, and
@@ -10,7 +9,21 @@
 //   - difficulty → rough cognitive level ("intern" | "resident" | "fellow")
 //   - misconception → 1-line English label, surfaced in the results report
 
-const DIAGNOSTIC = [
+export type Difficulty = "intern" | "resident" | "fellow" | "pi";
+
+export type DiagnosticItem = {
+  id: string;
+  branch: string;
+  method: string;
+  difficulty: Difficulty;
+  misconception: string;
+  q: string;
+  options: readonly string[];
+  answer: number;
+  explain: string;
+};
+
+const DIAGNOSTIC: readonly DiagnosticItem[] = [
   {
     id: "dx_foundations",
     branch: "foundations",

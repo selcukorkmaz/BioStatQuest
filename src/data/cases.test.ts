@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect } from "vitest";
 import { CASES } from "./cases";
 import { METHODS } from "./methods";
@@ -65,42 +64,46 @@ describe("Case bank structural validation", () => {
           });
 
           if (q.type === "mcq") {
+            const options = q.options as string[];
+            const answer = q.answer as number;
             it("has ≥2 options", () => {
-              expect(Array.isArray(q.options)).toBe(true);
-              expect(q.options.length).toBeGreaterThanOrEqual(2);
+              expect(Array.isArray(options)).toBe(true);
+              expect(options.length).toBeGreaterThanOrEqual(2);
             });
 
             it("has exactly one answer index within bounds", () => {
-              expect(typeof q.answer).toBe("number");
-              expect(Number.isInteger(q.answer)).toBe(true);
-              expect(q.answer).toBeGreaterThanOrEqual(0);
-              expect(q.answer).toBeLessThan(q.options.length);
+              expect(typeof answer).toBe("number");
+              expect(Number.isInteger(answer)).toBe(true);
+              expect(answer).toBeGreaterThanOrEqual(0);
+              expect(answer).toBeLessThan(options.length);
             });
 
             it("has no duplicate option strings", () => {
-              expect(new Set(q.options).size).toBe(q.options.length);
+              expect(new Set(options).size).toBe(options.length);
             });
           }
 
           if (q.type === "multi") {
+            const options = q.options as string[];
+            const answer = q.answer as number[];
             it("has ≥2 options", () => {
-              expect(Array.isArray(q.options)).toBe(true);
-              expect(q.options.length).toBeGreaterThanOrEqual(2);
+              expect(Array.isArray(options)).toBe(true);
+              expect(options.length).toBeGreaterThanOrEqual(2);
             });
 
             it("has an answer array of in-bounds, unique indices", () => {
-              expect(Array.isArray(q.answer)).toBe(true);
-              expect(q.answer.length).toBeGreaterThanOrEqual(1);
-              expect(new Set(q.answer).size).toBe(q.answer.length);
-              for (const idx of q.answer) {
+              expect(Array.isArray(answer)).toBe(true);
+              expect(answer.length).toBeGreaterThanOrEqual(1);
+              expect(new Set(answer).size).toBe(answer.length);
+              for (const idx of answer) {
                 expect(Number.isInteger(idx)).toBe(true);
                 expect(idx).toBeGreaterThanOrEqual(0);
-                expect(idx).toBeLessThan(q.options.length);
+                expect(idx).toBeLessThan(options.length);
               }
             });
 
             it("has no duplicate option strings", () => {
-              expect(new Set(q.options).size).toBe(q.options.length);
+              expect(new Set(options).size).toBe(options.length);
             });
           }
 

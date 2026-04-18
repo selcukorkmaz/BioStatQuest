@@ -1,6 +1,14 @@
-// @ts-nocheck
 // Method deep-dive library. Question.method fields reference a key here.
-const METHODS = {
+export type Method = {
+  title: string;
+  intuition: string;
+  formula: string;
+  assumptions: string[];
+  pitfalls: string[];
+  reading: string[];
+};
+
+const METHODS: Record<string, Method> = {
   cox_ph: {
     title: "Cox Proportional Hazards Regression",
     intuition: "Models the hazard (instantaneous event rate) as a baseline hazard multiplied by exp(Xβ). The baseline is left unspecified — we only estimate how covariates shift risk relative to it. exp(β) is a hazard ratio: >1 means faster event, <1 means protective.",

@@ -16,6 +16,16 @@ export default defineConfig({
         sources: resolve(__dirname, "sources.html"),
         privacy: resolve(__dirname, "privacy.html"),
       },
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return "vendor-react";
+          if (/[\\/]node_modules[\\/]@supabase[\\/]/.test(id)) return "vendor-supabase";
+          if (/[\\/]node_modules[\\/]ts-fsrs[\\/]/.test(id)) return "vendor-fsrs";
+          if (/[\\/]node_modules[\\/]@vercel[\\/]analytics[\\/]/.test(id)) return "vendor-analytics";
+          return "vendor";
+        },
+      },
     },
   },
 });

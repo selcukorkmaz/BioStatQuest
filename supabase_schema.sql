@@ -327,3 +327,26 @@ create or replace view public.reviews_due
   where due_at <= now();
 
 grant select on public.reviews_due to authenticated;
+
+-- ============================================================
+-- EMAIL SENDS (Phase 6 — re-engagement cron dedup log)
+-- One row per (user, campaign) each time we send a transactional email
+-- from a scheduled job. The cron checks this table before sending so
+-- nobody gets the same campaign twice. Service-role writes only; no RLS
+-- policies are needed because the table is never exposed to anon/auth.
+-- ============================================================
+
+create table if not exists public.email_sends (
+  id         bigint generated always as identity primary key,
+  user_id    uuid references auth.users(id) on delete cascade,
+  email      text not null,
+  campaign   text not null,
+  sent_at    timestamptz not null default now(),
+  unique (user_id, campaign)
+);
+
+create index if not exists email_sends_campaign_idx on public.email_sends(campaign, sent_at desc);
+
+alter table public.email_sends enable row level security;
+-- No policies: only the service role (cron) writes/reads. RLS enabled so
+-- that anon/auth clients can't read the table even by accident.

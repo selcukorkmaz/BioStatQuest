@@ -1,9 +1,32 @@
-// @ts-nocheck
-import { BRANCHES } from "./branches";
 import { CASES } from "./cases";
-import { METHODS } from "./methods";
+import { METHODS, type Method } from "./methods";
 
-const GLOSSARY_KIND_META = {
+export type GlossaryKind = "concept" | "measure" | "design" | "method";
+
+export type GlossaryEntry = {
+  id: string;
+  term: string;
+  aliases: string[];
+  kind: GlossaryKind;
+  branch: string;
+  featured?: boolean;
+  oneLine: string;
+  plainEnglish: string;
+  whenToUse: string;
+  commonMistake: string;
+  example: string;
+  relatedTerms: string[];
+  relatedMethods: string[];
+  relatedCaseIds: string[];
+  // Only present on method-derived entries:
+  assumptions?: string[];
+  pitfalls?: string[];
+  reading?: string[];
+  methodId?: string;
+  questionCount?: number;
+};
+
+const GLOSSARY_KIND_META: Record<"all" | GlossaryKind, { label: string }> = {
   all: { label: "All" },
   concept: { label: "Concepts" },
   measure: { label: "Measures" },
@@ -38,7 +61,7 @@ function truncate(text = "", max = 165) {
   return text.slice(0, max - 1).trimEnd() + "…";
 }
 
-const METHOD_ALIASES = {
+const METHOD_ALIASES: Record<string, string[]> = {
   cox_ph: ["cox", "cox model", "proportional hazards", "hazard model"],
   km_logrank: ["kaplan meier", "kaplan meier curve", "log rank", "survival curve"],
   kappa: ["cohen kappa", "agreement", "inter rater agreement"],
@@ -83,7 +106,7 @@ const METHOD_ALIASES = {
   bland_altman: ["limits of agreement", "method comparison"],
 };
 
-const METHOD_RELATED_TERMS = {
+const METHOD_RELATED_TERMS: Record<string, string[]> = {
   cox_ph: ["hazard_ratio", "survival_analysis"],
   km_logrank: ["survival_analysis", "hazard_ratio"],
   iptw: ["confounder", "bias"],
@@ -109,7 +132,7 @@ const METHOD_RELATED_TERMS = {
   hypothesis_testing: ["p_value", "type_i_error", "type_ii_error"],
 };
 
-const GLOSSARY_CORE = [
+const GLOSSARY_CORE: GlossaryEntry[] = [
   {
     id: "p_value",
     term: "P-value",
@@ -569,9 +592,15 @@ const GLOSSARY_CORE = [
   },
 ];
 
-function methodUsage(methodId) {
-  const cases = [];
-  const branchCounts = {};
+type MethodUsage = {
+  branch: string | null;
+  questionCount: number;
+  relatedCaseIds: string[];
+};
+
+function methodUsage(methodId: string): MethodUsage {
+  const cases: Array<{ caseId: string; count: number; branch: string }> = [];
+  const branchCounts: Record<string, number> = {};
   let questionCount = 0;
   for (const c of CASES) {
     let count = 0;
@@ -592,7 +621,7 @@ function methodUsage(methodId) {
   };
 }
 
-function buildMethodEntry(methodId, method) {
+function buildMethodEntry(methodId: string, method: Method): GlossaryEntry {
   const usage = methodUsage(methodId);
   return {
     id: `method:${methodId}`,
@@ -614,7 +643,7 @@ function buildMethodEntry(methodId, method) {
       : "Use it when the scientific question maps to the method and its assumptions are reasonable.",
     commonMistake: method.pitfalls?.[0] || "Using the method without checking whether its assumptions match the study design and data.",
     example: usage.relatedCaseIds[0]
-      ? `Practice it in ${CASES.find((c) => c.id === usage.relatedCaseIds[0])?.title || "a related case"}.`
+      ? `Practice it in ${CASES.find((c: { id: string; title?: string }) => c.id === usage.relatedCaseIds[0])?.title || "a related case"}.`
       : "",
     assumptions: method.assumptions || [],
     pitfalls: method.pitfalls || [],
@@ -627,11 +656,13 @@ function buildMethodEntry(methodId, method) {
   };
 }
 
-const GLOSSARY = [
+const GLOSSARY: GlossaryEntry[] = [
   ...GLOSSARY_CORE,
   ...Object.entries(METHODS).map(([methodId, method]) => buildMethodEntry(methodId, method)),
 ];
 
-const GLOSSARY_BY_ID = Object.fromEntries(GLOSSARY.map((entry) => [entry.id, entry]));
+const GLOSSARY_BY_ID: Record<string, GlossaryEntry> = Object.fromEntries(
+  GLOSSARY.map((entry) => [entry.id, entry])
+);
 
 export { GLOSSARY, GLOSSARY_BY_ID, GLOSSARY_KIND_META, normalizeGlossaryText };

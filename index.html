@@ -28,7 +28,59 @@
 <meta name="twitter:image" content="https://www.biostatquest.com/og-image.png" />
 <meta name="twitter:image:alt" content="BioStat Quest — biostatistics prep that actually sticks." />
 
+<!-- Hide auth-only nav items for signed-in visitors. Runs sync in <head> so
+     there's no flash of "Sign in" for authenticated users. Reads Supabase's
+     localStorage session directly (no network, no JS dependency). -->
+<style>
+  html.bq-authed [data-authed-hide]{display:none!important}
+  html:not(.bq-authed) [data-authed-show]{display:none!important}
+</style>
+<script>
+(function(){try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(!k||k.indexOf("sb-")!==0||k.indexOf("-auth-token")===-1)continue;var raw=localStorage.getItem(k);if(!raw)continue;var s=JSON.parse(raw);if(!s)continue;var exp=s.expires_at||(s.currentSession&&s.currentSession.expires_at);if(!exp||Date.now()/1000>=exp)continue;var u=(s.user&&s.user.email)||(s.currentSession&&s.currentSession.user&&s.currentSession.user.email)||"";var name=u?String(u).split("@")[0]:"";window.__bqUsername=name;document.documentElement.classList.add("bq-authed");document.addEventListener("DOMContentLoaded",function(){try{var els=document.querySelectorAll("[data-username]");for(var j=0;j<els.length;j++)els[j].textContent=name;}catch(e){}});return;}}catch(e){}})();
+</script>
+
 <link rel="canonical" href="https://www.biostatquest.com/" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://www.biostatquest.com/#website",
+      "url": "https://www.biostatquest.com/",
+      "name": "BioStat Quest",
+      "description": "Biostatistics prep that actually sticks — 50 case-based challenges, 1,000 board-style questions, FSRS-6 spaced repetition.",
+      "inLanguage": "en-US",
+      "publisher": { "@id": "https://www.biostatquest.com/#org" }
+    },
+    {
+      "@type": "EducationalOrganization",
+      "@id": "https://www.biostatquest.com/#org",
+      "name": "BioStat Quest",
+      "url": "https://www.biostatquest.com/",
+      "logo": "https://www.biostatquest.com/favicon.svg",
+      "email": "info@biostatquest.com",
+      "description": "Free case-based biostatistics training for residents, MPH students, and early-career researchers."
+    },
+    {
+      "@type": "Course",
+      "name": "BioStat Quest — case-based biostatistics training",
+      "description": "50 case-based challenges and 1,000 board-style questions covering foundations, probability, estimation, regression, study design, causal inference, measurement, and advanced/Bayesian methods. Includes an FSRS-6 spaced-repetition scheduler.",
+      "provider": { "@id": "https://www.biostatquest.com/#org" },
+      "url": "https://www.biostatquest.com/biostat-quest",
+      "inLanguage": "en-US",
+      "educationalLevel": "Graduate / Professional",
+      "isAccessibleForFree": true,
+      "hasCourseInstance": {
+        "@type": "CourseInstance",
+        "courseMode": "online",
+        "courseWorkload": "PT6H"
+      }
+    }
+  ]
+}
+</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -80,7 +132,7 @@
   .t-subtitle  { font-size: 1.125rem; font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; color: var(--ink-1); }
   .t-body      { font-size: 1rem; font-weight: 400; line-height: 1.65; color: var(--ink-2); }
   .t-lead      { font-size: clamp(1.05rem, 1.25vw, 1.25rem); font-weight: 400; line-height: 1.55; color: var(--ink-2); }
-  .t-caption   { font-size: 0.8125rem; font-weight: 500; line-height: 1.5; color: var(--ink-3); }
+  .t-caption   { font-size: 0.8125rem; font-weight: 500; line-height: 1.5; color: #a8b4c7; }
   .t-eyebrow   { font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3); }
 
   .card {
@@ -288,8 +340,18 @@
     </a>
     <div class="flex items-center gap-1 sm:gap-2 text-sm">
       <a href="/about.html" class="hidden sm:inline px-3 py-2 rounded-lg text-slate-400 hover:text-white transition">About</a>
-      <a href="biostat-quest.html?auth=1" class="px-3 py-2 rounded-lg text-slate-300 hover:text-white transition">Sign in</a>
-      <a href="biostat-quest.html" class="btn btn-primary px-4 py-2 rounded-lg">Play</a>
+      <a id="nav-signin" href="biostat-quest.html?auth=1" class="whitespace-nowrap px-3 py-2 rounded-lg text-slate-300 hover:text-white transition" data-authed-hide>Sign in</a>
+      <div id="nav-account" class="relative inline-block" data-authed-show>
+        <button id="nav-account-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Account menu" class="whitespace-nowrap inline-flex items-center gap-1.5 text-xs px-2.5 sm:px-3 py-1.5 rounded-lg bg-emerald-900/40 text-emerald-200 hover:bg-emerald-900/60 border border-emerald-800 transition">
+          <span class="inline-flex items-center gap-1.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5 11-12"/></svg><span class="hidden sm:inline"><span data-username></span></span></span>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 3.5 L5 6.5 L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div id="nav-account-menu" role="menu" hidden class="absolute right-0 mt-2 w-44 rounded-lg border border-slate-700 bg-slate-900/95 backdrop-blur shadow-lg overflow-hidden z-50">
+          <a href="biostat-quest.html" role="menuitem" class="block px-3 py-2 text-xs text-slate-200 hover:bg-slate-800 transition">Launch Quest</a>
+          <button id="nav-account-signout" type="button" role="menuitem" class="w-full text-left block px-3 py-2 text-xs text-slate-200 hover:bg-slate-800 transition border-t border-slate-800">Sign out</button>
+        </div>
+      </div>
+      <a href="biostat-quest.html" class="btn btn-primary px-4 py-2 rounded-lg">Open app</a>
     </div>
   </div>
 </nav>
@@ -297,14 +359,15 @@
 <main>
 
 <!-- Hero -->
-<section class="max-w-5xl mx-auto px-6 pt-24 pb-28 md:pt-32 md:pb-36 text-center fade-in">
+<section class="max-w-5xl mx-auto px-6 pt-20 pb-16 md:pt-28 md:pb-20 text-center fade-in">
   <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-10 flex-wrap justify-center" style="background: rgba(34,211,238,0.08); border: 1px solid var(--accent-ink);">
-    <span class="tag" style="color: var(--accent);">● Free forever</span>
+    <span class="tag" style="color: var(--accent);">● All 50 cases free</span>
     <span class="text-xs text-slate-500">·</span>
-    <span class="text-xs text-slate-300">FSRS-6 spaced repetition</span>
+    <span class="text-xs text-slate-300">No signup to try</span>
     <span class="text-xs text-slate-500">·</span>
     <span class="text-xs text-slate-300">126 cited sources</span>
   </div>
+  <p class="text-sm text-slate-400 max-w-2xl mx-auto mb-4 italic">You learned biostats once. Then you forgot it. Then you needed it.</p>
   <h1 class="t-display mb-7">
     Biostatistics prep<br/>
     <span class="stat-number">that actually sticks</span>.
@@ -312,12 +375,21 @@
   <p class="t-lead max-w-2xl mx-auto mb-5" id="hero-lead">
     50 case-based challenges. 1,000 board-style questions. A spaced-repetition scheduler (FSRS-6) that catches you right when you're about to forget.
   </p>
-  <p class="t-caption max-w-2xl mx-auto mb-12" id="hero-sub">
+  <p class="t-caption max-w-2xl mx-auto mb-10" id="hero-sub">
     Built for residents preparing for boards, MPH students mastering core methods, and early-career researchers shoring up methodology before their next manuscript.
   </p>
   <div class="flex flex-col sm:flex-row gap-3 justify-center items-center">
     <a href="biostat-quest.html" class="btn btn-primary px-8 py-4 rounded-xl text-base">Start free diagnostic →</a>
-    <a href="/about.html" class="btn btn-ghost px-8 py-4 rounded-xl text-base">How it works</a>
+    <a href="#how" class="btn btn-ghost px-8 py-4 rounded-xl text-base">How it works</a>
+  </div>
+  <p class="text-xs text-slate-500 mt-5">10 questions · ~5 minutes · no credit card</p>
+  <!-- Author byline — thin, specific credibility above the fold -->
+  <div class="mt-10 inline-flex items-center gap-3 px-4 py-2 rounded-full" style="background: rgba(148,163,184,0.04); border: 1px solid var(--line);">
+    <span class="inline-flex items-center justify-center w-7 h-7 rounded-full font-bold text-xs" style="background: linear-gradient(135deg,#8b5cf6,#06b6d4); color: #05070f;">SK</span>
+    <span class="text-xs text-slate-400">Written &amp; maintained by
+      <a href="/about.html" class="text-slate-200 font-semibold hover:text-white">Selçuk Korkmaz, PhD</a>
+      <span class="text-slate-600">·</span>
+      biostatistics researcher · author of CRAN packages</span>
   </div>
   <p class="text-xs text-slate-500 mt-8">
     Teaching a course or training a cohort?
@@ -325,48 +397,111 @@
   </p>
 </section>
 
-<!-- Stats strip -->
-<section class="max-w-5xl mx-auto px-6 pb-28">
-  <div class="card rounded-2xl p-8 md:p-10 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+<!-- Product preview — inline mock of a case question + FSRS grading bar.
+     Single-glance proof of the review loop: question → answer reveal → grade. -->
+<section class="max-w-4xl mx-auto px-6 pb-16 md:pb-20">
+  <div class="premium-border rounded-2xl overflow-hidden" style="background: linear-gradient(145deg, rgba(22,28,54,0.55), rgba(12,16,36,0.70));">
+    <!-- Mock app chrome -->
+    <div class="flex items-center justify-between px-5 py-3 border-b" style="border-color: var(--line); background: rgba(5,7,15,0.55);">
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full" style="background:#ef4444; opacity:0.55;"></span>
+        <span class="w-2.5 h-2.5 rounded-full" style="background:#fbbf24; opacity:0.55;"></span>
+        <span class="w-2.5 h-2.5 rounded-full" style="background:#10b981; opacity:0.55;"></span>
+        <span class="mono text-[10px] text-slate-500 ml-3">biostatquest.com · case 17 · q 4/12</span>
+      </div>
+      <div class="inline-flex items-center gap-1.5 text-[10px] text-slate-400">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 5 14h6l-1 8 8-12h-6l1-8z"/></svg>
+        <span class="mono">streak 6</span>
+      </div>
+    </div>
+    <div class="p-6 md:p-8">
+      <!-- Branch + case title -->
+      <div class="flex items-center gap-2 mb-3">
+        <span class="inline-flex items-center justify-center" style="color: #d946ef;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8v8"/><path d="M20 8v8"/><path d="M4 12h16"/><circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/></svg>
+        </span>
+        <span class="t-eyebrow" style="color:#d946ef;">Estimation &amp; Inference</span>
+        <span class="text-xs text-slate-600">·</span>
+        <span class="text-xs text-slate-400">The CI Courtroom</span>
+      </div>
+      <h3 class="text-lg md:text-xl font-bold text-white leading-snug mb-5">A 95% confidence interval means the interval contains the true parameter with probability:</h3>
+      <!-- Options (A picked — wrong, B correct — revealed) -->
+      <div class="space-y-2 mb-6">
+        <div class="flex items-start gap-3 rounded-lg p-3 border" style="border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.08);">
+          <span class="mono text-xs text-red-400 font-bold shrink-0 mt-0.5">A</span>
+          <span class="text-sm text-slate-200 flex-1">0.95</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" class="text-red-400 shrink-0 mt-0.5" aria-hidden="true"><path d="M6 6L18 18M18 6L6 18"/></svg>
+        </div>
+        <div class="flex items-start gap-3 rounded-lg p-3 border" style="border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.10);">
+          <span class="mono text-xs text-emerald-400 font-bold shrink-0 mt-0.5">B</span>
+          <span class="text-sm text-slate-100 flex-1">It's a frequentist statement about the method, not the parameter — 95% of such intervals would cover it.</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0 mt-0.5" aria-hidden="true"><path d="M4 12.5l5 5 11-12"/></svg>
+        </div>
+        <div class="flex items-start gap-3 rounded-lg p-3 border" style="border-color: var(--line); background: rgba(148,163,184,0.03);">
+          <span class="mono text-xs text-slate-500 font-bold shrink-0 mt-0.5">C</span>
+          <span class="text-sm text-slate-400 flex-1">The true parameter lies in this specific interval 95% of the time.</span>
+        </div>
+        <div class="flex items-start gap-3 rounded-lg p-3 border" style="border-color: var(--line); background: rgba(148,163,184,0.03);">
+          <span class="mono text-xs text-slate-500 font-bold shrink-0 mt-0.5">D</span>
+          <span class="text-sm text-slate-400 flex-1">95% of the data falls inside the interval.</span>
+        </div>
+      </div>
+      <!-- Grading bar (FSRS Again/Hard/Good/Easy) -->
+      <div class="pt-5 border-t" style="border-color: var(--line);">
+        <div class="flex items-center justify-between mb-2.5">
+          <span class="t-eyebrow text-slate-500">How well did you know that?</span>
+          <span class="text-[10px] text-slate-600 mono">schedules next review</span>
+        </div>
+        <div class="grid grid-cols-4 gap-2">
+          <div class="rounded-lg py-3 text-center border" style="border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.08);">
+            <div class="text-sm font-bold text-red-300">Again</div>
+            <div class="text-[10px] text-slate-500">Didn't know</div>
+          </div>
+          <div class="rounded-lg py-3 text-center border" style="border-color: rgba(251,191,36,0.35); background: rgba(251,191,36,0.07);">
+            <div class="text-sm font-bold text-amber-300">Hard</div>
+            <div class="text-[10px] text-slate-500">Struggled</div>
+          </div>
+          <div class="rounded-lg py-3 text-center border ring-1 ring-emerald-500/40" style="border-color: rgba(16,185,129,0.45); background: rgba(16,185,129,0.10);">
+            <div class="text-sm font-bold text-emerald-300">Good</div>
+            <div class="text-[10px] text-slate-500">Got it</div>
+          </div>
+          <div class="rounded-lg py-3 text-center border" style="border-color: rgba(34,211,238,0.35); background: rgba(34,211,238,0.08);">
+            <div class="text-sm font-bold text-cyan-300">Easy</div>
+            <div class="text-[10px] text-slate-500">Trivial</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="text-center t-caption mt-4">Every answer is graded, timed, and scheduled. The FSRS-6 engine picks exactly when you see each concept again.</p>
+</section>
+
+<!-- Thin credibility band — three numbers that matter most -->
+<section class="max-w-4xl mx-auto px-6 pb-24">
+  <div class="grid grid-cols-3 gap-4 text-center">
     <div>
-      <div class="text-4xl md:text-5xl font-extrabold stat-number mono tracking-tight">1,000</div>
-      <div class="t-caption mt-2">Board-style questions</div>
+      <div class="text-2xl md:text-3xl font-extrabold stat-number mono tracking-tight">1,000</div>
+      <div class="t-caption mt-1">Board-style questions</div>
+    </div>
+    <div class="border-x" style="border-color: var(--line);">
+      <div class="text-2xl md:text-3xl font-extrabold stat-number mono tracking-tight">50</div>
+      <div class="t-caption mt-1">Case-based challenges</div>
     </div>
     <div>
-      <div class="text-4xl md:text-5xl font-extrabold stat-number mono tracking-tight">50</div>
-      <div class="t-caption mt-2">Case-based challenges</div>
-    </div>
-    <div>
-      <div class="text-4xl md:text-5xl font-extrabold stat-number mono tracking-tight">126</div>
-      <div class="t-caption mt-2">Cited sources</div>
-    </div>
-    <div>
-      <div class="text-4xl md:text-5xl font-extrabold stat-number mono tracking-tight">8</div>
-      <div class="t-caption mt-2">Topic domains</div>
+      <div class="text-2xl md:text-3xl font-extrabold stat-number mono tracking-tight">126</div>
+      <div class="t-caption mt-1">Cited sources</div>
     </div>
   </div>
 </section>
 
 <!-- How it works -->
-<section class="max-w-6xl mx-auto px-6 pb-28">
+<section id="how" class="max-w-6xl mx-auto px-6 pb-28 scroll-mt-24">
   <div class="text-center mb-16 max-w-2xl mx-auto">
     <div class="t-eyebrow mb-4" style="color: var(--accent);">How it works</div>
     <h2 class="t-title mb-4">Built for how people actually learn</h2>
     <p class="t-body">Active recall, spaced repetition, and context-rich cases — not another passive video course.</p>
   </div>
   <div class="grid md:grid-cols-2 gap-5">
-    <div class="card card-hover rounded-2xl p-7">
-      <!-- Spaced repetition — refresh arc + anchored dot = review cycle -->
-      <div class="mb-4" style="color: var(--accent);">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M20 12a8 8 0 1 1-2.34-5.66"/>
-          <path d="M20 4v5h-5"/>
-          <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-        </svg>
-      </div>
-      <h3 class="t-subtitle mb-2">FSRS-6 spaced repetition</h3>
-      <p class="t-body">After every answer, grade yourself <em>Again / Hard / Good / Easy</em>. The FSRS-6 scheduler — a research-tuned successor to SM-2 — picks exactly when each card comes back, so you review the things you're about to forget, not the things you already know.</p>
-    </div>
     <div class="card card-hover rounded-2xl p-7">
       <!-- Real clinical cases — stethoscope -->
       <div class="mb-4" style="color: var(--accent);">
@@ -376,8 +511,20 @@
           <circle cx="18" cy="11" r="2"/>
         </svg>
       </div>
-      <h3 class="t-subtitle mb-2">Real clinical cases</h3>
-      <p class="t-body">Each case has a scenario — critique a manuscript, advise a resident, design an RCT. Questions live in context, not in isolation.</p>
+      <h3 class="t-subtitle mb-2">Real clinical cases, not drills</h3>
+      <p class="t-body">Each of the 50 cases sets a scenario — critique a manuscript, advise a resident, design an RCT. Questions live in context, so the methods feel like tools, not trivia.</p>
+    </div>
+    <div class="card card-hover rounded-2xl p-7">
+      <!-- Spaced repetition — refresh arc + anchored dot = review cycle -->
+      <div class="mb-4" style="color: var(--accent);">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 12a8 8 0 1 1-2.34-5.66"/>
+          <path d="M20 4v5h-5"/>
+          <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+        </svg>
+      </div>
+      <h3 class="t-subtitle mb-2">A scheduler that catches forgetting</h3>
+      <p class="t-body">After every answer, grade yourself <em>Again / Hard / Good / Easy</em>. The FSRS-6 scheduler — a research-tuned successor to SM-2 — picks exactly when each card comes back, so you review the things you're about to forget, not the things you already know.</p>
     </div>
     <div class="card card-hover rounded-2xl p-7">
       <!-- Deep dives — open book -->
@@ -389,7 +536,7 @@
         </svg>
       </div>
       <h3 class="t-subtitle mb-2">Deep dives, not just answers</h3>
-      <p class="t-body">Every question links to intuition, formula, assumptions, pitfalls, and reading. Learn the <em>why</em>, not the memo.</p>
+      <p class="t-body">Every question links to intuition, formula, assumptions, pitfalls, and primary-literature reading. Learn the <em>why</em>, not the memo — and defend it in journal club next week.</p>
     </div>
     <div class="card card-hover rounded-2xl p-7">
       <!-- XP / streaks / mastery — lightning bolt -->
@@ -538,6 +685,59 @@
   </div>
 </section>
 
+<!-- How this differs — handle the unspoken "why not just use X?" objection -->
+<section class="max-w-5xl mx-auto px-6 pb-28">
+  <div class="text-center mb-12 max-w-2xl mx-auto">
+    <div class="t-eyebrow mb-4" style="color: var(--accent);">How this is different</div>
+    <h2 class="t-title mb-4">Not another textbook, video course, or QBank</h2>
+    <p class="t-body">Each of those teaches <em>part</em> of the job. BioStat Quest stitches them together — context, practice, retention, and reasoning — into a single loop.</p>
+  </div>
+  <div class="overflow-hidden rounded-2xl card">
+    <div class="grid grid-cols-2 md:grid-cols-4 text-sm">
+      <div class="p-5 border-b md:border-b-0 md:border-r" style="border-color: var(--line);">
+        <div class="t-eyebrow mb-3 text-slate-500">&nbsp;</div>
+        <div class="space-y-3 text-slate-400">
+          <div>Clinical scenario</div>
+          <div>Active recall</div>
+          <div>Spaced repetition</div>
+          <div>Cited sources</div>
+          <div>Cost</div>
+        </div>
+      </div>
+      <div class="p-5 border-b md:border-b-0 md:border-r" style="border-color: var(--line);">
+        <div class="t-eyebrow mb-3 text-slate-500">Textbooks</div>
+        <div class="space-y-3 text-slate-300">
+          <div class="text-slate-500">Occasional</div>
+          <div class="text-slate-500">No</div>
+          <div class="text-slate-500">No</div>
+          <div>Yes</div>
+          <div class="text-slate-400">$80–200</div>
+        </div>
+      </div>
+      <div class="p-5 border-b md:border-b-0 md:border-r" style="border-color: var(--line);">
+        <div class="t-eyebrow mb-3 text-slate-500">Video courses</div>
+        <div class="space-y-3 text-slate-300">
+          <div class="text-slate-500">Sometimes</div>
+          <div class="text-slate-500">Passive</div>
+          <div class="text-slate-500">No</div>
+          <div class="text-slate-500">Rare</div>
+          <div class="text-slate-400">$20–80/mo</div>
+        </div>
+      </div>
+      <div class="p-5" style="background: linear-gradient(145deg, rgba(34,211,238,0.08), rgba(34,211,238,0.02));">
+        <div class="t-eyebrow mb-3" style="color: var(--accent);">BioStat Quest</div>
+        <div class="space-y-3 text-slate-100">
+          <div class="inline-flex items-center gap-1.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400"><path d="M4 12.5l5 5 11-12"/></svg> Every case</div>
+          <div class="inline-flex items-center gap-1.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400"><path d="M4 12.5l5 5 11-12"/></svg> Every question</div>
+          <div class="inline-flex items-center gap-1.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400"><path d="M4 12.5l5 5 11-12"/></svg> FSRS-6 engine</div>
+          <div class="inline-flex items-center gap-1.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400"><path d="M4 12.5l5 5 11-12"/></svg> 126 linked</div>
+          <div class="gold-text font-bold">Free</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- Educators / institutional B2B wedge -->
 <section class="max-w-5xl mx-auto px-6 pb-28">
   <div class="premium-border rounded-2xl p-7 md:p-9" style="background: linear-gradient(145deg, rgba(22,28,54,0.45), rgba(12,16,36,0.60));">
@@ -563,17 +763,60 @@
   </div>
 </section>
 
+<!-- FAQ — last-mile objection handling -->
+<section class="max-w-3xl mx-auto px-6 pb-28">
+  <div class="text-center mb-12">
+    <div class="t-eyebrow mb-4" style="color: var(--violet);">Frequently asked</div>
+    <h2 class="t-title mb-2">Before you start</h2>
+  </div>
+  <div class="space-y-3">
+    <details class="card rounded-xl px-5 py-4 group">
+      <summary class="cursor-pointer flex items-center justify-between gap-4 list-none">
+        <span class="font-semibold text-white text-sm sm:text-base">Is it really free? What's the catch?</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-500 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <p class="t-body text-sm mt-3 text-slate-300">All 50 cases, all 1,000 questions, all method deep-dives, the FSRS-6 scheduler, and the R Lab are free for individual learners — forever. No credit card, no trial countdown. The only paid tier is for institutions that want a class-level dashboard and bulk seats.</p>
+    </details>
+    <details class="card rounded-xl px-5 py-4 group">
+      <summary class="cursor-pointer flex items-center justify-between gap-4 list-none">
+        <span class="font-semibold text-white text-sm sm:text-base">Who writes and reviews the content?</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-500 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <p class="t-body text-sm mt-3 text-slate-300">Every question, deep dive, and citation is personally authored by <a href="/about.html" class="text-slate-100 underline underline-offset-2 decoration-slate-600 hover:decoration-slate-300">Selçuk Korkmaz, PhD</a> — a biostatistics researcher and author of several R packages on CRAN. Content is method-categorized and sourced from primary literature, not paraphrased from another QBank.</p>
+    </details>
+    <details class="card rounded-xl px-5 py-4 group">
+      <summary class="cursor-pointer flex items-center justify-between gap-4 list-none">
+        <span class="font-semibold text-white text-sm sm:text-base">Do I have to sign up to try it?</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-500 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <p class="t-body text-sm mt-3 text-slate-300">No. The diagnostic and every case work in guest mode — progress is saved locally. Sign in only when you want to sync across devices or join the leaderboard.</p>
+    </details>
+    <details class="card rounded-xl px-5 py-4 group">
+      <summary class="cursor-pointer flex items-center justify-between gap-4 list-none">
+        <span class="font-semibold text-white text-sm sm:text-base">Does it work on my phone?</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-500 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <p class="t-body text-sm mt-3 text-slate-300">Yes. Everything runs in the browser on iOS, Android, and desktop. Nothing to install. The R Lab runs R in the browser via WebR — even that works on a phone, though a laptop is nicer for code.</p>
+    </details>
+    <details class="card rounded-xl px-5 py-4 group">
+      <summary class="cursor-pointer flex items-center justify-between gap-4 list-none">
+        <span class="font-semibold text-white text-sm sm:text-base">How much time does it take?</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-500 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <p class="t-body text-sm mt-3 text-slate-300">A case is ~15 minutes. A daily review session is 3–8 minutes once the scheduler picks up. Most users find 15 min/day over 4–6 weeks is enough to feel fluent before an exam or journal club.</p>
+    </details>
+  </div>
+</section>
+
 <!-- CTA -->
 <section class="max-w-4xl mx-auto px-6 pb-28">
   <div class="premium-border rounded-3xl p-12 md:p-16 text-center" style="background: linear-gradient(145deg, rgba(22,28,54,0.55), rgba(12,16,36,0.65));">
-    <!-- CTA — rocket with flame tail -->
+    <!-- CTA — compass with centered needle (the "diagnostic" metaphor) -->
     <div class="mb-5 inline-flex justify-center" style="color: var(--accent);">
       <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M12 2c-3 3-5 7-5 11v3h10v-3c0-4-2-8-5-11z"/>
-        <path d="M7 16l-2.5 4 3-1"/>
-        <path d="M17 16l2.5 4-3-1"/>
-        <circle cx="12" cy="10" r="1.8"/>
-        <path d="M10 21l2 2 2-2"/>
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M15 9 L 13 13 L 9 15 L 11 11 z" fill="currentColor" stroke="none"/>
+        <circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/>
       </svg>
     </div>
     <h2 class="t-title mb-4">Start with the free diagnostic.</h2>
@@ -628,12 +871,12 @@
         </svg>
         <span class="font-extrabold text-white">BioStat <span class="gold-text">Quest</span></span>
       </div>
-      <p class="t-caption">A gamified biostatistics trainer. Built with care by a researcher who wished this existed in grad school.</p>
+      <p class="t-caption">Case-based biostatistics training with spaced repetition. Built by a researcher who wished this existed in grad school.</p>
     </div>
     <div>
       <div class="t-eyebrow mb-3">Links</div>
       <ul class="space-y-2 text-sm">
-        <li><a href="biostat-quest.html" class="text-slate-400 hover:text-white transition">Play</a></li>
+        <li><a href="biostat-quest.html" class="text-slate-400 hover:text-white transition">Launch</a></li>
         <li><a href="/about.html" class="text-slate-400 hover:text-white transition">About</a></li>
         <li><a href="/sources.html" class="text-slate-400 hover:text-white transition">Sources</a></li>
         <li><a href="/privacy.html" class="text-slate-400 hover:text-white transition">Privacy</a></li>
@@ -652,6 +895,31 @@
     </div>
   </div>
 </footer>
+
+<script>
+(function(){
+  var wrap=document.getElementById("nav-account");
+  var btn=document.getElementById("nav-account-btn");
+  var menu=document.getElementById("nav-account-menu");
+  var out=document.getElementById("nav-account-signout");
+  if(!wrap||!btn||!menu||!out)return;
+  function setOpen(o){menu.hidden=!o;btn.setAttribute("aria-expanded",o?"true":"false");}
+  btn.addEventListener("click",function(e){e.stopPropagation();setOpen(menu.hidden);});
+  document.addEventListener("click",function(e){if(!wrap.contains(e.target))setOpen(false);});
+  document.addEventListener("keydown",function(e){if(e.key==="Escape")setOpen(false);});
+  out.addEventListener("click",function(){
+    try{
+      var toRemove=[];
+      for(var i=0;i<localStorage.length;i++){
+        var k=localStorage.key(i);
+        if(k&&k.indexOf("sb-")===0&&k.indexOf("-auth-token")!==-1)toRemove.push(k);
+      }
+      toRemove.forEach(function(k){localStorage.removeItem(k);});
+    }catch(e){}
+    window.location.reload();
+  });
+})();
+</script>
 
 </body>
 </html>
