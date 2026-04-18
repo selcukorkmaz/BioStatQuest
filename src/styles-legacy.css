@@ -1,0 +1,200 @@
+:root {
+    --bg0: #05070f; --bg1: #0a0f1e; --bg2: #0f1630;
+    /* Single primary accent — teal/cyan. Violet demoted to secondary, amber reserved for gold/XP. */
+    --accent:  #22d3ee;          /* primary */
+    --accent-2:#0891b2;           /* primary deep */
+    --accent-ink: rgba(34,211,238,0.35);
+    --violet:  #8b5cf6;           /* secondary */
+    --violet-ink: rgba(139,92,246,0.22);
+    --gold:    #fbbf24;           /* tertiary / XP only */
+    --ink-1:   #f1f5f9;           /* display / title */
+    --ink-2:   #cbd5e1;           /* body */
+    --ink-3:   #94a3b8;           /* caption */
+    --ink-4:   #64748b;           /* muted */
+    --line:    rgba(148,163,184,0.12);
+  }
+  * { -webkit-tap-highlight-color: transparent; }
+  html, body { min-height: 100%; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--ink-2);
+    background-color: var(--bg0);
+    position: relative;
+    min-height: 100vh;
+    letter-spacing: -0.005em;
+  }
+  /* Layered radial glows — calm, asymmetric, behind content */
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(55rem 40rem at 8% -10%,  rgba(34,211,238,0.10), transparent 60%),
+      radial-gradient(45rem 35rem at 105% 10%, rgba(139,92,246,0.08), transparent 60%),
+      radial-gradient(60rem 45rem at 50% 120%, rgba(8,145,178,0.09),  transparent 60%);
+  }
+  /* Subtle grain — kills gradient banding */
+  body::after {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    opacity: 0.035; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  #root { position: relative; z-index: 1; }
+
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* ---------- Typography scale ---------- */
+  .t-display   { font-size: clamp(2.25rem, 4vw, 3.5rem); font-weight: 800; line-height: 1.02; letter-spacing: -0.035em; color: var(--ink-1); }
+  .t-title     { font-size: clamp(1.5rem, 2.2vw, 2rem);   font-weight: 700; line-height: 1.15; letter-spacing: -0.02em;  color: var(--ink-1); }
+  .t-subtitle  { font-size: 1.125rem; font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; color: var(--ink-1); }
+  .t-body      { font-size: 0.975rem; font-weight: 400; line-height: 1.6;  color: var(--ink-2); }
+  .t-caption   { font-size: 0.8125rem; font-weight: 500; line-height: 1.45; color: var(--ink-3); }
+  .t-eyebrow   { font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+
+  .card {
+    background: linear-gradient(145deg, rgba(22,28,54,0.55), rgba(12,16,36,0.65));
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    box-shadow: 0 10px 30px -12px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .card-glow {
+    background: linear-gradient(145deg, rgba(34,211,238,0.08), rgba(14,116,144,0.05));
+    border: 1px solid var(--accent-ink);
+    box-shadow: 0 20px 50px -18px rgba(34,211,238,0.18), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .premium-border {
+    position: relative; border-radius: 1rem;
+  }
+  .premium-border::before {
+    content: ''; position: absolute; inset: 0; padding: 1px;
+    background: linear-gradient(135deg, rgba(34,211,238,0.55), rgba(139,92,246,0.35) 55%, rgba(251,191,36,0.3));
+    border-radius: inherit;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    pointer-events: none;
+  }
+  .btn {
+    transition: all 0.25s cubic-bezier(0.4,0,0.2,1); position: relative; overflow: hidden;
+    font-weight: 600; letter-spacing: 0.01em;
+  }
+  .btn:hover:not(:disabled) { transform: translateY(-2px); }
+  .btn:active:not(:disabled) { transform: translateY(0); }
+  .btn-primary {
+    background: linear-gradient(135deg, #22d3ee, #0891b2);
+    color: #042f3a; box-shadow: 0 8px 20px -6px rgba(34,211,238,0.45);
+  }
+  .btn-primary:hover:not(:disabled) { box-shadow: 0 12px 28px -6px rgba(34,211,238,0.65); }
+  .btn-gold {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: #451a03; box-shadow: 0 8px 20px -6px rgba(251,191,36,0.4);
+  }
+  .btn-ghost { background: rgba(148,163,184,0.06); color: var(--ink-2); border: 1px solid rgba(148,163,184,0.14); }
+  .btn-ghost:hover:not(:disabled) { background: rgba(148,163,184,0.12); }
+  .bar { height: 6px; background: rgba(148,163,184,0.10); border-radius: 999px; overflow: hidden; }
+  .bar > div { height: 100%; background: linear-gradient(90deg, #22d3ee, #0891b2); transition: width 0.6s cubic-bezier(0.4,0,0.2,1); border-radius: 999px; }
+  .bar-gold > div { background: linear-gradient(90deg, #fbbf24, #f97316); }
+
+  /* Motion budget: one animated element per viewport on load.
+     Routine UI gets a short fade-in and nothing else. Keyframes are kept
+     because rare milestone moments (first badge, share card) still use them,
+     but .pulse / .float / .shimmer are retired from everyday surfaces. */
+  @keyframes pulse-glow { 0%,100%{box-shadow:0 0 20px rgba(34,211,238,0.35)} 50%{box-shadow:0 0 40px rgba(34,211,238,0.6)} }
+  .pulse { animation: pulse-glow 2.5s ease-in-out infinite; }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+  .float { animation: float 3s ease-in-out infinite; }
+  @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+  .shimmer { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); background-size: 200% 100%; animation: shimmer 2s infinite; }
+  @keyframes fadeInUp { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+  .fade-in { animation: fadeInUp 0.18s cubic-bezier(0.4,0,0.2,1) backwards; }
+  @keyframes bounce-in { 0%{transform:scale(0.3);opacity:0} 60%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
+  .bounce-in { animation: bounce-in 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes confetti { 0%{transform:translateY(-10vh) rotate(0);opacity:1} 100%{transform:translateY(110vh) rotate(720deg);opacity:0} }
+  .confetti-piece { position: fixed; top: -10vh; width: 10px; height: 14px; animation: confetti 3s ease-in forwards; pointer-events: none; z-index: 9999; }
+
+  /* Respect the OS motion preference. Nonessential animation becomes
+     an instantaneous state change — keeping it on would feel worse than cutting. */
+  @media (prefers-reduced-motion: reduce) {
+    .pulse, .float, .shimmer, .fade-in, .bounce-in, .confetti-piece {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+
+  .badge { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-size:11px; font-weight:600; letter-spacing:0.02em;}
+  .tag { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+  .chip { padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+
+  .option-btn {
+    transition: all 0.2s; text-align: left; border: 1.5px solid transparent;
+    background: linear-gradient(145deg, rgba(22,28,54,0.45), rgba(12,16,36,0.55));
+  }
+  .option-btn:hover:not(:disabled) { border-color: var(--accent-ink); transform: translateX(4px); }
+  .option-btn.selected { border-color: var(--accent); background: linear-gradient(145deg, rgba(34,211,238,0.18), rgba(8,145,178,0.10)); }
+  .option-btn.correct { border-color: #10b981; background: linear-gradient(145deg, rgba(16,185,129,0.22), rgba(5,150,105,0.12)); }
+  .option-btn.incorrect { border-color: #ef4444; background: linear-gradient(145deg, rgba(239,68,68,0.22), rgba(185,28,28,0.12)); }
+  .option-btn:disabled { cursor: default; }
+
+  .scrollbar::-webkit-scrollbar { width: 8px; }
+  .scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar::-webkit-scrollbar-thumb { background: rgba(34,211,238,0.25); border-radius: 4px; }
+
+  input[type=number] {
+    background: rgba(8,12,26,0.8); color: #fff; border: 1.5px solid var(--accent-ink);
+    padding: 14px 16px; border-radius: 12px; font-size: 18px; width: 100%; outline: none;
+    transition: all 0.2s; font-family: 'JetBrains Mono', monospace;
+  }
+  input[type=number]:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(34,211,238,0.12); }
+
+  .stat-number { background: linear-gradient(135deg, #22d3ee, #67e8f9); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .gold-text { background: linear-gradient(135deg, #fbbf24, #f59e0b); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+  .timer-ring { transform: rotate(-90deg); }
+  .timer-ring circle { transition: stroke-dashoffset 1s linear; }
+
+  .nav-btn {
+    padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 600;
+    transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
+    flex-shrink: 0; white-space: nowrap;
+  }
+  .nav-btn.active { background: rgba(34,211,238,0.12); color: white; box-shadow: inset 0 0 0 1px var(--accent-ink); }
+  .nav-btn:not(.active) { color: var(--ink-3); }
+  .nav-btn:not(.active):hover { color: white; background: rgba(148,163,184,0.06); }
+
+  /* ---------- Mobile responsiveness ---------- */
+  /* Prevent horizontal page overflow from wide content or gradients */
+  html, body, #root { overflow-x: hidden; max-width: 100%; }
+  /* Media never breaks container */
+  img, svg, video { max-width: 100%; }
+  /* Prevent iOS form-field zoom on mobile only (preserves mono code sizing on desktop) */
+  @media (max-width: 767px) {
+    input, textarea, select { font-size: 16px !important; }
+  }
+  /* Touch target minimum for anything interactive */
+  button, a.btn { min-height: 40px; }
+  /* Horizontal scroll wrapper for wide tables / nav on mobile */
+  .hscroll {
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+  }
+  .hscroll::-webkit-scrollbar { display: none; }
+  /* Mobile-optimised typography — override clamp() at very small widths */
+  @media (max-width: 640px) {
+    .t-display { font-size: 1.875rem !important; line-height: 1.1 !important; }
+    .t-title   { font-size: 1.25rem  !important; }
+    /* Rein in aggressive Tailwind padding classes that overflow small screens */
+    .rounded-3xl, .rounded-2xl { border-radius: 1rem; }
+    /* Ensure pre/code blocks wrap or scroll rather than breaking layout */
+    pre { white-space: pre; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    /* Hide overly large decorative emoji on narrow screens */
+    .decor-lg { display: none !important; }
+    /* Keep modals above safe-area on iOS */
+    .safe-pad-top { padding-top: env(safe-area-inset-top, 0); }
+    /* Tighter nav buttons on phones */
+    .nav-btn { padding: 7px 10px; font-size: 12px; }
+    /* Progress bar shrinks on phones */
+    .bar.w-48 { width: 100% !important; max-width: 12rem; }
+  }
+  /* Tweak very narrow (≤380px) devices (iPhone SE, older Androids) */
+  @media (max-width: 380px) {
+    .t-display { font-size: 1.625rem !important; }
+    .nav-btn { padding: 6px 9px; font-size: 11.5px; }
+  }

@@ -1,0 +1,100 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="supported-color-schemes" content="dark" />
+  <title>Welcome to BioStat Quest</title>
+</head>
+<body style="margin:0; padding:0; background-color:#05070f; font-family:'Inter','Segoe UI',Roboto,-apple-system,BlinkMacSystemFont,sans-serif; color:#cbd5e1;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#05070f" style="background-color:#05070f; padding:40px 16px;">
+    <tr>
+      <td align="center">
+
+        <!-- Eyebrow wordmark -->
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; width:100%;">
+          <tr>
+            <td align="left" style="padding:0 8px 18px;">
+              <span style="font-size:12px; font-weight:800; letter-spacing:2.5px; text-transform:uppercase; color:#94a3b8;">
+                &#127891;&nbsp; BioStat&nbsp;<span style="color:#fbbf24;">Quest</span>
+              </span>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Main card -->
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" bgcolor="#0a0f1e"
+               style="max-width:560px; width:100%; background-color:#0a0f1e; background-image:linear-gradient(145deg, rgba(34,211,238,0.06), rgba(14,116,144,0.03)); border-radius:16px; border:1px solid rgba(34,211,238,0.22); box-shadow:0 20px 50px -18px rgba(34,211,238,0.15);">
+
+          <!-- Header -->
+          <tr>
+            <td style="padding:40px 36px 4px;">
+              <h1 style="margin:0 0 12px; color:#f1f5f9; font-size:30px; font-weight:800; line-height:1.08; letter-spacing:-0.03em;">
+                Welcome to the lab.
+              </h1>
+              <p style="margin:0; color:#94a3b8; font-size:14px; font-weight:500; line-height:1.5;">
+                One quick step &mdash; confirm your email to sync progress across devices.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:28px 36px 8px; color:#cbd5e1; font-size:15px; line-height:1.65;">
+              <p style="margin:0 0 24px;">
+                Thanks for signing up for <strong style="color:#f1f5f9;">BioStat Quest</strong> &mdash; the gamified biostatistics trainer. Tap the button below and you'll start climbing from medical student to world-class biostatistician with 700+ questions, adaptive difficulty, and case-based missions drawn from real biomedical research.
+              </p>
+
+              <!-- CTA -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:8px 0 26px;">
+                <tr>
+                  <td align="center">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td bgcolor="#22d3ee"
+                            style="background-color:#22d3ee; background-image:linear-gradient(135deg,#22d3ee 0%,#0891b2 100%); border-radius:12px; box-shadow:0 8px 20px -6px rgba(34,211,238,0.45);">
+                          <a href="{{ .ConfirmationURL }}"
+                             style="display:inline-block; padding:15px 34px; color:#042f3a; font-family:'Inter','Segoe UI',sans-serif; font-weight:700; font-size:15px; text-decoration:none; letter-spacing:0.01em;">
+                            Confirm my email &rarr;
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0 0 6px; color:#64748b; font-size:12px;">Button not working? Paste this URL into your browser:</p>
+              <p style="margin:0 0 24px; word-break:break-all;">
+                <a href="{{ .ConfirmationURL }}" style="color:#22d3ee; text-decoration:underline; font-size:12px;">{{ .ConfirmationURL }}</a>
+              </p>
+
+              <hr style="border:none; border-top:1px solid rgba(148,163,184,0.12); margin:8px 0 22px;" />
+
+              <p style="margin:0 0 24px; color:#64748b; font-size:12px; line-height:1.65;">
+                Didn't create a BioStat Quest account? Ignore this email &mdash; nothing happens until the link is used.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:16px 36px 32px; text-align:center; border-top:1px solid rgba(148,163,184,0.08);">
+              <p style="margin:14px 0 6px;">
+                <a href="{{ .SiteURL }}" style="color:#94a3b8; text-decoration:none; font-weight:700; font-size:13px; letter-spacing:0.01em;">
+                  biostat<span style="color:#fbbf24;">quest</span>.com
+                </a>
+              </p>
+              <p style="margin:0; color:#64748b; font-size:11px; line-height:1.6;">
+                Climb from medical student to world-class biostatistician.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

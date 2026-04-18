@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<title>Sources — BioStat Quest</title>
+<meta name="description" content="Primary literature and methodology references for every method deep-dive in BioStat Quest. Filter by branch, search by keyword, 126 citations across 42 methods." />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="BioStat Quest" />
+<meta property="og:url" content="https://www.biostatquest.com/sources.html" />
+<meta property="og:title" content="Sources — BioStat Quest" />
+<meta property="og:description" content="Primary literature behind every method in BioStat Quest. 126 citations across 42 methods. Filter by branch, search by keyword." />
+<meta property="og:image" content="https://www.biostatquest.com/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:alt" content="BioStat Quest — biostatistics prep that actually sticks. 126 cited sources." />
+<meta property="og:locale" content="en_US" />
+
+<!-- Twitter / X -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Sources — BioStat Quest" />
+<meta name="twitter:description" content="126 citations across 42 methods. The primary literature behind every deep-dive." />
+<meta name="twitter:image" content="https://www.biostatquest.com/og-image.png" />
+<meta name="twitter:image:alt" content="BioStat Quest — 126 cited sources." />
+
+<link rel="canonical" href="https://www.biostatquest.com/sources.html" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  :root {
+    --bg0: #05070f; --bg1: #0a0f1e; --bg2: #0f1630;
+    --accent:  #22d3ee;
+    --accent-2:#0891b2;
+    --accent-ink: rgba(34,211,238,0.35);
+    --violet:  #8b5cf6;
+    --violet-ink: rgba(139,92,246,0.22);
+    --gold:    #fbbf24;
+    --ink-1:   #f1f5f9;
+    --ink-2:   #cbd5e1;
+    --ink-3:   #94a3b8;
+    --ink-4:   #64748b;
+    --line:    rgba(148,163,184,0.12);
+  }
+  * { -webkit-tap-highlight-color: transparent; }
+  html, body { min-height: 100%; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--ink-2);
+    background-color: var(--bg0);
+    position: relative;
+    min-height: 100vh;
+    letter-spacing: -0.005em;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(55rem 40rem at 8% -10%,  rgba(34,211,238,0.10), transparent 60%),
+      radial-gradient(45rem 35rem at 105% 10%, rgba(139,92,246,0.08), transparent 60%),
+      radial-gradient(60rem 45rem at 50% 120%, rgba(8,145,178,0.09),  transparent 60%);
+  }
+  body::after {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    opacity: 0.035; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  main, nav, footer { position: relative; z-index: 1; }
+
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  .t-display   { font-size: clamp(2.5rem, 5.5vw, 4rem); font-weight: 800; line-height: 1.05; letter-spacing: -0.035em; color: var(--ink-1); }
+  .t-title     { font-size: clamp(1.625rem, 2.5vw, 2.25rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; color: var(--ink-1); }
+  .t-subtitle  { font-size: 1.125rem; font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; color: var(--ink-1); }
+  .t-body      { font-size: 1rem; font-weight: 400; line-height: 1.7; color: var(--ink-2); }
+  .t-lead      { font-size: clamp(1.05rem, 1.25vw, 1.25rem); font-weight: 400; line-height: 1.6; color: var(--ink-2); }
+  .t-caption   { font-size: 0.8125rem; font-weight: 500; line-height: 1.5; color: var(--ink-3); }
+  .t-eyebrow   { font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3); }
+
+  .card {
+    background: linear-gradient(145deg, rgba(22,28,54,0.55), rgba(12,16,36,0.65));
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--line);
+    border-radius: 1.25rem;
+    box-shadow: 0 10px 30px -12px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .premium-border { position: relative; border-radius: 1.25rem; }
+  .premium-border::before {
+    content: ''; position: absolute; inset: 0; padding: 1px;
+    background: linear-gradient(135deg, rgba(34,211,238,0.55), rgba(139,92,246,0.35) 55%, rgba(251,191,36,0.3));
+    border-radius: inherit;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    pointer-events: none;
+  }
+  .card-hover { transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; }
+  .card-hover:hover { transform: translateY(-3px); border-color: var(--accent-ink); box-shadow: 0 18px 40px -16px rgba(34,211,238,0.25); }
+
+  .btn {
+    transition: all 0.25s cubic-bezier(0.4,0,0.2,1); position: relative; overflow: hidden;
+    font-weight: 600; letter-spacing: 0.01em; display: inline-block; text-align: center;
+  }
+  .btn:hover:not(:disabled) { transform: translateY(-2px); }
+  .btn-primary {
+    background: linear-gradient(135deg, #22d3ee, #0891b2);
+    color: #042f3a; box-shadow: 0 8px 20px -6px rgba(34,211,238,0.45);
+  }
+  .btn-primary:hover { box-shadow: 0 12px 28px -6px rgba(34,211,238,0.65); }
+  .btn-ghost { background: rgba(148,163,184,0.06); color: var(--ink-2); border: 1px solid rgba(148,163,184,0.14); }
+  .btn-ghost:hover { background: rgba(148,163,184,0.12); }
+
+  .stat-number { background: linear-gradient(135deg, #22d3ee, #67e8f9); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .gold-text { background: linear-gradient(135deg, #fbbf24, #f59e0b); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+  .tag { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 999px;
+    background: rgba(148,163,184,0.06); border: 1px solid var(--line);
+    font-size: 12px; font-weight: 500; color: var(--ink-2);
+  }
+
+  .prose-on-dark p { color: var(--ink-2); line-height: 1.75; }
+  .prose-on-dark a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(34,211,238,0.4); }
+  .prose-on-dark a:hover { text-decoration-color: var(--accent); }
+
+  /* ===== Sources-specific ===== */
+
+  /* Branch badge — small coloured tag at the top of each source card. */
+  .branch-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px;
+    background: color-mix(in srgb, var(--b) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--b) 40%, transparent);
+    color: var(--b);
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .branch-badge svg { width: 12px; height: 12px; color: var(--b); }
+
+  /* # anchor button on each card */
+  .anchor-link {
+    opacity: 0; transition: opacity 0.15s, color 0.15s;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--ink-4); font-size: 11px; padding: 2px 6px;
+    border-radius: 6px;
+  }
+  .source-card:hover .anchor-link,
+  .anchor-link:focus { opacity: 1; }
+  .anchor-link:hover { color: var(--accent); background: rgba(34,211,238,0.08); }
+
+  /* R package mono chip */
+  .r-chip {
+    display: inline-flex; align-items: center;
+    padding: 3px 8px; border-radius: 6px;
+    background: rgba(139,92,246,0.10); border: 1px solid var(--violet-ink);
+    color: #c4b5fd;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500;
+  }
+  .r-chip-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.14em;
+    margin-right: 8px;
+  }
+
+  /* External-resource button (DAGitty, E-value calculator, etc.) */
+  .ext-link {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 8px;
+    background: rgba(34,211,238,0.08); border: 1px solid var(--accent-ink);
+    color: var(--accent);
+    font-size: 11px; font-weight: 600;
+    text-decoration: none;
+  }
+  .ext-link:hover { background: rgba(34,211,238,0.14); }
+  .ext-link svg { width: 10px; height: 10px; }
+
+  /* Filter bar */
+  .filter-bar {
+    position: sticky; top: 68px; z-index: 30;
+    background: rgba(5,7,15,0.82);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--line); border-radius: 1rem;
+    padding: 10px;
+  }
+  .filter-tab {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 999px;
+    background: rgba(148,163,184,0.04); border: 1px solid transparent;
+    color: var(--ink-3);
+    font-size: 12px; font-weight: 600; white-space: nowrap;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .filter-tab:hover { color: var(--ink-1); background: rgba(148,163,184,0.08); }
+  .filter-tab.active {
+    background: color-mix(in srgb, var(--b, #22d3ee) 14%, transparent);
+    border-color: color-mix(in srgb, var(--b, #22d3ee) 45%, transparent);
+    color: var(--b, var(--accent));
+  }
+  .filter-tab svg { width: 13px; height: 13px; }
+  .filter-tab .count { font-size: 10px; color: var(--ink-4); font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+  .filter-tab.active .count { color: inherit; opacity: 0.8; }
+
+  .search-input {
+    width: 100%;
+    background: rgba(5,7,15,0.6);
+    border: 1px solid var(--line);
+    color: var(--ink-1);
+    padding: 9px 14px 9px 36px;
+    border-radius: 10px;
+    font-size: 13px;
+    outline: none;
+  }
+  .search-input::placeholder { color: var(--ink-4); }
+  .search-input:focus { border-color: var(--accent-ink); box-shadow: 0 0 0 3px rgba(34,211,238,0.12); }
+  .search-wrap { position: relative; }
+  .search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--ink-4); pointer-events: none; }
+
+  /* Author marquee chips */
+  .author-chip {
+    display: inline-flex; align-items: center;
+    padding: 6px 12px; border-radius: 999px;
+    background: linear-gradient(135deg, rgba(139,92,246,0.10), rgba(34,211,238,0.06));
+    border: 1px solid rgba(139,92,246,0.22);
+    color: var(--ink-1);
+    font-size: 12px; font-weight: 600; letter-spacing: 0.01em;
+  }
+  .author-chip em { font-style: normal; color: var(--ink-3); font-weight: 500; margin-left: 6px; }
+
+  /* Hidden by filter */
+  .source-card.is-hidden { display: none !important; }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center; padding: 4rem 1rem; color: var(--ink-4);
+    font-size: 14px; display: none;
+  }
+  .empty-state.is-visible { display: block; }
+
+  @keyframes fadeInUp { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+  .fade-in { animation: fadeInUp 0.2s cubic-bezier(0.4,0,0.2,1) backwards; }
+
+  a { color: inherit; text-decoration: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fade-in, .card-hover { animation: none !important; transition: none !important; }
+  }
+</style>
+<script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body>
+
+<!-- Nav — identical to landing / about -->
+<nav class="sticky top-0 z-50 backdrop-blur-xl" style="background: rgba(5,7,15,0.72); border-bottom: 1px solid var(--line);">
+  <div class="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
+    <a href="/" class="flex items-center gap-3">
+      <svg width="44" height="38" viewBox="0 0 52 44" fill="none" style="overflow:visible">
+        <defs>
+          <linearGradient id="bqStroke" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#c084fc"/>
+            <stop offset="35%" stop-color="#8b5cf6"/>
+            <stop offset="65%" stop-color="#06b6d4"/>
+            <stop offset="100%" stop-color="#34d399"/>
+          </linearGradient>
+          <linearGradient id="bqFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.55"/>
+            <stop offset="60%" stop-color="#06b6d4" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
+          </linearGradient>
+          <radialGradient id="bqPeakGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#fde68a" stop-opacity="0.95"/>
+            <stop offset="60%" stop-color="#fbbf24" stop-opacity="0.4"/>
+            <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="bqGlow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="1.8" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <line x1="4" y1="36" x2="48" y2="36" stroke="#334155" stroke-width="0.8" stroke-linecap="round"/>
+        <line x1="14" y1="36" x2="14" y2="38" stroke="#334155" stroke-width="0.8"/>
+        <line x1="26" y1="36" x2="26" y2="38.5" stroke="#475569" stroke-width="1"/>
+        <line x1="38" y1="36" x2="38" y2="38" stroke="#334155" stroke-width="0.8"/>
+        <circle cx="26" cy="8" r="9" fill="url(#bqPeakGlow)"/>
+        <path d="M 4 36 C 11 36, 15 35.5, 18 29 C 20.5 22, 22.5 12, 26 8 C 29.5 12, 31.5 22, 34 29 C 37 35.5, 41 36, 48 36 Z" fill="url(#bqFill)"/>
+        <path d="M 4 36 C 11 36, 15 35.5, 18 29 C 20.5 22, 22.5 12, 26 8 C 29.5 12, 31.5 22, 34 29 C 37 35.5, 41 36, 48 36" stroke="url(#bqStroke)" stroke-width="2.3" fill="none" stroke-linecap="round" filter="url(#bqGlow)"/>
+        <line x1="20" y1="19" x2="20" y2="36" stroke="#64748b" stroke-width="0.6" stroke-dasharray="1.5 2" opacity="0.55"/>
+        <line x1="32" y1="19" x2="32" y2="36" stroke="#64748b" stroke-width="0.6" stroke-dasharray="1.5 2" opacity="0.55"/>
+        <line x1="26" y1="10" x2="26" y2="36" stroke="#fbbf24" stroke-width="1" stroke-dasharray="2.5 2" opacity="0.85"/>
+        <circle cx="26" cy="8" r="2.3" fill="#fde68a" stroke="#f59e0b" stroke-width="0.8"/>
+        <circle cx="26" cy="8" r="0.9" fill="#fff"/>
+      </svg>
+      <div class="font-extrabold text-lg text-white tracking-tight">BioStat <span class="gold-text">Quest</span></div>
+    </a>
+    <div class="flex items-center gap-1 sm:gap-2 text-sm">
+      <a href="/about.html" class="hidden sm:inline px-3 py-2 rounded-lg text-slate-400 hover:text-white transition">About</a>
+      <a href="biostat-quest.html?auth=1" class="px-3 py-2 rounded-lg text-slate-300 hover:text-white transition">Sign in</a>
+      <a href="biostat-quest.html" class="btn btn-primary px-4 py-2 rounded-lg">Play</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Reusable branch icon <defs> — referenced via <use href="#bi-<id>"/> -->
+<svg width="0" height="0" aria-hidden="true" style="position:absolute">
+  <defs>
+    <symbol id="bi-foundations" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 20.5h18"/>
+      <rect x="5.5" y="13"  width="3" height="7.5"  rx="0.4"/>
+      <rect x="10.5" y="8"  width="3" height="12.5" rx="0.4"/>
+      <rect x="15.5" y="11" width="3" height="9.5"  rx="0.4"/>
+      <circle cx="7"  cy="10" r="0.9" fill="currentColor" stroke="none"/>
+      <circle cx="12" cy="5"  r="0.9" fill="currentColor" stroke="none"/>
+      <circle cx="17" cy="8"  r="0.9" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="bi-probability" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 19h18"/>
+      <path d="M3.5 19 C 6 19, 8 17.5, 10 11 C 11 8, 11.5 7, 12 7 C 12.5 7, 13 8, 14 11 C 16 17.5, 18 19, 20.5 19"/>
+      <circle cx="12" cy="7" r="1.5" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="bi-estimation_inference" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 8v8"/><path d="M20 8v8"/><path d="M4 12h16"/>
+      <circle cx="12" cy="12" r="2.3" fill="currentColor" stroke="none"/>
+      <path d="M4 19.5v2 M12 19.5v2 M20 19.5v2" stroke-width="1.3"/>
+    </symbol>
+    <symbol id="bi-regression" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 3v18h18"/>
+      <path d="M5.5 18 L 20 5.5"/>
+      <circle cx="7"    cy="17"   r="1.05" fill="currentColor" stroke="none"/>
+      <circle cx="10.5" cy="13.5" r="1.05" fill="currentColor" stroke="none"/>
+      <circle cx="13.5" cy="12.5" r="1.05" fill="currentColor" stroke="none"/>
+      <circle cx="16"   cy="9"    r="1.05" fill="currentColor" stroke="none"/>
+      <circle cx="18.5" cy="7"    r="1.05" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="bi-design_bias" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="5" r="2.5"/>
+      <rect x="3"  y="16" width="7" height="5" rx="1"/>
+      <rect x="14" y="16" width="7" height="5" rx="1"/>
+      <path d="M11 7 Q 7  12 6.5 16"/>
+      <path d="M13 7 Q 17 12 17.5 16"/>
+    </symbol>
+    <symbol id="bi-missing_measurement" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="1.5"/>
+      <path d="M9 3v18 M15 3v18 M3 9h18 M3 15h18"/>
+      <path d="M10.5 10.5l3 3 M13.5 10.5l-3 3" stroke-dasharray="1.6 1.6" stroke-width="1.5"/>
+    </symbol>
+    <symbol id="bi-causal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="5"  cy="6"  r="2.2" fill="currentColor" stroke="none"/>
+      <circle cx="19" cy="6"  r="2.2" fill="currentColor" stroke="none"/>
+      <circle cx="12" cy="19" r="2.2" fill="currentColor" stroke="none"/>
+      <path d="M6.7 7.8 L 10.5 16.8"/>
+      <path d="M17.3 7.8 L 13.5 16.8"/>
+      <path d="M9.3 15.4 L 10.6 17.1 L 11.6 15.1" stroke-width="1.4"/>
+      <path d="M14.7 15.4 L 13.4 17.1 L 12.4 15.1" stroke-width="1.4"/>
+    </symbol>
+    <symbol id="bi-advanced_bayesian" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 20h18"/>
+      <path d="M3.5 20 C 6 20, 8 18, 10 13 C 11 10, 11.5 9, 12 9 C 12.5 9, 13 10, 14 13 C 16 18, 18 20, 20.5 20" opacity="0.4"/>
+      <path d="M7 20 C 9 20, 10.3 18, 11 12 C 11.3 8, 11.7 5, 12 5 C 12.3 5, 12.7 8, 13 12 C 13.7 18, 15 20, 17 20"/>
+    </symbol>
+    <symbol id="bi-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 4h6v6"/>
+      <path d="M10 14 L20 4"/>
+      <path d="M19 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>
+    </symbol>
+  </defs>
+</svg>
+
+<main>
+
+<!-- Hero -->
+<section class="max-w-3xl mx-auto px-6 pt-20 pb-10 md:pt-28 md:pb-14 text-center fade-in">
+  <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8" style="background: rgba(34,211,238,0.08); border: 1px solid var(--accent-ink);">
+    <span class="tag" style="color: var(--accent);">Sources</span>
+    <span class="text-xs text-slate-300">Primary literature &amp; methodology references</span>
+  </div>
+  <h1 class="t-display mb-6">The reading list<br/>behind every <span class="stat-number">deep-dive</span>.</h1>
+  <p class="t-lead max-w-2xl mx-auto mb-8">
+    Every method in BioStat Quest links to primary literature. This page is the full index — filter by branch, search by keyword, jump straight to the citation you need.
+  </p>
+  <!-- Auto-counted stats chip row -->
+  <div class="flex flex-wrap justify-center gap-2 mb-8" id="statsRow">
+    <span class="chip"><span class="gold-text font-bold mono" id="countMethods">—</span> methods</span>
+    <span class="chip"><span class="gold-text font-bold mono" id="countCitations">—</span> citations</span>
+    <span class="chip"><span class="gold-text font-bold mono" id="countBranches">—</span> branches</span>
+    <span class="chip"><span class="gold-text font-bold mono" id="countPackages">—</span> R packages referenced</span>
+  </div>
+</section>
+
+<!-- Marquee authors -->
+<section class="max-w-5xl mx-auto px-6 pb-12">
+  <div class="text-center mb-5">
+    <div class="t-eyebrow" style="color: var(--violet);">Standing on the shoulders of</div>
+  </div>
+  <div class="flex flex-wrap justify-center gap-2">
+    <span class="author-chip">Hernán &amp; Robins <em>causal</em></span>
+    <span class="author-chip">Altman <em>clinical</em></span>
+    <span class="author-chip">Rothman &amp; Greenland <em>epi</em></span>
+    <span class="author-chip">VanderWeele <em>mediation · E-value</em></span>
+    <span class="author-chip">Pearl <em>causality</em></span>
+    <span class="author-chip">Agresti <em>categorical</em></span>
+    <span class="author-chip">Efron &amp; Tibshirani <em>bootstrap · selection</em></span>
+    <span class="author-chip">Gelman <em>regression · Bayes</em></span>
+    <span class="author-chip">McElreath <em>Bayes</em></span>
+    <span class="author-chip">Harrell <em>modeling</em></span>
+  </div>
+</section>
+
+<!-- Filter bar + grid -->
+<section class="max-w-6xl mx-auto px-6 pb-10">
+  <div class="filter-bar">
+    <div class="grid md:grid-cols-[minmax(0,1fr)_auto] gap-3 items-center">
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"/>
+          <path d="m20 20-3.5-3.5"/>
+        </svg>
+        <input id="searchInput" type="text" class="search-input" placeholder="Search methods, authors, packages…" aria-label="Search sources"/>
+      </div>
+      <div class="text-[11px] mono text-slate-500 text-right" id="resultCount">42 of 42 visible</div>
+    </div>
+    <div class="mt-2.5 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Filter by branch">
+      <button class="filter-tab active" data-branch="all" role="tab">
+        All <span class="count" id="branchCount-all">42</span>
+      </button>
+      <button class="filter-tab" data-branch="foundations" role="tab" style="--b:#0ea5e9">
+        <svg><use href="#bi-foundations"/></svg> Foundations <span class="count" id="branchCount-foundations">0</span>
+      </button>
+      <button class="filter-tab" data-branch="probability" role="tab" style="--b:#6366f1">
+        <svg><use href="#bi-probability"/></svg> Probability <span class="count" id="branchCount-probability">0</span>
+      </button>
+      <button class="filter-tab" data-branch="estimation_inference" role="tab" style="--b:#d946ef">
+        <svg><use href="#bi-estimation_inference"/></svg> Estimation &amp; Inference <span class="count" id="branchCount-estimation_inference">0</span>
+      </button>
+      <button class="filter-tab" data-branch="regression" role="tab" style="--b:#ec4899">
+        <svg><use href="#bi-regression"/></svg> Regression <span class="count" id="branchCount-regression">0</span>
+      </button>
+      <button class="filter-tab" data-branch="design_bias" role="tab" style="--b:#f43f5e">
+        <svg><use href="#bi-design_bias"/></svg> Design &amp; Bias <span class="count" id="branchCount-design_bias">0</span>
+      </button>
+      <button class="filter-tab" data-branch="missing_measurement" role="tab" style="--b:#14b8a6">
+        <svg><use href="#bi-missing_measurement"/></svg> Missing &amp; Measurement <span class="count" id="branchCount-missing_measurement">0</span>
+      </button>
+      <button class="filter-tab" data-branch="causal" role="tab" style="--b:#ef4444">
+        <svg><use href="#bi-causal"/></svg> Causal <span class="count" id="branchCount-causal">0</span>
+      </button>
+      <button class="filter-tab" data-branch="advanced_bayesian" role="tab" style="--b:#10b981">
+        <svg><use href="#bi-advanced_bayesian"/></svg> Advanced &amp; Bayesian <span class="count" id="branchCount-advanced_bayesian">0</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- Cards grid -->
+<section class="max-w-6xl mx-auto px-6 pb-20">
+  <div class="grid md:grid-cols-2 gap-4 sm:gap-5" id="sourcesGrid">
+
+    <!-- ============================ FOUNDATIONS ============================ -->
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="foundations" id="descriptive-stats" style="--b:#0ea5e9">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-foundations"/></svg>Foundations</span>
+        <a href="#descriptive-stats" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Descriptive Statistics &amp; Distributions</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Altman, <em>Practical Statistics for Medical Research</em></li>
+        <li>Tukey, <em>Exploratory Data Analysis</em></li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">summary</span><span class="r-chip">skimr</span><span class="r-chip">gtsummary</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="foundations" id="central-tendency" style="--b:#0ea5e9">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-foundations"/></svg>Foundations</span>
+        <a href="#central-tendency" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Central Tendency (Mean, Median, Mode)</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Tukey, <em>Exploratory Data Analysis</em></li>
+        <li>Wilcox, <em>Introduction to Robust Estimation and Hypothesis Testing</em></li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">mean()</span><span class="r-chip">median()</span><span class="r-chip">DescTools::Mode</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="foundations" id="spread" style="--b:#0ea5e9">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-foundations"/></svg>Foundations</span>
+        <a href="#spread" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Measures of Spread (SD, Variance, IQR, CV, Range)</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Altman, <em>Practical Statistics for Medical Research</em></li>
+        <li>Tukey, <em>Exploratory Data Analysis</em></li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">sd()</span><span class="r-chip">var()</span><span class="r-chip">IQR()</span><span class="r-chip">range()</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="foundations" id="normal-z" style="--b:#0ea5e9">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-foundations"/></svg>Foundations</span>
+        <a href="#normal-z" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">The Normal Distribution &amp; z-Scores</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Casella &amp; Berger, <em>Statistical Inference</em></li>
+        <li>Altman, <em>Practical Statistics for Medical Research</em></li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">pnorm()</span><span class="r-chip">qnorm()</span><span class="r-chip">scale()</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="foundations" id="variable-types" style="--b:#0ea5e9">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-foundations"/></svg>Foundations</span>
+        <a href="#variable-types" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Variable Types &amp; Measurement Scales</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Stevens (1946), 'On the Theory of Scales of Measurement'</li>
+        <li>Agresti, <em>Analysis of Ordinal Categorical Data</em></li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">factor()</span><span class="r-chip">ordered()</span><span class="r-chip">MASS::polr</span><span class="r-chip">ordinal::clm</span>
+      </div>
+    </article>
+
+    <!-- ============================ PROBABILITY ============================ -->
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="probability" id="clt" style="--b:#6366f1">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-probability"/></svg>Probability</span>
+        <a href="#clt" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Central Limit Theorem &amp; Sampling Distributions</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Feller, <em>An Introduction to Probability Theory and Its Applications</em></li>
+        <li>Casella &amp; Berger, <em>Statistical Inference</em></li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">replicate(10000, mean(rexp(30)))</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="probability" id="common-distributions" style="--b:#6366f1">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-probability"/></svg>Probability</span>
+        <a href="#common-distributions" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Common Probability Distributions</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Ross, <em>Introduction to Probability Models</em></li>
+        <li>Casella &amp; Berger, <em>Statistical Inference</em></li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">dbinom/pbinom</span><span class="r-chip">dpois/ppois</span><span class="r-chip">dnorm/pnorm</span><span class="r-chip">dexp/pexp</span>
+      </div>
+    </article>
+
+    <!-- ============================ ESTIMATION & INFERENCE ============================ -->
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="estimation_inference" id="t-test" style="--b:#d946ef">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-estimation_inference"/></svg>Estimation &amp; Inference</span>
+        <a href="#t-test" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Student's t-test (One-sample, Two-sample, Paired)</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Student (1908); Welch (1947)</li>
+        <li>Wasserstein &amp; Lazar (2016), 'The ASA statement on p-values'</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">t.test</span><span class="r-chip">effectsize::cohens_d</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="estimation_inference" id="chi-square" style="--b:#d946ef">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-estimation_inference"/></svg>Estimation &amp; Inference</span>
+        <a href="#chi-square" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Chi-square Test (Independence / Goodness-of-fit)</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Pearson (1900)</li>
+        <li>Agresti, <em>Categorical Data Analysis</em></li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">chisq.test</span><span class="r-chip">fisher.test</span><span class="r-chip">mcnemar.test</span><span class="r-chip">rcompanion::cramerV</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="estimation_inference" id="anova" style="--b:#d946ef">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-estimation_inference"/></svg>Estimation &amp; Inference</span>
+        <a href="#anova" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">One-way / Factorial ANOVA</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Fisher (1925)</li>
+        <li>Maxwell &amp; Delaney, <em>Designing Experiments and Analyzing Data</em></li>
+        <li>Welch / Brown-Forsythe alternatives under heteroscedasticity</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">aov</span><span class="r-chip">lm + anova</span><span class="r-chip">emmeans</span><span class="r-chip">afex</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="estimation_inference" id="ci-se" style="--b:#d946ef">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-estimation_inference"/></svg>Estimation &amp; Inference</span>
+        <a href="#ci-se" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Confidence Intervals &amp; Standard Errors</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Altman et al., <em>Statistics with Confidence</em> (BMJ Books)</li>
+        <li>Greenland et al. (2016), 'Statistical tests, P values, confidence intervals'</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">confint</span><span class="r-chip">confint.default</span><span class="r-chip">boot</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="estimation_inference" id="bootstrap" style="--b:#d946ef">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-estimation_inference"/></svg>Estimation &amp; Inference</span>
+        <a href="#bootstrap" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Bootstrap Resampling</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Efron &amp; Tibshirani, <em>An Introduction to the Bootstrap</em></li>
+        <li>Davison &amp; Hinkley, <em>Bootstrap Methods and their Application</em></li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">boot::boot</span><span class="r-chip">boot::boot.ci</span><span class="r-chip">rsample</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="estimation_inference" id="nhst" style="--b:#d946ef">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-estimation_inference"/></svg>Estimation &amp; Inference</span>
+        <a href="#nhst" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Null Hypothesis Significance Testing</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Wasserstein &amp; Lazar (2016), 'The ASA Statement on p-Values'</li>
+        <li>Greenland et al. (2016), 'Statistical tests, P values, confidence intervals, and power'</li>
+        <li>Amrhein, Greenland &amp; McShane (2019), 'Retire statistical significance'</li>
+      </ul>
+    </article>
+
+    <!-- ============================ REGRESSION ============================ -->
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="regression" id="linear-regression" style="--b:#ec4899">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-regression"/></svg>Regression</span>
+        <a href="#linear-regression" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Linear Regression (OLS)</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Weisberg, <em>Applied Linear Regression</em></li>
+        <li>Harrell, <em>Regression Modeling Strategies</em> (Springer)</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">lm</span><span class="r-chip">performance::check_model</span><span class="r-chip">broom::tidy</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="regression" id="logistic-regression" style="--b:#ec4899">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-regression"/></svg>Regression</span>
+        <a href="#logistic-regression" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Logistic Regression</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Hosmer, Lemeshow &amp; Sturdivant, <em>Applied Logistic Regression</em></li>
+        <li>Riley et al. (2020), sample size for binary outcome prediction</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">glm(family=binomial)</span><span class="r-chip">rms::lrm</span><span class="r-chip">pROC</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="regression" id="cox-ph" style="--b:#ec4899">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-regression"/></svg>Regression</span>
+        <a href="#cox-ph" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Cox Proportional Hazards Regression</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Therneau &amp; Grambsch (2000), <em>Modeling Survival Data: Extending the Cox Model</em></li>
+        <li>Hernán, 'The hazards of hazard ratios' (<em>Epidemiology</em> 2010)</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">survival::coxph</span><span class="r-chip">cox.zph</span><span class="r-chip">ggsurvfit</span><span class="r-chip">survminer</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="regression" id="km-logrank" style="--b:#ec4899">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-regression"/></svg>Regression</span>
+        <a href="#km-logrank" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Kaplan–Meier &amp; Log-rank Test</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Kaplan &amp; Meier (1958); Klein &amp; Moeschberger textbook</li>
+        <li>Royston &amp; Parmar (2013), 'Restricted mean survival time' — <em>BMC MRM</em></li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">survival::survfit</span><span class="r-chip">survdiff</span><span class="r-chip">survminer::ggsurvplot</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="regression" id="regression-diagnostics" style="--b:#ec4899">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-regression"/></svg>Regression</span>
+        <a href="#regression-diagnostics" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Regression Diagnostics</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Fox, <em>Applied Regression Analysis and Generalized Linear Models</em></li>
+        <li>Hartig, DHARMa R package vignette</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">plot(lm.fit)</span><span class="r-chip">car::vif</span><span class="r-chip">car::influencePlot</span><span class="r-chip">lmtest::dwtest</span><span class="r-chip">DHARMa</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="regression" id="model-selection" style="--b:#ec4899">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-regression"/></svg>Regression</span>
+        <a href="#model-selection" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Model Selection (AIC, BIC, LASSO, Ridge, Elastic Net)</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Burnham &amp; Anderson, <em>Model Selection and Multimodel Inference</em></li>
+        <li>Hastie, Tibshirani &amp; Friedman, <em>Elements of Statistical Learning</em>, ch. 3, 7</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">AIC()</span><span class="r-chip">BIC()</span><span class="r-chip">glmnet</span><span class="r-chip">MASS::stepAIC</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="regression" id="mixed-effects" style="--b:#ec4899">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-regression"/></svg>Regression</span>
+        <a href="#mixed-effects" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Mixed-Effects &amp; Longitudinal Models</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Fitzmaurice, Laird &amp; Ware, <em>Applied Longitudinal Analysis</em></li>
+        <li>Gelman &amp; Hill, <em>Data Analysis Using Regression and Multilevel Models</em></li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">lme4::lmer</span><span class="r-chip">lme4::glmer</span><span class="r-chip">nlme::lme</span><span class="r-chip">geepack::geeglm</span><span class="r-chip">lmerTest</span>
+      </div>
+    </article>
+
+    <!-- ============================ DESIGN & BIAS ============================ -->
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="design_bias" id="study-design" style="--b:#f43f5e">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-design_bias"/></svg>Design &amp; Bias</span>
+        <a href="#study-design" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Study Design (RCT, Cohort, Case-Control, Cross-sectional)</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Rothman, Greenland &amp; Lash, <em>Modern Epidemiology</em></li>
+        <li>Grimes &amp; Schulz (2002), <em>Lancet</em> series on epidemiologic methods</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-2">
+        <a href="https://www.strobe-statement.org/" target="_blank" rel="noopener" class="ext-link"><svg><use href="#bi-external"/></svg>STROBE checklist</a>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="design_bias" id="bias" style="--b:#f43f5e">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-design_bias"/></svg>Design &amp; Bias</span>
+        <a href="#bias" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Bias (Selection, Information, Confounding)</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Rothman, Greenland &amp; Lash, <em>Modern Epidemiology</em> — Chapter on Bias</li>
+        <li>Lash, Fox &amp; Fink, <em>Applying Quantitative Bias Analysis</em></li>
+        <li>Delgado-Rodríguez &amp; Llorca (2004), <em>J Epidemiol Community Health</em></li>
+      </ul>
+    </article>
+
+    <!-- ============================ MISSING & MEASUREMENT ============================ -->
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="missing_measurement" id="mice" style="--b:#14b8a6">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-missing_measurement"/></svg>Missing &amp; Measurement</span>
+        <a href="#mice" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Multiple Imputation by Chained Equations (MICE)</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>van Buuren (2018), <em>Flexible Imputation of Missing Data</em></li>
+        <li>White, Royston &amp; Wood (2011), 'Multiple imputation using chained equations'</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">mice</span><span class="r-chip">miceadds</span><span class="r-chip">micemd</span><span class="r-chip">jomo</span>
+      </div>
+      <div class="mt-2 flex flex-wrap gap-2">
+        <a href="https://stefvanbuuren.name/fimd/" target="_blank" rel="noopener" class="ext-link"><svg><use href="#bi-external"/></svg>FIMD (free online)</a>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="missing_measurement" id="cohens-kappa" style="--b:#14b8a6">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-missing_measurement"/></svg>Missing &amp; Measurement</span>
+        <a href="#cohens-kappa" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Cohen's Kappa (Inter-rater Agreement)</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Cohen (1960); Landis &amp; Koch (1977) benchmarks (&lt;0.20 poor → &gt;0.80 almost perfect)</li>
+        <li>Byrt, Bishop &amp; Carlin (1993), 'Bias, prevalence and kappa'</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">psych::cohen.kappa</span><span class="r-chip">irr::kappa2</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="missing_measurement" id="icc" style="--b:#14b8a6">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-missing_measurement"/></svg>Missing &amp; Measurement</span>
+        <a href="#icc" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Intraclass Correlation &amp; Agreement</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Shrout &amp; Fleiss (1979); McGraw &amp; Wong (1996)</li>
+        <li>Koo &amp; Li (2016) guidelines for ICC reporting</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">psych::ICC</span><span class="r-chip">irr::icc</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="missing_measurement" id="roc-auc" style="--b:#14b8a6">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-missing_measurement"/></svg>Missing &amp; Measurement</span>
+        <a href="#roc-auc" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">ROC Curves &amp; AUC</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Hanley &amp; McNeil (1982); Pepe, <em>The Statistical Evaluation of Medical Tests</em></li>
+        <li>DeLong et al. (1988) for correlated AUC comparison</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">pROC</span><span class="r-chip">ROCR</span><span class="r-chip">yardstick</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="missing_measurement" id="bland-altman" style="--b:#14b8a6">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-missing_measurement"/></svg>Missing &amp; Measurement</span>
+        <a href="#bland-altman" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Bland–Altman Limits of Agreement</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Bland &amp; Altman (1986), <em>Lancet</em></li>
+        <li>Giavarina (2015), <em>Biochemia Medica</em> — practical guide</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">blandr</span><span class="r-chip">BlandAltmanLeh</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="missing_measurement" id="validity" style="--b:#14b8a6">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-missing_measurement"/></svg>Missing &amp; Measurement</span>
+        <a href="#validity" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Validity &amp; Responsiveness of Measurement Scales</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Streiner, Norman &amp; Cairney, <em>Health Measurement Scales</em></li>
+        <li>De Vet et al., <em>Measurement in Medicine</em></li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-2">
+        <a href="https://www.cosmin.nl/" target="_blank" rel="noopener" class="ext-link"><svg><use href="#bi-external"/></svg>COSMIN checklist</a>
+      </div>
+    </article>
+
+    <!-- ============================ CAUSAL ============================ -->
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="causal" id="dags" style="--b:#ef4444">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-causal"/></svg>Causal</span>
+        <a href="#dags" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Confounding, DAGs &amp; Adjustment Sets</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Pearl, Glymour &amp; Jewell, <em>Causal Inference in Statistics: A Primer</em></li>
+        <li>Textor et al., DAGitty web tool and R package</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">dagitty</span>
+      </div>
+      <div class="mt-2 flex flex-wrap gap-2">
+        <a href="https://www.dagitty.net/dags.html" target="_blank" rel="noopener" class="ext-link"><svg><use href="#bi-external"/></svg>DAGitty web tool</a>
+        <a href="https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/" target="_blank" rel="noopener" class="ext-link"><svg><use href="#bi-external"/></svg>Hernán &amp; Robins 'What If'</a>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="causal" id="iptw" style="--b:#ef4444">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-causal"/></svg>Causal</span>
+        <a href="#iptw" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Inverse Probability of Treatment Weighting (IPTW)</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Hernán &amp; Robins, <em>Causal Inference: What If</em></li>
+        <li>Austin (2011), 'An Introduction to Propensity Score Methods'</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">WeightIt</span><span class="r-chip">survey::svyglm</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="causal" id="propensity-matching" style="--b:#ef4444">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-causal"/></svg>Causal</span>
+        <a href="#propensity-matching" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Propensity Score Matching</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Rosenbaum &amp; Rubin (1983)</li>
+        <li>Stuart (2010), 'Matching methods for causal inference'</li>
+        <li>Austin (2011), <em>Multivariable Behavioral Research</em></li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">MatchIt</span><span class="r-chip">cobalt</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="causal" id="e-value" style="--b:#ef4444">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-causal"/></svg>Causal</span>
+        <a href="#e-value" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">E-value for Unmeasured Confounding</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>VanderWeele &amp; Ding (2017), <em>Annals of Internal Medicine</em></li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">EValue</span>
+      </div>
+      <div class="mt-2 flex flex-wrap gap-2">
+        <a href="https://evalue.hmdc.harvard.edu" target="_blank" rel="noopener" class="ext-link"><svg><use href="#bi-external"/></svg>E-value calculator</a>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="causal" id="iv" style="--b:#ef4444">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-causal"/></svg>Causal</span>
+        <a href="#iv" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Instrumental Variables (IV / 2SLS / Mendelian Randomisation)</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Angrist &amp; Pischke, <em>Mostly Harmless Econometrics</em></li>
+        <li>Davey Smith &amp; Ebrahim, 'Mendelian randomization' (<em>IJE</em> 2003)</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">ivreg</span><span class="r-chip">AER</span><span class="r-chip">TwoSampleMR</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="causal" id="did" style="--b:#ef4444">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-causal"/></svg>Causal</span>
+        <a href="#did" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Difference-in-Differences</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Angrist &amp; Pischke; Callaway &amp; Sant'Anna (2021)</li>
+        <li>Roth et al. (2023), 'What's Trending in Difference-in-Differences?'</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">did</span><span class="r-chip">fixest</span><span class="r-chip">DIDmultiplegtDYN</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="causal" id="rdd" style="--b:#ef4444">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-causal"/></svg>Causal</span>
+        <a href="#rdd" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Regression Discontinuity Design</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Imbens &amp; Lemieux (2008)</li>
+        <li>Cattaneo, Idrobo &amp; Titiunik, <em>A Practical Introduction to RDD</em></li>
+        <li>Lee &amp; Lemieux (2010), <em>JEL</em> review</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">rdrobust</span><span class="r-chip">rddensity</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="causal" id="target-trial" style="--b:#ef4444">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-causal"/></svg>Causal</span>
+        <a href="#target-trial" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Target Trial Emulation</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Hernán &amp; Robins (2016), <em>AJE</em>; Hernán et al. (2022), 'A target trial approach'</li>
+        <li>Matthews et al. (2022), 'Target trial emulation: applying principles of randomized trials to observational studies'</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">dplyr + survival + IPCW workflow</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="causal" id="mediation" style="--b:#ef4444">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-causal"/></svg>Causal</span>
+        <a href="#mediation" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Causal Mediation Analysis</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>VanderWeele (2015), <em>Explanation in Causal Inference</em></li>
+        <li>Imai, Keele &amp; Tingley (2010)</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">mediation</span><span class="r-chip">CMAverse</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="causal" id="identifiability" style="--b:#ef4444">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-causal"/></svg>Causal</span>
+        <a href="#identifiability" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Identifiability Assumptions for Causal Effects</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Hernán &amp; Robins, <em>Causal Inference: What If</em></li>
+        <li>Pearl, <em>Causality</em></li>
+        <li>Petersen &amp; van der Laan (2014)</li>
+      </ul>
+    </article>
+
+    <!-- ============================ ADVANCED & BAYESIAN ============================ -->
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="advanced_bayesian" id="power" style="--b:#10b981">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-advanced_bayesian"/></svg>Advanced &amp; Bayesian</span>
+        <a href="#power" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Power &amp; Sample Size</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Cohen (1988); Chow, Shao &amp; Wang, <em>Sample Size Calculations in Clinical Research</em></li>
+        <li>Schulz &amp; Grimes (2005), 'Sample size calculations in randomised trials'</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">pwr</span><span class="r-chip">WebPower</span><span class="r-chip">longpower</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="advanced_bayesian" id="multiple-testing" style="--b:#10b981">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-advanced_bayesian"/></svg>Advanced &amp; Bayesian</span>
+        <a href="#multiple-testing" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Multiple Testing Correction</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Benjamini &amp; Hochberg (1995)</li>
+        <li>Efron, <em>Large-scale Inference</em></li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">p.adjust</span><span class="r-chip">multcomp</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="advanced_bayesian" id="meta-analysis" style="--b:#10b981">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-advanced_bayesian"/></svg>Advanced &amp; Bayesian</span>
+        <a href="#meta-analysis" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Meta-analysis (Fixed &amp; Random Effects)</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>Borenstein et al., <em>Introduction to Meta-Analysis</em></li>
+        <li>Higgins, Thompson et al., Cochrane Handbook</li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">meta</span><span class="r-chip">metafor</span>
+      </div>
+    </article>
+
+    <article class="source-card card rounded-2xl p-5 sm:p-6" data-branch="advanced_bayesian" id="bayesian" style="--b:#10b981">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <span class="branch-badge"><svg><use href="#bi-advanced_bayesian"/></svg>Advanced &amp; Bayesian</span>
+        <a href="#bayesian" class="anchor-link" aria-label="Copy link">#</a>
+      </div>
+      <h3 class="t-subtitle text-white mb-3">Bayesian Inference (Priors, Posteriors, Credible Intervals)</h3>
+      <ul class="space-y-1.5 text-sm text-slate-300 list-disc pl-5 citations">
+        <li>McElreath, <em>Statistical Rethinking</em></li>
+        <li>Gelman et al., <em>Bayesian Data Analysis</em></li>
+      </ul>
+      <div class="mt-3 flex flex-wrap items-center gap-1.5">
+        <span class="r-chip-label">R</span>
+        <span class="r-chip">brms</span><span class="r-chip">rstanarm</span><span class="r-chip">cmdstanr</span><span class="r-chip">posterior</span>
+      </div>
+    </article>
+
+  </div>
+
+  <div class="empty-state" id="emptyState">
+    No sources match your filter — try clearing the search or selecting <button class="underline text-cyan-400" onclick="window.__bqResetFilters && window.__bqResetFilters()">All branches</button>.
+  </div>
+
+  <p class="text-center text-xs text-slate-500 mt-10">
+    Spot a missing citation or an outdated reference? Email
+    <a href="mailto:info@biostatquest.com" style="color: var(--accent);">info@biostatquest.com</a> —
+    sources are reviewed and updated on each change.
+  </p>
+</section>
+
+<!-- CTA -->
+<section class="max-w-4xl mx-auto px-6 pb-28">
+  <div class="premium-border rounded-3xl p-10 md:p-14 text-center" style="background: linear-gradient(145deg, rgba(22,28,54,0.55), rgba(12,16,36,0.65));">
+    <h2 class="t-title mb-3">See the sources in context</h2>
+    <p class="t-body text-base mb-6 max-w-xl mx-auto">In the app, each question links to its method's full deep-dive — intuition, formula, assumptions, pitfalls, and these references.</p>
+    <a href="biostat-quest.html" class="btn btn-primary inline-block px-8 py-3.5 rounded-xl text-base">Try a case →</a>
+  </div>
+</section>
+</main>
+
+<!-- Footer — identical to landing -->
+<footer class="border-t" style="border-color: var(--line);">
+  <div class="max-w-6xl mx-auto px-6 py-12 grid md:grid-cols-3 gap-8">
+    <div>
+      <div class="flex items-center gap-2 mb-3">
+        <svg width="34" height="28" viewBox="0 0 52 44" fill="none" style="overflow:visible">
+          <defs>
+            <linearGradient id="bqStrokeF" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#c084fc"/>
+              <stop offset="35%" stop-color="#8b5cf6"/>
+              <stop offset="65%" stop-color="#06b6d4"/>
+              <stop offset="100%" stop-color="#34d399"/>
+            </linearGradient>
+            <linearGradient id="bqFillF" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.55"/>
+              <stop offset="60%" stop-color="#06b6d4" stop-opacity="0.18"/>
+              <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
+            </linearGradient>
+            <radialGradient id="bqPeakGlowF" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#fde68a" stop-opacity="0.95"/>
+              <stop offset="60%" stop-color="#fbbf24" stop-opacity="0.4"/>
+              <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/>
+            </radialGradient>
+            <filter id="bqGlowF" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="1.8" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <line x1="4" y1="36" x2="48" y2="36" stroke="#334155" stroke-width="0.8" stroke-linecap="round"/>
+          <line x1="14" y1="36" x2="14" y2="38" stroke="#334155" stroke-width="0.8"/>
+          <line x1="26" y1="36" x2="26" y2="38.5" stroke="#475569" stroke-width="1"/>
+          <line x1="38" y1="36" x2="38" y2="38" stroke="#334155" stroke-width="0.8"/>
+          <circle cx="26" cy="8" r="9" fill="url(#bqPeakGlowF)"/>
+          <path d="M 4 36 C 11 36, 15 35.5, 18 29 C 20.5 22, 22.5 12, 26 8 C 29.5 12, 31.5 22, 34 29 C 37 35.5, 41 36, 48 36 Z" fill="url(#bqFillF)"/>
+          <path d="M 4 36 C 11 36, 15 35.5, 18 29 C 20.5 22, 22.5 12, 26 8 C 29.5 12, 31.5 22, 34 29 C 37 35.5, 41 36, 48 36" stroke="url(#bqStrokeF)" stroke-width="2.3" fill="none" stroke-linecap="round" filter="url(#bqGlowF)"/>
+          <line x1="20" y1="19" x2="20" y2="36" stroke="#64748b" stroke-width="0.6" stroke-dasharray="1.5 2" opacity="0.55"/>
+          <line x1="32" y1="19" x2="32" y2="36" stroke="#64748b" stroke-width="0.6" stroke-dasharray="1.5 2" opacity="0.55"/>
+          <line x1="26" y1="10" x2="26" y2="36" stroke="#fbbf24" stroke-width="1" stroke-dasharray="2.5 2" opacity="0.85"/>
+          <circle cx="26" cy="8" r="2.3" fill="#fde68a" stroke="#f59e0b" stroke-width="0.8"/>
+          <circle cx="26" cy="8" r="0.9" fill="#fff"/>
+        </svg>
+        <span class="font-extrabold text-white">BioStat <span class="gold-text">Quest</span></span>
+      </div>
+      <p class="t-caption">A gamified biostatistics trainer. Built with care by a researcher who wished this existed in grad school.</p>
+    </div>
+    <div>
+      <div class="t-eyebrow mb-3">Links</div>
+      <ul class="space-y-2 text-sm">
+        <li><a href="biostat-quest.html" class="text-slate-400 hover:text-white transition">Play</a></li>
+        <li><a href="/about.html" class="text-slate-400 hover:text-white transition">About</a></li>
+        <li><a href="/sources.html" class="text-slate-400 hover:text-white transition">Sources</a></li>
+        <li><a href="/privacy.html" class="text-slate-400 hover:text-white transition">Privacy</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="t-eyebrow mb-3">Contact</div>
+      <p class="t-caption">Feedback, bugs, or topic requests?<br/>
+        <a href="mailto:info@biostatquest.com" class="hover:text-white transition" style="color: var(--accent);">info@biostatquest.com</a>
+      </p>
+    </div>
+  </div>
+  <div class="border-t" style="border-color: var(--line);">
+    <div class="max-w-6xl mx-auto px-6 py-6 t-caption text-center mono">
+      © 2026 BioStat Quest · Free and open for the biostatistics learning community.
+    </div>
+  </div>
+</footer>
+
+<!-- Filter + search + auto-count behaviour. Self-contained, no deps. -->
+<script>
+(function(){
+  const grid     = document.getElementById('sourcesGrid');
+  const cards    = Array.from(grid.querySelectorAll('.source-card'));
+  const search   = document.getElementById('searchInput');
+  const tabs     = Array.from(document.querySelectorAll('.filter-tab'));
+  const empty    = document.getElementById('emptyState');
+  const result   = document.getElementById('resultCount');
+
+  // --- Auto-count stats (methods, citations, branches, packages) ------------
+  const methodCount   = cards.length;
+  const citationCount = grid.querySelectorAll('.citations > li').length;
+  const branchSet     = new Set(cards.map(c => c.dataset.branch));
+  const packageSet    = new Set();
+  grid.querySelectorAll('.r-chip').forEach(el => {
+    const txt = el.textContent.trim();
+    // strip () and split on "::" boundaries so "survival::coxph" → "survival"
+    const pkg = txt.replace(/\(.*?\)$/, '').split('::')[0].trim();
+    if (pkg && pkg.length < 40) packageSet.add(pkg);
+  });
+
+  const byId = id => document.getElementById(id);
+  byId('countMethods').textContent    = methodCount;
+  byId('countCitations').textContent  = citationCount;
+  byId('countBranches').textContent   = branchSet.size;
+  byId('countPackages').textContent   = packageSet.size;
+
+  // --- Per-branch card counts for the filter tabs ---------------------------
+  const perBranch = {};
+  cards.forEach(c => { perBranch[c.dataset.branch] = (perBranch[c.dataset.branch] || 0) + 1; });
+  Object.entries(perBranch).forEach(([b, n]) => {
+    const el = byId('branchCount-' + b);
+    if (el) el.textContent = n;
+  });
+  byId('branchCount-all').textContent = methodCount;
+
+  // --- Filter / search ------------------------------------------------------
+  let activeBranch = 'all';
+  let activeQuery  = '';
+
+  function applyFilters() {
+    const q = activeQuery.trim().toLowerCase();
+    let shown = 0;
+    cards.forEach(c => {
+      const branchOk = activeBranch === 'all' || c.dataset.branch === activeBranch;
+      const text = c.textContent.toLowerCase();
+      const queryOk = !q || text.includes(q);
+      const visible = branchOk && queryOk;
+      c.classList.toggle('is-hidden', !visible);
+      if (visible) shown++;
+    });
+    result.textContent = shown + ' of ' + methodCount + ' visible';
+    empty.classList.toggle('is-visible', shown === 0);
+  }
+
+  tabs.forEach(t => t.addEventListener('click', () => {
+    tabs.forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    activeBranch = t.dataset.branch;
+    applyFilters();
+  }));
+
+  search.addEventListener('input', e => {
+    activeQuery = e.target.value;
+    applyFilters();
+  });
+
+  // Let the empty-state button wire back into us.
+  window.__bqResetFilters = function() {
+    activeBranch = 'all'; activeQuery = '';
+    search.value = '';
+    tabs.forEach(x => x.classList.toggle('active', x.dataset.branch === 'all'));
+    applyFilters();
+  };
+
+  // --- Anchor copy: clicking the # icon also copies the permalink ----------
+  document.querySelectorAll('.anchor-link').forEach(a => {
+    a.addEventListener('click', (e) => {
+      const url = location.origin + location.pathname + a.getAttribute('href');
+      try { navigator.clipboard && navigator.clipboard.writeText(url); } catch {}
+    });
+  });
+
+  // --- Scroll to hash on page load (after render, so filter doesn't hide it)
+  if (location.hash && location.hash.length > 1) {
+    const t = document.querySelector(location.hash);
+    if (t) setTimeout(() => t.scrollIntoView({ behavior: 'smooth', block: 'start' }), 40);
+  }
+})();
+</script>
+
+</body>
+</html>

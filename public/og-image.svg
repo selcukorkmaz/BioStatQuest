@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <!-- Background: deep navy → slightly-lit navy, matching bg0/bg1 in the app -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#05070f"/>
+      <stop offset="100%" stop-color="#0a0f1e"/>
+    </linearGradient>
+    <radialGradient id="glowA" cx="12%" cy="18%" r="50%">
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowB" cx="92%" cy="86%" r="55%">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowC" cx="65%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.09"/>
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Bell-curve gradient — same palette as the app's nav logo -->
+    <linearGradient id="stroke" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="35%" stop-color="#8b5cf6"/>
+      <stop offset="65%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+    <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.45"/>
+      <stop offset="60%" stop-color="#06b6d4" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="peak" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fde68a" stop-opacity="0.95"/>
+      <stop offset="60%" stop-color="#fbbf24" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Faint background grid for depth -->
+    <pattern id="grid" x="0" y="0" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M 48 0 L 0 0 0 48" fill="none" stroke="#1a2340" stroke-width="0.5" opacity="0.35"/>
+    </pattern>
+
+    <!-- Wordmark gradient: gold highlight on "Quest" -->
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Base -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <rect width="1200" height="630" fill="url(#glowA)"/>
+  <rect width="1200" height="630" fill="url(#glowB)"/>
+  <rect width="1200" height="630" fill="url(#glowC)"/>
+
+  <!-- Thin border accent -->
+  <rect x="0" y="0" width="1200" height="6" fill="url(#stroke)" opacity="0.7"/>
+
+  <!-- Logo + wordmark, top-left -->
+  <g transform="translate(72 72)">
+    <svg x="0" y="-4" width="68" height="58" viewBox="0 0 52 44" overflow="visible">
+      <path d="M 6 36 C 12 36, 16 35.5, 19 29 C 21 22, 23 12, 26 8 C 29 12, 31 22, 33 29 C 36 35.5, 40 36, 46 36 Z" fill="url(#fill)"/>
+      <path d="M 6 36 C 12 36, 16 35.5, 19 29 C 21 22, 23 12, 26 8 C 29 12, 31 22, 33 29 C 36 35.5, 40 36, 46 36" stroke="url(#stroke)" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <line x1="26" y1="10" x2="26" y2="36" stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="2.5 2" opacity="0.9"/>
+      <circle cx="26" cy="8" r="2.8" fill="#fde68a" stroke="#f59e0b" stroke-width="0.9"/>
+      <circle cx="26" cy="8" r="1" fill="#fff"/>
+    </svg>
+    <text x="84" y="38" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="34" font-weight="800" fill="#f1f5f9" letter-spacing="-0.02em">
+      BioStat <tspan fill="url(#gold)">Quest</tspan>
+    </text>
+  </g>
+
+  <!-- Eyebrow chip: credibility strip -->
+  <g transform="translate(72 200)">
+    <rect x="0" y="0" width="420" height="42" rx="21" fill="rgba(34,211,238,0.08)" stroke="rgba(34,211,238,0.35)" stroke-width="1"/>
+    <circle cx="22" cy="21" r="4" fill="#22d3ee"/>
+    <text x="36" y="27" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="700" fill="#22d3ee" letter-spacing="0.08em">FREE FOREVER</text>
+    <line x1="170" y1="12" x2="170" y2="30" stroke="#334155" stroke-width="1"/>
+    <text x="184" y="27" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="500" fill="#cbd5e1">FSRS-6 scheduler</text>
+    <line x1="328" y1="12" x2="328" y2="30" stroke="#334155" stroke-width="1"/>
+    <text x="342" y="27" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="500" fill="#cbd5e1">126 citations</text>
+  </g>
+
+  <!-- Headline -->
+  <text x="72" y="340" font-family="Inter, system-ui, sans-serif" font-size="78" font-weight="800" fill="#f1f5f9" letter-spacing="-0.035em">
+    Biostatistics prep
+  </text>
+  <text x="72" y="422" font-family="Inter, system-ui, sans-serif" font-size="78" font-weight="800" letter-spacing="-0.035em">
+    <tspan fill="#22d3ee">that actually sticks.</tspan>
+  </text>
+
+  <!-- Subtitle -->
+  <text x="72" y="488" font-family="Inter, system-ui, sans-serif" font-size="26" font-weight="400" fill="#cbd5e1" letter-spacing="-0.005em">
+    50 case-based challenges · 1,000 board-style questions · spaced repetition.
+  </text>
+
+  <!-- Bottom strip: stats + URL -->
+  <g transform="translate(72 560)">
+    <text x="0" y="0" font-family="JetBrains Mono, monospace" font-size="16" font-weight="600" fill="#64748b">
+      biostatquest.com
+    </text>
+    <g transform="translate(960 -6)">
+      <text x="0" y="0" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#94a3b8" letter-spacing="0.12em" text-anchor="end">FOR RESIDENTS · MPH · RESEARCHERS</text>
+    </g>
+  </g>
+
+  <!-- Decorative mini bell curve, right side -->
+  <g transform="translate(860 160)" opacity="0.85">
+    <svg width="280" height="220" viewBox="0 0 52 44" overflow="visible">
+      <path d="M 6 36 C 12 36, 16 35.5, 19 29 C 21 22, 23 12, 26 8 C 29 12, 31 22, 33 29 C 36 35.5, 40 36, 46 36 Z" fill="url(#fill)"/>
+      <path d="M 6 36 C 12 36, 16 35.5, 19 29 C 21 22, 23 12, 26 8 C 29 12, 31 22, 33 29 C 36 35.5, 40 36, 46 36" stroke="url(#stroke)" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <line x1="20" y1="19" x2="20" y2="36" stroke="#64748b" stroke-width="0.5" stroke-dasharray="1.5 2" opacity="0.55"/>
+      <line x1="32" y1="19" x2="32" y2="36" stroke="#64748b" stroke-width="0.5" stroke-dasharray="1.5 2" opacity="0.55"/>
+      <line x1="26" y1="10" x2="26" y2="36" stroke="#fbbf24" stroke-width="0.8" stroke-dasharray="2.5 2" opacity="0.85"/>
+      <circle cx="26" cy="8" r="9" fill="url(#peak)"/>
+      <circle cx="26" cy="8" r="2.3" fill="#fde68a" stroke="#f59e0b" stroke-width="0.8"/>
+      <circle cx="26" cy="8" r="0.9" fill="#fff"/>
+    </svg>
+  </g>
+</svg>

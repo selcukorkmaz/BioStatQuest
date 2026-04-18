@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<title>About — BioStat Quest</title>
+<meta name="description" content="Why BioStat Quest exists and how it's built. A gamified biostatistics trainer for learners who want to reason under uncertainty — not just memorize definitions." />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="BioStat Quest" />
+<meta property="og:url" content="https://www.biostatquest.com/about.html" />
+<meta property="og:title" content="About — BioStat Quest" />
+<meta property="og:description" content="Why BioStat Quest exists. 50 case-based challenges, 1,000 questions, FSRS-6 scheduler. Built for learners who want to reason under uncertainty." />
+<meta property="og:image" content="https://www.biostatquest.com/og-image.png" />
+<meta property="og:image:secure_url" content="https://www.biostatquest.com/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:alt" content="BioStat Quest — biostatistics prep that actually sticks." />
+<meta property="og:locale" content="en_US" />
+
+<!-- Twitter / X -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="About — BioStat Quest" />
+<meta name="twitter:description" content="Why BioStat Quest exists, and the design principles behind the product." />
+<meta name="twitter:image" content="https://www.biostatquest.com/og-image.png" />
+<meta name="twitter:image:alt" content="BioStat Quest — biostatistics prep that actually sticks." />
+
+<link rel="canonical" href="https://www.biostatquest.com/about.html" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  :root {
+    --bg0: #05070f; --bg1: #0a0f1e; --bg2: #0f1630;
+    --accent:  #22d3ee;
+    --accent-2:#0891b2;
+    --accent-ink: rgba(34,211,238,0.35);
+    --violet:  #8b5cf6;
+    --violet-ink: rgba(139,92,246,0.22);
+    --gold:    #fbbf24;
+    --ink-1:   #f1f5f9;
+    --ink-2:   #cbd5e1;
+    --ink-3:   #94a3b8;
+    --ink-4:   #64748b;
+    --line:    rgba(148,163,184,0.12);
+  }
+  * { -webkit-tap-highlight-color: transparent; }
+  html, body { min-height: 100%; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--ink-2);
+    background-color: var(--bg0);
+    position: relative;
+    min-height: 100vh;
+    letter-spacing: -0.005em;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(55rem 40rem at 8% -10%,  rgba(34,211,238,0.10), transparent 60%),
+      radial-gradient(45rem 35rem at 105% 10%, rgba(139,92,246,0.08), transparent 60%),
+      radial-gradient(60rem 45rem at 50% 120%, rgba(8,145,178,0.09),  transparent 60%);
+  }
+  body::after {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    opacity: 0.035; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  main, nav, footer { position: relative; z-index: 1; }
+
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  .t-display   { font-size: clamp(2.5rem, 5.5vw, 4rem); font-weight: 800; line-height: 1.05; letter-spacing: -0.035em; color: var(--ink-1); }
+  .t-title     { font-size: clamp(1.625rem, 2.5vw, 2.25rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; color: var(--ink-1); }
+  .t-subtitle  { font-size: 1.125rem; font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; color: var(--ink-1); }
+  .t-body      { font-size: 1rem; font-weight: 400; line-height: 1.7; color: var(--ink-2); }
+  .t-lead      { font-size: clamp(1.05rem, 1.25vw, 1.25rem); font-weight: 400; line-height: 1.6; color: var(--ink-2); }
+  .t-caption   { font-size: 0.8125rem; font-weight: 500; line-height: 1.5; color: var(--ink-3); }
+  .t-eyebrow   { font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3); }
+
+  .card {
+    background: linear-gradient(145deg, rgba(22,28,54,0.55), rgba(12,16,36,0.65));
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--line);
+    border-radius: 1.25rem;
+    box-shadow: 0 10px 30px -12px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .card-glow {
+    background: linear-gradient(145deg, rgba(34,211,238,0.08), rgba(14,116,144,0.05));
+    border: 1px solid var(--accent-ink);
+    box-shadow: 0 20px 50px -18px rgba(34,211,238,0.18), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .premium-border { position: relative; border-radius: 1.25rem; }
+  .premium-border::before {
+    content: ''; position: absolute; inset: 0; padding: 1px;
+    background: linear-gradient(135deg, rgba(34,211,238,0.55), rgba(139,92,246,0.35) 55%, rgba(251,191,36,0.3));
+    border-radius: inherit;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    pointer-events: none;
+  }
+  .card-hover { transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; }
+  .card-hover:hover { transform: translateY(-3px); border-color: var(--accent-ink); box-shadow: 0 18px 40px -16px rgba(34,211,238,0.25); }
+
+  .btn {
+    transition: all 0.25s cubic-bezier(0.4,0,0.2,1); position: relative; overflow: hidden;
+    font-weight: 600; letter-spacing: 0.01em; display: inline-block; text-align: center;
+  }
+  .btn:hover:not(:disabled) { transform: translateY(-2px); }
+  .btn-primary {
+    background: linear-gradient(135deg, #22d3ee, #0891b2);
+    color: #042f3a; box-shadow: 0 8px 20px -6px rgba(34,211,238,0.45);
+  }
+  .btn-primary:hover { box-shadow: 0 12px 28px -6px rgba(34,211,238,0.65); }
+  .btn-ghost { background: rgba(148,163,184,0.06); color: var(--ink-2); border: 1px solid rgba(148,163,184,0.14); }
+  .btn-ghost:hover { background: rgba(148,163,184,0.12); }
+
+  .stat-number { background: linear-gradient(135deg, #22d3ee, #67e8f9); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .gold-text { background: linear-gradient(135deg, #fbbf24, #f59e0b); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+  .tag { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(148,163,184,0.06); border: 1px solid var(--line); font-size: 12px; font-weight: 500; color: var(--ink-2); }
+
+  /* Article content in section cards */
+  .prose-on-dark p { color: var(--ink-2); line-height: 1.75; }
+  .prose-on-dark p + p { margin-top: 1rem; }
+  .prose-on-dark strong { color: var(--ink-1); font-weight: 600; }
+  .prose-on-dark em { color: var(--ink-1); font-style: italic; }
+  .prose-on-dark a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(34,211,238,0.4); }
+  .prose-on-dark a:hover { text-decoration-color: var(--accent); }
+
+  /* Pillar list */
+  .pillar {
+    display: grid; grid-template-columns: auto 1fr; gap: 1rem 1.25rem; align-items: start;
+    padding: 1.25rem 0; border-bottom: 1px solid var(--line);
+  }
+  .pillar:last-child { border-bottom: 0; }
+  .pillar-icon {
+    width: 42px; height: 42px; border-radius: 12px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(34,211,238,0.08); border: 1px solid var(--accent-ink);
+    color: var(--accent);
+  }
+  .pillar-icon svg { width: 22px; height: 22px; }
+
+  @keyframes fadeInUp { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+  .fade-in { animation: fadeInUp 0.2s cubic-bezier(0.4,0,0.2,1) backwards; }
+
+  a { color: inherit; text-decoration: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fade-in, .card-hover { animation: none !important; transition: none !important; }
+  }
+</style>
+<script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body>
+
+<!-- Nav — identical to landing -->
+<nav class="sticky top-0 z-50 backdrop-blur-xl" style="background: rgba(5,7,15,0.72); border-bottom: 1px solid var(--line);">
+  <div class="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
+    <a href="/" class="flex items-center gap-3">
+      <svg width="44" height="38" viewBox="0 0 52 44" fill="none" style="overflow:visible">
+        <defs>
+          <linearGradient id="bqStroke" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#c084fc"/>
+            <stop offset="35%" stop-color="#8b5cf6"/>
+            <stop offset="65%" stop-color="#06b6d4"/>
+            <stop offset="100%" stop-color="#34d399"/>
+          </linearGradient>
+          <linearGradient id="bqFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.55"/>
+            <stop offset="60%" stop-color="#06b6d4" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
+          </linearGradient>
+          <radialGradient id="bqPeakGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#fde68a" stop-opacity="0.95"/>
+            <stop offset="60%" stop-color="#fbbf24" stop-opacity="0.4"/>
+            <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="bqGlow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="1.8" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <line x1="4" y1="36" x2="48" y2="36" stroke="#334155" stroke-width="0.8" stroke-linecap="round"/>
+        <line x1="14" y1="36" x2="14" y2="38" stroke="#334155" stroke-width="0.8"/>
+        <line x1="26" y1="36" x2="26" y2="38.5" stroke="#475569" stroke-width="1"/>
+        <line x1="38" y1="36" x2="38" y2="38" stroke="#334155" stroke-width="0.8"/>
+        <circle cx="26" cy="8" r="9" fill="url(#bqPeakGlow)"/>
+        <path d="M 4 36 C 11 36, 15 35.5, 18 29 C 20.5 22, 22.5 12, 26 8 C 29.5 12, 31.5 22, 34 29 C 37 35.5, 41 36, 48 36 Z" fill="url(#bqFill)"/>
+        <path d="M 4 36 C 11 36, 15 35.5, 18 29 C 20.5 22, 22.5 12, 26 8 C 29.5 12, 31.5 22, 34 29 C 37 35.5, 41 36, 48 36" stroke="url(#bqStroke)" stroke-width="2.3" fill="none" stroke-linecap="round" filter="url(#bqGlow)"/>
+        <line x1="20" y1="19" x2="20" y2="36" stroke="#64748b" stroke-width="0.6" stroke-dasharray="1.5 2" opacity="0.55"/>
+        <line x1="32" y1="19" x2="32" y2="36" stroke="#64748b" stroke-width="0.6" stroke-dasharray="1.5 2" opacity="0.55"/>
+        <line x1="26" y1="10" x2="26" y2="36" stroke="#fbbf24" stroke-width="1" stroke-dasharray="2.5 2" opacity="0.85"/>
+        <circle cx="26" cy="8" r="2.3" fill="#fde68a" stroke="#f59e0b" stroke-width="0.8"/>
+        <circle cx="26" cy="8" r="0.9" fill="#fff"/>
+      </svg>
+      <div class="font-extrabold text-lg text-white tracking-tight">BioStat <span class="gold-text">Quest</span></div>
+    </a>
+    <div class="flex items-center gap-1 sm:gap-2 text-sm">
+      <a href="/about.html" class="hidden sm:inline px-3 py-2 rounded-lg text-white transition">About</a>
+      <a href="biostat-quest.html?auth=1" class="px-3 py-2 rounded-lg text-slate-300 hover:text-white transition">Sign in</a>
+      <a href="biostat-quest.html" class="btn btn-primary px-4 py-2 rounded-lg">Play</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+
+<!-- Hero -->
+<section class="max-w-3xl mx-auto px-6 pt-20 pb-16 md:pt-28 md:pb-20 text-center fade-in">
+  <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8" style="background: rgba(139,92,246,0.08); border: 1px solid var(--violet-ink);">
+    <span class="tag" style="color: var(--violet);">● About</span>
+    <span class="text-xs text-slate-300">Why this exists</span>
+  </div>
+  <h1 class="t-display mb-6">
+    Reason under <span class="stat-number">uncertainty</span>,<br/>
+    don't memorize definitions.
+  </h1>
+  <p class="t-lead max-w-2xl mx-auto">
+    BioStat Quest is a gamified biostatistics trainer for learners who want the <em>why</em> behind the methods — not just the right answer for a quiz.
+  </p>
+</section>
+
+<!-- Why this exists -->
+<section class="max-w-3xl mx-auto px-6 pb-20">
+  <div class="card rounded-2xl p-8 md:p-10 prose-on-dark">
+    <div class="t-eyebrow mb-3" style="color: var(--accent);">The problem</div>
+    <h2 class="t-title mb-5">Why this exists</h2>
+    <p>Most biostatistics learning material falls into two camps: textbooks that are rigorous but dense, and short videos that are friendly but shallow. Neither teaches you to reason under uncertainty.</p>
+    <p>And that's the whole point of the subject. A clinician who can run a t-test but can't tell you when it's the wrong choice is worse off than one who's never heard of it — because the first will trust the output.</p>
+    <p>BioStat Quest is built around three things the learning-science literature consistently says actually work: <strong>active recall</strong>, <strong>clinical context</strong>, and <strong>spaced repetition</strong>.</p>
+  </div>
+</section>
+
+<!-- How it works — pillars -->
+<section class="max-w-4xl mx-auto px-6 pb-20">
+  <div class="text-center mb-10 max-w-2xl mx-auto">
+    <div class="t-eyebrow mb-3" style="color: var(--accent);">The approach</div>
+    <h2 class="t-title mb-3">Four things done differently</h2>
+  </div>
+  <div class="card rounded-2xl p-6 md:p-8">
+    <div class="pillar">
+      <!-- Cases — clipboard with lines (case-file metaphor, matching landing's stroke style) -->
+      <div class="pillar-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="5" y="4" width="14" height="17" rx="2"/>
+          <path d="M9 3h6v3H9z"/>
+          <path d="M8.5 11h7 M8.5 14h7 M8.5 17h4"/>
+        </svg>
+      </div>
+      <div>
+        <h3 class="t-subtitle mb-1 text-white">Cases, not flashcards</h3>
+        <p class="t-body">Each case sets up a clinical or research scenario — a manuscript to critique, a study to design, a trial to debug — then asks a sequence of questions that build on it. Methods are learned in the situations you'll actually face them.</p>
+      </div>
+    </div>
+    <div class="pillar">
+      <!-- Spaced repetition — refresh arc + anchored dot (matches landing SR card) -->
+      <div class="pillar-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 12a8 8 0 1 1-2.34-5.66"/>
+          <path d="M20 4v5h-5"/>
+          <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+        </svg>
+      </div>
+      <div>
+        <h3 class="t-subtitle mb-1 text-white">Spaced repetition, quietly</h3>
+        <p class="t-body">Missed questions come back on an adaptive SM-2 schedule — the same algorithm that powers Anki. The system decides when you're about to forget something and resurfaces it, so retention compounds.</p>
+      </div>
+    </div>
+    <div class="pillar">
+      <!-- Deep dives — open book (matches landing Deep-dives card) -->
+      <div class="pillar-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 6v14"/>
+          <path d="M12 6C9.5 4.4 7 4 4 4a.5.5 0 0 0-.5.5v14a.5.5 0 0 0 .5.5c3 0 5.5.4 8 2 2.5-1.6 5-2 8-2a.5.5 0 0 0 .5-.5v-14a.5.5 0 0 0-.5-.5c-3 0-5.5.4-8 2z"/>
+          <path d="M6.5 9h3M6.5 12h3M14.5 9h3M14.5 12h3"/>
+        </svg>
+      </div>
+      <div>
+        <h3 class="t-subtitle mb-1 text-white">Deep dives, not dictionary entries</h3>
+        <p class="t-body">Every question links to an explainer: intuition, formula, assumptions, pitfalls, and suggested reading. You leave understanding <em>why</em> the answer is right — not just <em>that</em> it is.</p>
+      </div>
+    </div>
+    <div class="pillar">
+      <!-- Progress — lightning bolt (matches landing XP/streaks card) -->
+      <div class="pillar-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M13 2 5 14h6l-1 8 8-12h-6l1-8z"/>
+        </svg>
+      </div>
+      <div>
+        <h3 class="t-subtitle mb-1 text-white">Progress that actually means something</h3>
+        <p class="t-body">XP, streaks, and per-method mastery track how well you understand the material. Play as a guest or sign in (free) to sync across devices and appear on a public leaderboard if you want.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Trust signals: who, how, sources. Written to be checkable rather than boastful. -->
+<section class="max-w-5xl mx-auto px-6 pb-20">
+  <div class="text-center mb-10 max-w-2xl mx-auto">
+    <div class="t-eyebrow mb-3" style="color: var(--violet);">Who's behind this</div>
+    <h2 class="t-title">Trust, checkable</h2>
+  </div>
+  <div class="grid md:grid-cols-3 gap-5">
+
+    <!-- Who built this -->
+    <div class="card rounded-2xl p-6 sm:p-7">
+      <div class="t-eyebrow mb-3" style="color: var(--accent);">Who built this</div>
+      <h3 class="t-subtitle mb-2">Selçuk Korkmaz, PhD</h3>
+      <p class="t-body text-sm mb-4">Researcher in biostatistics and applied statistical methodology. Author of several R packages on CRAN. Content is personally authored, reviewed, and method-categorized — not generated from a paraphrase of another source.</p>
+      <div class="flex flex-wrap gap-2 text-xs">
+        <a href="https://selcukorkmaz.github.io/" class="chip hover:border-slate-600" style="color: var(--accent);" target="_blank" rel="noopener">Website</a>
+        <a href="https://github.com/selcukorkmaz" class="chip hover:border-slate-600" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://scholar.google.com/citations?user=selcukkorkmaz&user=TKOcnUwAAAAJ" class="chip hover:border-slate-600" target="_blank" rel="noopener">Scholar</a>
+      </div>
+    </div>
+
+    <!-- How content is made -->
+    <div class="card rounded-2xl p-6 sm:p-7">
+      <div class="t-eyebrow mb-3" style="color: var(--accent);">How content is made</div>
+      <h3 class="t-subtitle mb-2">Written, tagged, tested</h3>
+      <ul class="t-body text-sm space-y-1.5">
+        <li><strong class="text-white">1,000 questions</strong> across <strong class="text-white">50 cases</strong>, routed to <strong class="text-white">42 method deep-dives</strong>.</li>
+        <li>Every item tagged by branch, method, and misconception before it ships.</li>
+        <li><strong class="text-white">6,000+ automated structural tests</strong> on every change: one correct option, valid method link, valid branch, no duplicate ids.</li>
+        <li>Corrections are reviewed and shipped fast. Every report is read.</li>
+      </ul>
+    </div>
+
+    <!-- Sources -->
+    <div class="card rounded-2xl p-6 sm:p-7">
+      <div class="t-eyebrow mb-3" style="color: var(--accent);">Sources</div>
+      <h3 class="t-subtitle mb-2">What the deep-dives are built on</h3>
+      <p class="t-body text-sm mb-4">Each method links to the primary literature — Hernán &amp; Robins for causal, VanderWeele for sensitivity, Altman for study design, Therneau &amp; Grambsch for survival, and more. 120+ citations across the library.</p>
+      <a href="/sources.html" class="btn btn-ghost inline-block px-4 py-2 rounded-lg text-sm">Browse all sources →</a>
+    </div>
+  </div>
+
+  <p class="text-center text-xs text-slate-500 mt-8">
+    Content currently in beta. This page will be updated as adopters and peer feedback accumulate — we'd rather earn trust signals than claim them.
+  </p>
+</section>
+
+<!-- Honest FAQs -->
+<section class="max-w-4xl mx-auto px-6 pb-20">
+  <div class="text-center mb-10 max-w-2xl mx-auto">
+    <div class="t-eyebrow mb-3" style="color: var(--gold);">Common questions</div>
+    <h2 class="t-title">Honest answers</h2>
+  </div>
+  <div class="grid md:grid-cols-2 gap-5">
+    <div class="card rounded-2xl p-6">
+      <h3 class="t-subtitle mb-2">Is it really free?</h3>
+      <p class="t-body">Yes. All content is free. No ads, no paywalls, no dark patterns. If it saves you time or helps you pass an exam, share it with a colleague.</p>
+    </div>
+    <div class="card rounded-2xl p-6">
+      <h3 class="t-subtitle mb-2">Do I need to sign in?</h3>
+      <p class="t-body">No. Everything works as a guest — progress saves in your browser. Sign in only if you want cross-device sync or the leaderboard.</p>
+    </div>
+    <div class="card rounded-2xl p-6">
+      <h3 class="t-subtitle mb-2">Who is it for?</h3>
+      <p class="t-body">Medical students and residents studying for boards, early-career researchers brushing up methodology, and instructors assigning active-recall homework.</p>
+    </div>
+    <div class="card rounded-2xl p-6">
+      <h3 class="t-subtitle mb-2">Can I contribute or report errors?</h3>
+      <p class="t-body">Absolutely — email <a href="mailto:info@biostatquest.com" style="color: var(--accent);">info@biostatquest.com</a> with corrections, topic requests, or case ideas. Every report is read.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA — mirrors landing -->
+<section class="max-w-4xl mx-auto px-6 pb-28">
+  <div class="premium-border rounded-3xl p-12 md:p-16 text-center" style="background: linear-gradient(145deg, rgba(22,28,54,0.55), rgba(12,16,36,0.65));">
+    <!-- CTA — rocket with flame tail (matches landing CTA) -->
+    <div class="mb-5 inline-flex justify-center" style="color: var(--accent);">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 2c-3 3-5 7-5 11v3h10v-3c0-4-2-8-5-11z"/>
+        <path d="M7 16l-2.5 4 3-1"/>
+        <path d="M17 16l2.5 4-3-1"/>
+        <circle cx="12" cy="10" r="1.8"/>
+        <path d="M10 21l2 2 2-2"/>
+      </svg>
+    </div>
+    <h2 class="t-title mb-4">Try a case</h2>
+    <p class="t-body text-lg mb-8 max-w-xl mx-auto">See the approach in action. No account needed. Takes about five minutes.</p>
+    <div class="flex flex-col sm:flex-row gap-3 justify-center items-center">
+      <a href="biostat-quest.html" class="btn btn-primary px-10 py-4 rounded-xl text-base">Start your first case →</a>
+      <a href="/" class="btn btn-ghost px-10 py-4 rounded-xl text-base">Back to home</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- Footer — identical to landing -->
+<footer class="border-t" style="border-color: var(--line);">
+  <div class="max-w-6xl mx-auto px-6 py-12 grid md:grid-cols-3 gap-8">
+    <div>
+      <div class="flex items-center gap-2 mb-3">
+        <svg width="34" height="28" viewBox="0 0 52 44" fill="none" style="overflow:visible">
+          <defs>
+            <linearGradient id="bqStrokeF" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#c084fc"/>
+              <stop offset="35%" stop-color="#8b5cf6"/>
+              <stop offset="65%" stop-color="#06b6d4"/>
+              <stop offset="100%" stop-color="#34d399"/>
+            </linearGradient>
+            <linearGradient id="bqFillF" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.55"/>
+              <stop offset="60%" stop-color="#06b6d4" stop-opacity="0.18"/>
+              <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
+            </linearGradient>
+            <radialGradient id="bqPeakGlowF" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#fde68a" stop-opacity="0.95"/>
+              <stop offset="60%" stop-color="#fbbf24" stop-opacity="0.4"/>
+              <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/>
+            </radialGradient>
+            <filter id="bqGlowF" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="1.8" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <line x1="4" y1="36" x2="48" y2="36" stroke="#334155" stroke-width="0.8" stroke-linecap="round"/>
+          <line x1="14" y1="36" x2="14" y2="38" stroke="#334155" stroke-width="0.8"/>
+          <line x1="26" y1="36" x2="26" y2="38.5" stroke="#475569" stroke-width="1"/>
+          <line x1="38" y1="36" x2="38" y2="38" stroke="#334155" stroke-width="0.8"/>
+          <circle cx="26" cy="8" r="9" fill="url(#bqPeakGlowF)"/>
+          <path d="M 4 36 C 11 36, 15 35.5, 18 29 C 20.5 22, 22.5 12, 26 8 C 29.5 12, 31.5 22, 34 29 C 37 35.5, 41 36, 48 36 Z" fill="url(#bqFillF)"/>
+          <path d="M 4 36 C 11 36, 15 35.5, 18 29 C 20.5 22, 22.5 12, 26 8 C 29.5 12, 31.5 22, 34 29 C 37 35.5, 41 36, 48 36" stroke="url(#bqStrokeF)" stroke-width="2.3" fill="none" stroke-linecap="round" filter="url(#bqGlowF)"/>
+          <line x1="20" y1="19" x2="20" y2="36" stroke="#64748b" stroke-width="0.6" stroke-dasharray="1.5 2" opacity="0.55"/>
+          <line x1="32" y1="19" x2="32" y2="36" stroke="#64748b" stroke-width="0.6" stroke-dasharray="1.5 2" opacity="0.55"/>
+          <line x1="26" y1="10" x2="26" y2="36" stroke="#fbbf24" stroke-width="1" stroke-dasharray="2.5 2" opacity="0.85"/>
+          <circle cx="26" cy="8" r="2.3" fill="#fde68a" stroke="#f59e0b" stroke-width="0.8"/>
+          <circle cx="26" cy="8" r="0.9" fill="#fff"/>
+        </svg>
+        <span class="font-extrabold text-white">BioStat <span class="gold-text">Quest</span></span>
+      </div>
+      <p class="t-caption">A gamified biostatistics trainer. Built with care by a researcher who wished this existed in grad school.</p>
+    </div>
+    <div>
+      <div class="t-eyebrow mb-3">Links</div>
+      <ul class="space-y-2 text-sm">
+        <li><a href="biostat-quest.html" class="text-slate-400 hover:text-white transition">Play</a></li>
+        <li><a href="/about.html" class="text-slate-400 hover:text-white transition">About</a></li>
+        <li><a href="/sources.html" class="text-slate-400 hover:text-white transition">Sources</a></li>
+        <li><a href="/privacy.html" class="text-slate-400 hover:text-white transition">Privacy</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="t-eyebrow mb-3">Contact</div>
+      <p class="t-caption">Feedback, bugs, or topic requests?<br/>
+        <a href="mailto:info@biostatquest.com" class="hover:text-white transition" style="color: var(--accent);">info@biostatquest.com</a>
+      </p>
+    </div>
+  </div>
+  <div class="border-t" style="border-color: var(--line);">
+    <div class="max-w-6xl mx-auto px-6 py-6 t-caption text-center mono">
+      © 2026 BioStat Quest · Free and open for the biostatistics learning community.
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
