@@ -281,9 +281,11 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
         <div className="text-[10px] uppercase tracking-widest text-purple-400 font-bold mb-2">{c.title}</div>
         {/* Context stack for the stem, in order of specificity:
             1. Per-question `scenario` (cyan)  — set explicitly on ~40 items
-            2. Case-level `story`     (slate)  — always shown in regular play
-               so learners can reference case facts while reasoning, rather
-               than being asked to memorize the act-intro.
+            2. Case-level `story`     (slate)  — shown in regular play
+               so learners can reference case facts while reasoning,
+               UNLESS the question is flagged `standalone: true` (the
+               stem introduces its own numbers that would contradict
+               the case story).
             Daily Review stays clean (no per-run case story) per the earlier
             product decision to avoid double context panels there. */}
         {step.scenario ? (
@@ -291,7 +293,7 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
             <div className="text-[10px] uppercase tracking-widest text-cyan-300/80 font-bold mb-1">Scenario</div>
             <p className="text-sm text-slate-200 leading-relaxed">{step.scenario}</p>
           </div>
-        ) : !isReview && c.story ? (
+        ) : !isReview && !step.standalone && c.story ? (
           <div className="mb-4 rounded-xl border border-slate-700/60 bg-slate-900/40 p-3">
             <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1">Case context</div>
             <p className="text-sm text-slate-300 leading-relaxed">{c.story}</p>
