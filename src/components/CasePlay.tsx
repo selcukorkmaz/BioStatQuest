@@ -279,12 +279,24 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
 
       <div className={`card rounded-2xl p-5 sm:p-6 md:p-8 ${showActIntro ? "hidden" : ""}`}>
         <div className="text-[10px] uppercase tracking-widest text-purple-400 font-bold mb-2">{c.title}</div>
-        {step.scenario && (
+        {/* Context stack for the stem, in order of specificity:
+            1. Per-question `scenario` (cyan)  — set explicitly on ~40 items
+            2. Case-level `story`     (slate)  — always shown in regular play
+               so learners can reference case facts while reasoning, rather
+               than being asked to memorize the act-intro.
+            Daily Review stays clean (no per-run case story) per the earlier
+            product decision to avoid double context panels there. */}
+        {step.scenario ? (
           <div className="mb-4 rounded-xl border border-cyan-900/60 bg-cyan-950/20 p-3">
             <div className="text-[10px] uppercase tracking-widest text-cyan-300/80 font-bold mb-1">Scenario</div>
             <p className="text-sm text-slate-200 leading-relaxed">{step.scenario}</p>
           </div>
-        )}
+        ) : !isReview && c.story ? (
+          <div className="mb-4 rounded-xl border border-slate-700/60 bg-slate-900/40 p-3">
+            <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1">Case context</div>
+            <p className="text-sm text-slate-300 leading-relaxed">{c.story}</p>
+          </div>
+        ) : null}
         <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-4 leading-snug">{step.q}</h3>
         {step.output && (
           <div className="mb-6 rounded-xl border border-slate-700 bg-slate-950/80 overflow-hidden">
