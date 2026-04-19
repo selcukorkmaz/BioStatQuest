@@ -836,9 +836,9 @@ function Home({ state, onStartCase, onNav, onOpenBranch, onReview }) {
 
 function StatCard({ label, value, gradient }) {
   return (
-    <div className="bg-slate-900/40 backdrop-blur rounded-xl p-3 sm:p-4 border border-slate-800">
+    <div className="bg-slate-900/40 backdrop-blur rounded-xl p-3 sm:p-4 border border-slate-800 min-w-0">
       <div className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-1">{label}</div>
-      <div className={`text-2xl sm:text-3xl font-extrabold ${gradient ? "stat-number" : "text-white"}`}>{value}</div>
+      <div className={`text-xl sm:text-2xl md:text-3xl font-extrabold leading-tight break-words ${gradient ? "stat-number" : "text-white"}`}>{value}</div>
     </div>
   );
 }
@@ -908,16 +908,16 @@ function OnboardingIntro({ onStart, onSkip, state, setState }) {
         </div>
 
         <div className="mt-6 pt-5 border-t border-slate-800 grid grid-cols-3 gap-3 sm:gap-4 text-center">
-          <div>
-            <div className="text-lg sm:text-xl font-extrabold stat-number">8</div>
+          <div className="min-w-0">
+            <div className="text-base sm:text-xl font-extrabold stat-number leading-tight break-words">8</div>
             <div className="text-[10px] text-slate-500 uppercase tracking-wider mt-1">Questions</div>
           </div>
-          <div>
-            <div className="text-lg sm:text-xl font-extrabold stat-number">~6 min</div>
+          <div className="min-w-0">
+            <div className="text-base sm:text-xl font-extrabold stat-number leading-tight break-words">~6 min</div>
             <div className="text-[10px] text-slate-500 uppercase tracking-wider mt-1">Time</div>
           </div>
-          <div>
-            <div className="text-lg sm:text-xl font-extrabold stat-number">3 cases</div>
+          <div className="min-w-0">
+            <div className="text-base sm:text-xl font-extrabold stat-number leading-tight break-words">3 cases</div>
             <div className="text-[10px] text-slate-500 uppercase tracking-wider mt-1">Curated path</div>
           </div>
         </div>
@@ -1145,17 +1145,17 @@ function DiagnosticResults({ profile, studyPath, onStartCase, onNav, learnerGoal
             : "The fundamentals are where we'll spend most of our early time together. The path below starts with the biggest gaps."}
         </p>
         <div className="grid grid-cols-3 gap-3 sm:gap-4">
-          <div className="rounded-xl bg-slate-900/60 border border-slate-800 p-3 sm:p-4 text-center">
+          <div className="rounded-xl bg-slate-900/60 border border-slate-800 p-3 sm:p-4 text-center min-w-0">
             <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Level</div>
-            <div className="text-xl sm:text-2xl font-extrabold stat-number">{bandLabel(profile.band)}</div>
+            <div className="text-base sm:text-xl md:text-2xl font-extrabold stat-number leading-tight break-words">{bandLabel(profile.band)}</div>
           </div>
-          <div className="rounded-xl bg-slate-900/60 border border-slate-800 p-3 sm:p-4 text-center">
+          <div className="rounded-xl bg-slate-900/60 border border-slate-800 p-3 sm:p-4 text-center min-w-0">
             <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Start difficulty</div>
-            <div className="text-xl sm:text-2xl font-extrabold text-white" style={{ color: DIFFICULTIES[recDiff].color }}>{DIFFICULTIES[recDiff].name}</div>
+            <div className="text-base sm:text-xl md:text-2xl font-extrabold text-white leading-tight break-words" style={{ color: DIFFICULTIES[recDiff].color }}>{DIFFICULTIES[recDiff].name}</div>
           </div>
-          <div className="rounded-xl bg-slate-900/60 border border-slate-800 p-3 sm:p-4 text-center">
+          <div className="rounded-xl bg-slate-900/60 border border-slate-800 p-3 sm:p-4 text-center min-w-0">
             <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Your path</div>
-            <div className="text-xl sm:text-2xl font-extrabold gold-text">{studyPath.length} cases</div>
+            <div className="text-base sm:text-xl md:text-2xl font-extrabold gold-text leading-tight break-words">{studyPath.length} cases</div>
           </div>
         </div>
       </div>

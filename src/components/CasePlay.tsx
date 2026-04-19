@@ -279,7 +279,15 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
 
       <div className={`card rounded-2xl p-5 sm:p-6 md:p-8 ${showActIntro ? "hidden" : ""}`}>
         <div className="text-[10px] uppercase tracking-widest text-purple-400 font-bold mb-2">{c.title}</div>
-        {isReview && (() => {
+        {step.scenario ? (
+          // Per-question scenario takes priority over the case-level story —
+          // a scenario is by definition more specific to this item, so we
+          // don't want to double up on context panels.
+          <div className="mb-4 rounded-xl border border-cyan-900/60 bg-cyan-950/20 p-3">
+            <div className="text-[10px] uppercase tracking-widest text-cyan-300/80 font-bold mb-1">Scenario</div>
+            <p className="text-sm text-slate-200 leading-relaxed">{step.scenario}</p>
+          </div>
+        ) : isReview && (() => {
           const qid = step?.qid || "";
           const parentId = qid.includes("_") ? qid.slice(0, qid.lastIndexOf("_")) : "";
           const parent = parentId ? CASES.find(x => x.id === parentId) : null;

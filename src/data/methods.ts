@@ -636,20 +636,24 @@ const METHODS: Record<string, Method> = {
   },
   variable_types: {
     title: "Variable Types & Measurement Scales",
-    intuition: "Variables fall into four scales of measurement: nominal (unordered categories like blood type), ordinal (ordered but unequal spacing like pain 0–10, BMI categories), interval (equal spacing, no true zero like °C), and ratio (equal spacing with meaningful zero like kg, mmHg). The scale dictates which summaries and tests are legal.",
-    formula: "Nominal → mode, χ²; Ordinal → median, rank tests; Interval/Ratio → mean, t/ANOVA/regression",
+    intuition: "Variables split by two intersecting taxonomies. By type — categorical (nominal or ordinal) vs. numeric (continuous or discrete). By Stevens scale — nominal (unordered categories like blood type), ordinal (ordered but unequal spacing like pain 0–10, BMI categories), interval (equal spacing, no true zero, like °C), and ratio (equal spacing with meaningful zero, like kg, mmHg). Continuous numeric variables can take any real value in a range (blood pressure, weight, time, lab results); discrete numeric variables are countable integers (ER visits, number of children, symptom counts). Taken together, type and scale dictate which summaries and tests are legal.",
+    formula: "Nominal → mode, proportions, χ²;  Ordinal → median, rank tests;  Discrete counts → Poisson / negative binomial;  Continuous (interval/ratio) → mean, SD, t-tests, ANOVA, regression",
     assumptions: [
-      "Ordinal variables encode rank only — differences between levels are not comparable.",
-      "Interval lacks a true zero (e.g., 0°C ≠ absence of temperature), so ratios are not meaningful.",
-      "Discrete counts (ER visits) are ratio but often need Poisson/NB rather than Normal models."
+      "Nominal categorical: unordered labels; only equality comparisons are meaningful.",
+      "Ordinal categorical: rank-ordered, but differences between levels are not comparable.",
+      "Continuous numeric: any value is possible within a range (bounded only by measurement precision).",
+      "Discrete numeric: countable integers; often ratio-scale, but counts usually need Poisson/NB rather than Normal models.",
+      "Interval lacks a true zero (e.g., 0°C ≠ absence of temperature), so ratios are not meaningful; ratio has a true zero and ratios are meaningful."
     ],
     pitfalls: [
       "Averaging Likert scores treats ordinal as interval — report medians or use ordinal models (e.g., cumulative logit).",
       "Coding categorical as integers and running linear regression silently imposes ordering.",
-      "Binning a ratio variable into categories discards information and reduces power."
+      "Binning a continuous variable into categories (e.g., age → young/old) discards information and reduces power.",
+      "Conflating 'continuous' with 'ratio' — blood pressure is both, but age in whole years is ratio yet effectively discrete; check whether any value in the range is possible, not just whether there is a true zero."
     ],
     reading: [
       "Stevens (1946), 'On the Theory of Scales of Measurement'",
+      "Altman, 'Practical Statistics for Medical Research' — Ch. 2 (Types of data)",
       "Agresti, 'Analysis of Ordinal Categorical Data'",
       "R: factor(), ordered(), polr() in MASS, clm() in ordinal"
     ]
