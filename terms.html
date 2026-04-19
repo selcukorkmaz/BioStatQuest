@@ -4,15 +4,15 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-<title>Privacy — BioStat Quest</title>
-<meta name="description" content="How BioStat Quest handles your data. No ads, no tracking cookies, no data sales — a plain-English policy for guest and signed-in use." />
+<title>Terms of Use — BioStat Quest</title>
+<meta name="description" content="The ground rules for using BioStat Quest. Educational content only — not medical advice. Plain-English terms for individual learners and institutional users." />
 
 <!-- Open Graph -->
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="BioStat Quest" />
-<meta property="og:url" content="https://www.biostatquest.com/privacy.html" />
-<meta property="og:title" content="Privacy — BioStat Quest" />
-<meta property="og:description" content="How BioStat Quest handles your data. No ads, no tracking cookies, no data sales — a plain-English policy." />
+<meta property="og:url" content="https://www.biostatquest.com/terms.html" />
+<meta property="og:title" content="Terms of Use — BioStat Quest" />
+<meta property="og:description" content="The ground rules for using BioStat Quest — educational content only, not medical advice." />
 <meta property="og:image" content="https://www.biostatquest.com/og-image.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
@@ -22,8 +22,8 @@
 
 <!-- Twitter / X -->
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="Privacy — BioStat Quest" />
-<meta name="twitter:description" content="How BioStat Quest handles your data — plain English, no legalese." />
+<meta name="twitter:title" content="Terms of Use — BioStat Quest" />
+<meta name="twitter:description" content="Ground rules, plain English. Educational content only — not medical advice." />
 <meta name="twitter:image" content="https://www.biostatquest.com/og-image.png" />
 <meta name="twitter:image:alt" content="BioStat Quest — biostatistics prep that actually sticks." />
 
@@ -38,7 +38,7 @@
 (function(){try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(!k||k.indexOf("sb-")!==0||k.indexOf("-auth-token")===-1)continue;var raw=localStorage.getItem(k);if(!raw)continue;var s=JSON.parse(raw);if(!s)continue;var exp=s.expires_at||(s.currentSession&&s.currentSession.expires_at);if(!exp||Date.now()/1000>=exp)continue;var u=(s.user&&s.user.email)||(s.currentSession&&s.currentSession.user&&s.currentSession.user.email)||"";var name=u?String(u).split("@")[0]:"";window.__bqUsername=name;document.documentElement.classList.add("bq-authed");document.addEventListener("DOMContentLoaded",function(){try{var initial=name?name.charAt(0).toUpperCase():"";var els=document.querySelectorAll("[data-username]");for(var j=0;j<els.length;j++)els[j].textContent=name;var iEls=document.querySelectorAll("[data-user-initial]");for(var k=0;k<iEls.length;k++)iEls[k].textContent=initial;}catch(e){}});return;}}catch(e){}})();
 </script>
 
-<link rel="canonical" href="https://www.biostatquest.com/privacy.html" />
+<link rel="canonical" href="https://www.biostatquest.com/terms.html" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -129,7 +129,6 @@
   .tag { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
   .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(148,163,184,0.06); border: 1px solid var(--line); font-size: 12px; font-weight: 500; color: var(--ink-2); }
 
-  /* Article content in section cards */
   .prose-on-dark p { color: var(--ink-2); line-height: 1.75; }
   .prose-on-dark p + p { margin-top: 1rem; }
   .prose-on-dark strong { color: var(--ink-1); font-weight: 600; }
@@ -139,7 +138,6 @@
   .prose-on-dark ul { margin-top: 0.75rem; padding-left: 1.25rem; list-style: disc; color: var(--ink-2); }
   .prose-on-dark li { line-height: 1.7; margin-top: 0.35rem; }
 
-  /* Pillar list — matches about.html */
   .pillar {
     display: grid; grid-template-columns: auto 1fr; gap: 1rem 1.25rem; align-items: start;
     padding: 1.25rem 0; border-bottom: 1px solid var(--line);
@@ -152,6 +150,15 @@
     color: var(--accent);
   }
   .pillar-icon svg { width: 22px; height: 22px; }
+
+  /* Amber-themed disclaimer block for the medical-advice warning */
+  .notice-warning {
+    background: linear-gradient(145deg, rgba(251,191,36,0.08), rgba(245,158,11,0.04));
+    border: 1px solid rgba(251,191,36,0.3);
+    border-left: 3px solid #f59e0b;
+    border-radius: 1rem;
+    padding: 1.25rem 1.5rem;
+  }
 
   @keyframes fadeInUp { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
   .fade-in { animation: fadeInUp 0.2s cubic-bezier(0.4,0,0.2,1) backwards; }
@@ -167,7 +174,7 @@
 </head>
 <body>
 
-<!-- Nav — identical to landing / about -->
+<!-- Nav — identical to landing / about / privacy -->
 <nav class="sticky top-0 z-50 backdrop-blur-xl" style="background: rgba(5,7,15,0.72); border-bottom: 1px solid var(--line);">
   <div class="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
     <a href="/" class="flex items-center gap-3">
@@ -232,53 +239,92 @@
 <!-- Hero -->
 <section class="max-w-3xl mx-auto px-6 pt-20 pb-12 md:pt-28 md:pb-16 text-center fade-in">
   <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8" style="background: rgba(139,92,246,0.08); border: 1px solid var(--violet-ink);">
-    <span class="tag" style="color: var(--violet);">● Privacy</span>
-    <span class="text-xs text-slate-300">How your data is handled</span>
+    <span class="tag" style="color: var(--violet);">● Terms of Use</span>
+    <span class="text-xs text-slate-300">The ground rules, plainly</span>
   </div>
   <h1 class="t-display mb-6">
-    Plain-English <span class="stat-number">privacy</span>.
+    Plain-English <span class="stat-number">terms</span>.
   </h1>
   <p class="t-lead max-w-2xl mx-auto">
-    No ads. No tracking cookies. No data sales. Here's what that actually means, section by section.
+    Written to be read, not skimmed past. Educational content only — not medical advice, not a clinical decision tool.
   </p>
   <p class="t-caption mt-6 mono">Last updated: April 2026</p>
+</section>
+
+<!-- Medical-advice warning -->
+<section class="max-w-3xl mx-auto px-6 pb-10">
+  <div class="notice-warning">
+    <div class="flex items-start gap-3">
+      <div class="shrink-0 mt-0.5" style="color: #fbbf24;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
+      <div>
+        <div class="t-eyebrow mb-1" style="color: #fbbf24;">Read this first</div>
+        <p class="t-body" style="margin:0;">
+          BioStat Quest is an <strong>educational tool</strong> for learning biostatistics. It is <strong>not</strong> a medical device, clinical decision-support system, or substitute for professional judgement. Nothing on this site constitutes medical advice, diagnosis, treatment, or statistical consulting for a specific patient, trial, or publication.
+        </p>
+      </div>
+    </div>
+  </div>
 </section>
 
 <!-- Intro card -->
 <section class="max-w-3xl mx-auto px-6 pb-16">
   <div class="card rounded-2xl p-8 md:p-10 prose-on-dark">
     <div class="t-eyebrow mb-3" style="color: var(--accent);">The short version</div>
-    <h2 class="t-title mb-5">Your progress is yours</h2>
-    <p>Play as a guest and your data never leaves your browser. Sign in and the only things we keep are your email and your progress JSON — encrypted in transit, never shared, deletable on request. No behavioral profiling, no advertising, no dark patterns.</p>
-    <p>If you want the detail, every category below is written to be checkable rather than reassuring.</p>
+    <h2 class="t-title mb-5">You can use BioStat Quest if you agree to these terms</h2>
+    <p>By accessing BioStat Quest ("the Service"), you agree to these Terms of Use ("Terms"). If you don't agree, don't use the Service. The Terms apply to everyone — guests, signed-in users, and future paying subscribers.</p>
+    <p>We wrote this in plain language on purpose. The meaning is legally binding all the same.</p>
   </div>
 </section>
 
-<!-- Policy pillars -->
+<!-- Terms pillars -->
 <section class="max-w-4xl mx-auto px-6 pb-20">
   <div class="text-center mb-10 max-w-2xl mx-auto">
-    <div class="t-eyebrow mb-3" style="color: var(--accent);">What we collect, and don't</div>
-    <h2 class="t-title mb-3">Category by category</h2>
+    <div class="t-eyebrow mb-3" style="color: var(--accent);">Section by section</div>
+    <h2 class="t-title mb-3">The full terms</h2>
   </div>
   <div class="card rounded-2xl p-6 md:p-8">
 
     <div class="pillar">
-      <!-- Guest mode — monitor with check (local-only) -->
       <div class="pillar-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="3" y="4" width="18" height="13" rx="2"/>
-          <path d="M8 21h8 M12 17v4"/>
-          <path d="M8.5 10.5l2.5 2.5 4.5-4.5"/>
+          <path d="M12 2 3 6v6c0 5 3.8 9.3 9 10 5.2-.7 9-5 9-10V6l-9-4z"/>
+          <path d="M9 12l2 2 4-4"/>
         </svg>
       </div>
       <div class="prose-on-dark">
-        <h3 class="t-subtitle mb-1 text-white">Guest mode</h3>
-        <p class="t-body">If you play without signing in, your progress — XP, streaks, answered questions, spaced-repetition schedule — is stored <strong>only in your browser</strong> via <span class="mono text-white">localStorage</span>. Nothing is sent to our servers. Clear your browser data and your progress is gone with it — sign in to preserve it across devices.</p>
+        <h3 class="t-subtitle mb-1 text-white">Eligibility &amp; acceptable use</h3>
+        <p class="t-body">You must be 16 or older to use the Service. By using BioStat Quest you agree <strong>not</strong> to: attempt to access other users' accounts; scrape, resell, or mirror the content; reverse-engineer or systematically copy question banks; upload malware; or use the Service to harass others. We reserve the right to suspend accounts engaged in these activities.</p>
       </div>
     </div>
 
     <div class="pillar">
-      <!-- Accounts — user profile card -->
+      <div class="pillar-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M6 4h12l-1 7H7z"/>
+          <circle cx="9" cy="18" r="1.5"/>
+          <circle cx="15" cy="18" r="1.5"/>
+          <path d="M3 4h2"/>
+        </svg>
+      </div>
+      <div class="prose-on-dark">
+        <h3 class="t-subtitle mb-1 text-white">Educational purpose — not medical or statistical advice</h3>
+        <p class="t-body">The cases, questions, explanations, and deep-dives on BioStat Quest are <strong>illustrative educational content</strong>. They are <strong>not</strong>:</p>
+        <ul>
+          <li>Clinical guidance for diagnosing or treating a specific patient.</li>
+          <li>Statistical consulting for a specific trial, manuscript, or dataset.</li>
+          <li>A substitute for professional judgement by a licensed clinician or qualified biostatistician.</li>
+        </ul>
+        <p>Always seek independent professional advice before applying any statistical method to real decisions with clinical, regulatory, or publication consequences. Your use of the Service is at your own risk.</p>
+      </div>
+    </div>
+
+    <div class="pillar">
       <div class="pillar-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="3" y="5" width="18" height="14" rx="2"/>
@@ -288,64 +334,115 @@
         </svg>
       </div>
       <div class="prose-on-dark">
-        <h3 class="t-subtitle mb-1 text-white">Accounts (when you sign in)</h3>
-        <p class="t-body">Authentication runs on Supabase. If you sign in we keep exactly two things:</p>
+        <h3 class="t-subtitle mb-1 text-white">Accounts and security</h3>
+        <p class="t-body">Signing in is optional but required to sync progress across devices and appear on the leaderboard. You're responsible for keeping your email access secure — anyone with your email inbox can sign in as you (we authenticate via magic link / one-time code). Notify us at <a href="mailto:info@biostatquest.com">info@biostatquest.com</a> if you suspect unauthorized use.</p>
+        <p>You can delete your account any time by emailing us. Deletion removes your email, progress JSON, event history, and subscription record within 30 days.</p>
+      </div>
+    </div>
+
+    <div class="pillar">
+      <div class="pillar-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14.5 3.5 20 9v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8.5z"/>
+          <path d="M14.5 3.5V9H20"/>
+          <path d="M9 13h6 M9 16h4"/>
+        </svg>
+      </div>
+      <div class="prose-on-dark">
+        <h3 class="t-subtitle mb-1 text-white">Content ownership</h3>
+        <p class="t-body">All cases, questions, explanations, illustrations, and code on BioStat Quest are © BioStat Quest unless explicitly attributed otherwise. You may use the Service for your personal learning, and you may cite individual questions or explanations with attribution. You may <strong>not</strong>:</p>
         <ul>
-          <li>Your <strong>email address</strong>, for login.</li>
-          <li>Your <strong>progress JSON</strong> — XP, streaks, SRS schedule, per-case scores.</li>
+          <li>Republish the question bank in whole or in substantial part.</li>
+          <li>Use our content to train a competing product or machine-learning model.</li>
+          <li>Resell access to the Service.</li>
         </ul>
-        <p>We do <strong>not</strong> share or sell this data. Ever. Delete your account and everything attached to it any time by emailing <a href="mailto:info@biostatquest.com">info@biostatquest.com</a>.</p>
+        <p>Cited sources (papers, textbooks, methodology references) remain the property of their respective authors and publishers and are used under fair-use principles for educational commentary.</p>
       </div>
     </div>
 
     <div class="pillar">
-      <!-- Analytics — anonymized bar chart -->
       <div class="pillar-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M3 20h18"/>
-          <rect x="5"    y="14" width="3.2" height="6"  rx="0.5"/>
-          <rect x="10.4" y="9"  width="3.2" height="11" rx="0.5"/>
-          <rect x="15.8" y="5"  width="3.2" height="15" rx="0.5"/>
-          <path d="M3 4l18 0" stroke-dasharray="1.2 2" opacity="0.5"/>
+          <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+          <path d="M12 8v4l2.5 2.5"/>
         </svg>
       </div>
       <div class="prose-on-dark">
-        <h3 class="t-subtitle mb-1 text-white">Analytics (opt-in only)</h3>
-        <p class="t-body">If you accept analytics on the cookie banner, we create a per-browser <span class="mono text-white">visitor_id</span> (UUID, no PII on its own) and log lightweight activity events — page loads, case starts, answer correct/wrong — to our Supabase database. Used only to understand which cases are working. <strong>No advertising, no third-party trackers, no cross-site profiling.</strong> We also use Vercel Web Analytics, which is cookieless. See the <a href="/cookies.html">Cookies page</a> for the full inventory.</p>
+        <h3 class="t-subtitle mb-1 text-white">Feedback and reports</h3>
+        <p class="t-body">If you report a question error, suggest a feature, or send feedback, you grant us a perpetual, royalty-free licence to use that feedback to improve the Service, with no obligation to credit you. Don't send anything you consider confidential.</p>
       </div>
     </div>
 
     <div class="pillar">
-      <!-- Cookies — session key -->
       <div class="pillar-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="8" cy="15" r="4.5"/>
-          <path d="M11 12 L 21 2"/>
-          <path d="M17 6l2 2 M19 4l2 2"/>
+          <rect x="2" y="6" width="20" height="12" rx="2"/>
+          <line x1="2" y1="10" x2="22" y2="10"/>
+          <line x1="7" y1="15" x2="10" y2="15"/>
         </svg>
       </div>
       <div class="prose-on-dark">
-        <h3 class="t-subtitle mb-1 text-white">Cookies &amp; local storage</h3>
-        <p class="t-body">Essential storage only by default: your Supabase session, your saved progress, and your consent choice itself. No advertising cookies, no third-party trackers. Opt-in analytics (the <span class="mono text-white">visitor_id</span> and landing-variant tag) are <strong>off until you accept them</strong> on the consent banner. Change your mind any time from the <button type="button" onclick="if(window.bqConsent)window.bqConsent.open();" style="color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(34,211,238,0.4);">cookie settings</button> or via the <a href="/cookies.html">Cookies page</a>.</p>
+        <h3 class="t-subtitle mb-1 text-white">Subscriptions and payments (Pro tier)</h3>
+        <p class="t-body">All 50 cases are currently free for individual learners. If you subscribe to a paid tier (Pro, Institutional), payments are processed by Stripe under their terms. Subscriptions auto-renew at the posted price until cancelled. Cancel any time from your account; the current billing period remains active through its end date. We offer <strong>a 7-day refund</strong> on new subscriptions if you cancel within 7 days of purchase and have not used Pro-only features extensively — email us and we'll process it.</p>
+        <p>Price changes for existing subscribers take effect at the next renewal with at least 30 days' notice.</p>
       </div>
     </div>
 
     <div class="pillar">
-      <!-- Children — shield with check -->
       <div class="pillar-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 3 4.5 5.5v6c0 4.3 3.2 8.3 7.5 10 4.3-1.7 7.5-5.7 7.5-10v-6z"/>
-          <path d="M8.5 12l2.5 2.5 4.5-5"/>
+          <circle cx="12" cy="12" r="9"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
         </svg>
       </div>
       <div class="prose-on-dark">
-        <h3 class="t-subtitle mb-1 text-white">Children</h3>
-        <p class="t-body">BioStat Quest is intended for adult learners (16+). We do not knowingly collect data from children under 13.</p>
+        <h3 class="t-subtitle mb-1 text-white">Disclaimer of warranties</h3>
+        <p class="t-body">The Service is provided <strong>"as is" and "as available"</strong> without warranty of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, non-infringement, or uninterrupted operation. We make no guarantees that content is free of errors, that questions perfectly reflect current guidelines, or that scheduled items arrive at optimal intervals for your individual learning.</p>
+        <p>We're a small team. Downtime happens. Bugs happen. We fix them as fast as we reasonably can.</p>
       </div>
     </div>
 
     <div class="pillar">
-      <!-- Changes — refresh arc -->
+      <div class="pillar-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 2 4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z"/>
+          <path d="M12 9v4 M12 17h.01"/>
+        </svg>
+      </div>
+      <div class="prose-on-dark">
+        <h3 class="t-subtitle mb-1 text-white">Limitation of liability</h3>
+        <p class="t-body">To the maximum extent permitted by law, BioStat Quest, its operators, and its contributors shall <strong>not be liable</strong> for any indirect, incidental, consequential, special, exemplary, or punitive damages arising from your use of the Service, including but not limited to: clinical decisions made in reliance on educational content; errors in submitted manuscripts or theses; loss of progress data; or financial loss.</p>
+        <p>Our total aggregate liability to you, for any and all claims relating to the Service, shall not exceed the greater of <strong>(a)</strong> the amount you paid us in the twelve months preceding the claim, or <strong>(b)</strong> €50.</p>
+      </div>
+    </div>
+
+    <div class="pillar">
+      <div class="pillar-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6 6 18 M6 6l12 12"/>
+        </svg>
+      </div>
+      <div class="prose-on-dark">
+        <h3 class="t-subtitle mb-1 text-white">Suspension and termination</h3>
+        <p class="t-body">We may suspend or terminate your access, with or without notice, for violation of these Terms, abuse of the Service, or extended inactivity. You may stop using the Service at any time by signing out or deleting your account.</p>
+      </div>
+    </div>
+
+    <div class="pillar">
+      <div class="pillar-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 5h18M5 5v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V5"/>
+          <path d="M9 10h6 M9 14h4"/>
+        </svg>
+      </div>
+      <div class="prose-on-dark">
+        <h3 class="t-subtitle mb-1 text-white">Governing law</h3>
+        <p class="t-body">These Terms are governed by the laws of the Republic of Türkiye. Any disputes will be resolved in the competent courts of Istanbul, without prejudice to mandatory consumer-protection rights under the laws of your country of residence.</p>
+      </div>
+    </div>
+
+    <div class="pillar">
       <div class="pillar-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M20 12a8 8 0 1 1-2.34-5.66"/>
@@ -354,36 +451,35 @@
         </svg>
       </div>
       <div class="prose-on-dark">
-        <h3 class="t-subtitle mb-1 text-white">Changes</h3>
-        <p class="t-body">We'll update this page if anything material changes and note the date above. Substantive updates will also surface a one-time notice on next sign-in.</p>
+        <h3 class="t-subtitle mb-1 text-white">Changes to these Terms</h3>
+        <p class="t-body">We'll update these Terms when we need to. Material changes will be noted with a new "Last updated" date and surfaced on next sign-in. Continued use after changes take effect means you accept the updated Terms; if you don't, stop using the Service and request account deletion.</p>
       </div>
     </div>
 
   </div>
 </section>
 
-<!-- Contact CTA — mirrors about.html's CTA rhythm -->
+<!-- Contact CTA — mirrors privacy.html's rhythm -->
 <section class="max-w-4xl mx-auto px-6 pb-28">
   <div class="premium-border rounded-3xl p-12 md:p-16 text-center" style="background: linear-gradient(145deg, rgba(22,28,54,0.55), rgba(12,16,36,0.65));">
-    <!-- Envelope icon -->
     <div class="mb-5 inline-flex justify-center" style="color: var(--accent);">
       <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <rect x="3" y="5" width="18" height="14" rx="2"/>
         <path d="M3.5 6.5l8.5 7 8.5-7"/>
       </svg>
     </div>
-    <h2 class="t-title mb-4">Questions, or want your data deleted?</h2>
-    <p class="t-body text-lg mb-8 max-w-xl mx-auto">Email <a href="mailto:info@biostatquest.com" style="color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(34,211,238,0.4);">info@biostatquest.com</a>. Real person, real reply, usually within a few days.</p>
+    <h2 class="t-title mb-4">Questions about these Terms?</h2>
+    <p class="t-body text-lg mb-8 max-w-xl mx-auto">Email <a href="mailto:info@biostatquest.com" style="color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(34,211,238,0.4);">info@biostatquest.com</a>. We reply in plain English, usually within a few days.</p>
     <div class="flex flex-col sm:flex-row gap-3 justify-center items-center">
       <a href="mailto:info@biostatquest.com" class="btn btn-primary px-10 py-4 rounded-xl text-base">Contact us</a>
-      <a href="/" class="btn btn-ghost px-10 py-4 rounded-xl text-base">Back to home</a>
+      <a href="/privacy.html" class="btn btn-ghost px-10 py-4 rounded-xl text-base">Read Privacy Policy</a>
     </div>
   </div>
 </section>
 
 </main>
 
-<!-- Footer — identical to landing / about -->
+<!-- Footer — updated with Terms, Cookies, cookie-settings, not-medical-advice -->
 <footer class="border-t" style="border-color: var(--line);">
   <div class="max-w-6xl mx-auto px-6 py-12 grid md:grid-cols-3 gap-8">
     <div>

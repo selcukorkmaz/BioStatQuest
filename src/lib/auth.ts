@@ -287,11 +287,38 @@ export type EventType =
 
 const VISITOR_KEY = "bq_visitor_id";
 
+// GDPR gate — analytics events (incl. visitor_id, event log, guest_visit,
+// landing_variant) are gated on explicit opt-in via the cookie-consent
+// banner. Essential writes (Supabase session, guest progress, last email)
+// are NOT gated — those are strictly necessary.
+//
+// Reads the banner's choice from window.bqConsent when available, or falls
+// back to the raw localStorage key for early-boot timing before the consent
+// script runs. Default: no consent ⇒ no analytics.
+function hasAnalyticsConsent(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const w = window as unknown as { bqConsent?: { hasAnalytics: () => boolean } };
+    if (w.bqConsent && typeof w.bqConsent.hasAnalytics === "function") {
+      return w.bqConsent.hasAnalytics();
+    }
+    const raw = window.localStorage.getItem("bq_cookie_consent");
+    if (!raw) return false;
+    const obj = JSON.parse(raw);
+    return !!obj && obj.status === "all";
+  } catch {
+    return false;
+  }
+}
+
 // Lazily create and persist a stable browser UUID. The ID survives sign-out
 // and re-sign-in, which is what lets us join guest activity to the eventual
-// account. Not PII on its own — just a per-browser tag.
+// account. Not PII on its own — but under GDPR a persistent pseudonymous
+// identifier requires consent, so we gate creation and read on the consent
+// flag. Returns null if the user hasn't opted in.
 function getVisitorId(): string | null {
   if (typeof window === "undefined") return null;
+  if (!hasAnalyticsConsent()) return null;
   try {
     let id = window.localStorage.getItem(VISITOR_KEY);
     if (!id) {
@@ -314,6 +341,10 @@ async function logEvent(type: EventType, opts?: {
 }) {
   try {
     if (!enabled || !client) return;
+    // No analytics consent ⇒ no event logging, ever. We don't even leak
+    // a row into the events table keyed by user_id — the consent covers
+    // all activity analytics uniformly.
+    if (!hasAnalyticsConsent()) return;
     const vid = getVisitorId();
     const row: Record<string, unknown> = {
       user_id: currentUser?.id ?? null,

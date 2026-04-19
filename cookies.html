@@ -4,15 +4,15 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-<title>Privacy — BioStat Quest</title>
-<meta name="description" content="How BioStat Quest handles your data. No ads, no tracking cookies, no data sales — a plain-English policy for guest and signed-in use." />
+<title>Cookies &amp; Storage — BioStat Quest</title>
+<meta name="description" content="Exactly what BioStat Quest stores in your browser and on our servers, why, and how to control it. No advertising cookies, no third-party trackers." />
 
 <!-- Open Graph -->
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="BioStat Quest" />
-<meta property="og:url" content="https://www.biostatquest.com/privacy.html" />
-<meta property="og:title" content="Privacy — BioStat Quest" />
-<meta property="og:description" content="How BioStat Quest handles your data. No ads, no tracking cookies, no data sales — a plain-English policy." />
+<meta property="og:url" content="https://www.biostatquest.com/cookies.html" />
+<meta property="og:title" content="Cookies &amp; Storage — BioStat Quest" />
+<meta property="og:description" content="What we store, why, and how to control it. No advertising, no third-party trackers." />
 <meta property="og:image" content="https://www.biostatquest.com/og-image.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
@@ -22,14 +22,11 @@
 
 <!-- Twitter / X -->
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="Privacy — BioStat Quest" />
-<meta name="twitter:description" content="How BioStat Quest handles your data — plain English, no legalese." />
+<meta name="twitter:title" content="Cookies &amp; Storage — BioStat Quest" />
+<meta name="twitter:description" content="What we store and why — plain English." />
 <meta name="twitter:image" content="https://www.biostatquest.com/og-image.png" />
 <meta name="twitter:image:alt" content="BioStat Quest — biostatistics prep that actually sticks." />
 
-<!-- Auth-aware nav: hides "Sign in" for signed-in visitors and shows the
-     account chip. Runs sync in <head> so there's no flash. Reads Supabase's
-     localStorage session directly (no network, no JS dependency). -->
 <style>
   html.bq-authed [data-authed-hide]{display:none!important}
   html:not(.bq-authed) [data-authed-show]{display:none!important}
@@ -38,7 +35,7 @@
 (function(){try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(!k||k.indexOf("sb-")!==0||k.indexOf("-auth-token")===-1)continue;var raw=localStorage.getItem(k);if(!raw)continue;var s=JSON.parse(raw);if(!s)continue;var exp=s.expires_at||(s.currentSession&&s.currentSession.expires_at);if(!exp||Date.now()/1000>=exp)continue;var u=(s.user&&s.user.email)||(s.currentSession&&s.currentSession.user&&s.currentSession.user.email)||"";var name=u?String(u).split("@")[0]:"";window.__bqUsername=name;document.documentElement.classList.add("bq-authed");document.addEventListener("DOMContentLoaded",function(){try{var initial=name?name.charAt(0).toUpperCase():"";var els=document.querySelectorAll("[data-username]");for(var j=0;j<els.length;j++)els[j].textContent=name;var iEls=document.querySelectorAll("[data-user-initial]");for(var k=0;k<iEls.length;k++)iEls[k].textContent=initial;}catch(e){}});return;}}catch(e){}})();
 </script>
 
-<link rel="canonical" href="https://www.biostatquest.com/privacy.html" />
+<link rel="canonical" href="https://www.biostatquest.com/cookies.html" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -127,9 +124,7 @@
   .gold-text { background: linear-gradient(135deg, #fbbf24, #f59e0b); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 
   .tag { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
-  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(148,163,184,0.06); border: 1px solid var(--line); font-size: 12px; font-weight: 500; color: var(--ink-2); }
 
-  /* Article content in section cards */
   .prose-on-dark p { color: var(--ink-2); line-height: 1.75; }
   .prose-on-dark p + p { margin-top: 1rem; }
   .prose-on-dark strong { color: var(--ink-1); font-weight: 600; }
@@ -139,7 +134,6 @@
   .prose-on-dark ul { margin-top: 0.75rem; padding-left: 1.25rem; list-style: disc; color: var(--ink-2); }
   .prose-on-dark li { line-height: 1.7; margin-top: 0.35rem; }
 
-  /* Pillar list — matches about.html */
   .pillar {
     display: grid; grid-template-columns: auto 1fr; gap: 1rem 1.25rem; align-items: start;
     padding: 1.25rem 0; border-bottom: 1px solid var(--line);
@@ -152,6 +146,34 @@
     color: var(--accent);
   }
   .pillar-icon svg { width: 22px; height: 22px; }
+
+  .storage-table {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    font-size: 0.8125rem;
+  }
+  .storage-table th {
+    text-align: left; padding: 0.75rem 0.85rem; color: var(--ink-3);
+    font-size: 0.6875rem; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700;
+    border-bottom: 1px solid var(--line);
+  }
+  .storage-table td {
+    padding: 0.8rem 0.85rem; color: var(--ink-2); line-height: 1.55;
+    border-bottom: 1px solid var(--line); vertical-align: top;
+  }
+  .storage-table tr:last-child td { border-bottom: 0; }
+  .storage-table code {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+    color: #67e8f9; background: rgba(34,211,238,0.06);
+    padding: 0.1rem 0.35rem; border-radius: 0.25rem;
+    white-space: nowrap;
+  }
+  .bucket-tag {
+    display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px;
+    border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+    text-transform: uppercase; white-space: nowrap;
+  }
+  .bucket-tag--essential { background: rgba(34,211,238,0.1); color: #67e8f9; border: 1px solid rgba(34,211,238,0.3); }
+  .bucket-tag--analytics { background: rgba(139,92,246,0.1); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.3); }
 
   @keyframes fadeInUp { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
   .fade-in { animation: fadeInUp 0.2s cubic-bezier(0.4,0,0.2,1) backwards; }
@@ -167,7 +189,7 @@
 </head>
 <body>
 
-<!-- Nav — identical to landing / about -->
+<!-- Nav -->
 <nav class="sticky top-0 z-50 backdrop-blur-xl" style="background: rgba(5,7,15,0.72); border-bottom: 1px solid var(--line);">
   <div class="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
     <a href="/" class="flex items-center gap-3">
@@ -231,121 +253,193 @@
 
 <!-- Hero -->
 <section class="max-w-3xl mx-auto px-6 pt-20 pb-12 md:pt-28 md:pb-16 text-center fade-in">
-  <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8" style="background: rgba(139,92,246,0.08); border: 1px solid var(--violet-ink);">
-    <span class="tag" style="color: var(--violet);">● Privacy</span>
-    <span class="text-xs text-slate-300">How your data is handled</span>
+  <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8" style="background: rgba(34,211,238,0.08); border: 1px solid var(--accent-ink);">
+    <span class="tag" style="color: var(--accent);">● Cookies &amp; storage</span>
+    <span class="text-xs text-slate-300">What we put in your browser</span>
   </div>
   <h1 class="t-display mb-6">
-    Plain-English <span class="stat-number">privacy</span>.
+    Just the <span class="stat-number">necessary</span> bits.
   </h1>
   <p class="t-lead max-w-2xl mx-auto">
-    No ads. No tracking cookies. No data sales. Here's what that actually means, section by section.
+    No advertising cookies. No third-party trackers. Just what's needed to keep you signed in, save your progress, and — if you say yes — help us understand how the site is used.
   </p>
   <p class="t-caption mt-6 mono">Last updated: April 2026</p>
+</section>
+
+<!-- Preferences CTA -->
+<section class="max-w-3xl mx-auto px-6 pb-12">
+  <div class="card rounded-2xl p-6 md:p-8 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+    <div>
+      <div class="t-eyebrow mb-1" style="color: var(--accent);">Change your mind?</div>
+      <p class="t-body" style="margin:0;">Open the consent banner to adjust analytics at any time.</p>
+    </div>
+    <button type="button" onclick="if(window.bqConsent)window.bqConsent.open();" class="btn btn-primary px-6 py-3 rounded-xl whitespace-nowrap self-start sm:self-auto">Open cookie settings</button>
+  </div>
 </section>
 
 <!-- Intro card -->
 <section class="max-w-3xl mx-auto px-6 pb-16">
   <div class="card rounded-2xl p-8 md:p-10 prose-on-dark">
     <div class="t-eyebrow mb-3" style="color: var(--accent);">The short version</div>
-    <h2 class="t-title mb-5">Your progress is yours</h2>
-    <p>Play as a guest and your data never leaves your browser. Sign in and the only things we keep are your email and your progress JSON — encrypted in transit, never shared, deletable on request. No behavioral profiling, no advertising, no dark patterns.</p>
-    <p>If you want the detail, every category below is written to be checkable rather than reassuring.</p>
+    <h2 class="t-title mb-5">Two buckets: essential vs. analytics</h2>
+    <p><strong>Essential</strong> storage is non-negotiable — without it the site can't sign you in or remember what questions you've answered. This is enabled by default.</p>
+    <p><strong>Analytics</strong> storage is optional. It helps us see which cases are working and which aren't. We can run the product without it — we just won't know as much. It's <strong>off by default</strong> and only turns on if you click "Accept all" in the banner.</p>
   </div>
+</section>
+
+<!-- What we actually store -->
+<section class="max-w-5xl mx-auto px-6 pb-20">
+  <div class="text-center mb-10 max-w-2xl mx-auto">
+    <div class="t-eyebrow mb-3" style="color: var(--accent);">Every item we store</div>
+    <h2 class="t-title mb-3">The full inventory</h2>
+  </div>
+  <div class="card rounded-2xl p-4 md:p-6 overflow-x-auto">
+    <table class="storage-table">
+      <thead>
+        <tr>
+          <th>Key / cookie</th>
+          <th>Where</th>
+          <th>Purpose</th>
+          <th>Category</th>
+          <th>Expires</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>sb-*-auth-token</code></td>
+          <td>localStorage</td>
+          <td>Supabase session for signed-in users. Without this, you'd be signed out on every tab.</td>
+          <td><span class="bucket-tag bucket-tag--essential">Essential</span></td>
+          <td>~7 days, rotating</td>
+        </tr>
+        <tr>
+          <td><code>bq_cookie_consent</code></td>
+          <td>localStorage</td>
+          <td>Remembers your choice on this banner so we don't ask again.</td>
+          <td><span class="bucket-tag bucket-tag--essential">Essential</span></td>
+          <td>12 months</td>
+        </tr>
+        <tr>
+          <td><code>bq_guest_state</code></td>
+          <td>localStorage</td>
+          <td>Your guest progress — XP, streaks, completed cases, SRS schedule. Stays local; never leaves your browser unless you sign in.</td>
+          <td><span class="bucket-tag bucket-tag--essential">Essential</span></td>
+          <td>Until you clear site data</td>
+        </tr>
+        <tr>
+          <td><code>bq_last_email</code></td>
+          <td>localStorage</td>
+          <td>Pre-fills the email field on the sign-in screen if you've logged in before.</td>
+          <td><span class="bucket-tag bucket-tag--essential">Essential</span></td>
+          <td>Until you clear site data</td>
+        </tr>
+        <tr>
+          <td><code>bq_visitor_id</code></td>
+          <td>localStorage</td>
+          <td>A per-browser UUID used to count unique visitors and attribute guest activity to an eventual account.</td>
+          <td><span class="bucket-tag bucket-tag--analytics">Analytics</span></td>
+          <td>Until you clear site data</td>
+        </tr>
+        <tr>
+          <td><code>bq_landing_variant</code></td>
+          <td>localStorage</td>
+          <td>Records which version of the landing hero you saw (e.g. Twitter, LinkedIn) so we can measure conversion per channel.</td>
+          <td><span class="bucket-tag bucket-tag--analytics">Analytics</span></td>
+          <td>Until you clear site data</td>
+        </tr>
+        <tr>
+          <td><code>bq_last_guest_visit</code></td>
+          <td>localStorage</td>
+          <td>Timestamp used to de-duplicate guest-visit event logging (one log per browser per day, max).</td>
+          <td><span class="bucket-tag bucket-tag--analytics">Analytics</span></td>
+          <td>Until you clear site data</td>
+        </tr>
+        <tr>
+          <td>Server-side <code>events</code> rows</td>
+          <td>Supabase (our database)</td>
+          <td>Aggregate event log: page loads, cases started, answers, reports filed. Joined by <code>visitor_id</code> or your user ID.</td>
+          <td><span class="bucket-tag bucket-tag--analytics">Analytics</span></td>
+          <td>Retained while account active</td>
+        </tr>
+        <tr>
+          <td>Vercel Web Analytics</td>
+          <td>Cookieless</td>
+          <td>Page-view counts + anonymized device type via <code>/_vercel/insights/script.js</code>. No personal identifiers, no cross-site tracking.</td>
+          <td><span class="bucket-tag bucket-tag--analytics">Analytics</span></td>
+          <td>90 days aggregated</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="t-caption mt-4 text-center">Items tagged <span class="bucket-tag bucket-tag--analytics" style="font-size:9px;">Analytics</span> are only written or sent if you click <strong style="color:var(--ink-1);">Accept all</strong>.</p>
 </section>
 
 <!-- Policy pillars -->
 <section class="max-w-4xl mx-auto px-6 pb-20">
   <div class="text-center mb-10 max-w-2xl mx-auto">
-    <div class="t-eyebrow mb-3" style="color: var(--accent);">What we collect, and don't</div>
-    <h2 class="t-title mb-3">Category by category</h2>
+    <div class="t-eyebrow mb-3" style="color: var(--accent);">Quick answers</div>
+    <h2 class="t-title mb-3">Common questions</h2>
   </div>
   <div class="card rounded-2xl p-6 md:p-8">
 
     <div class="pillar">
-      <!-- Guest mode — monitor with check (local-only) -->
       <div class="pillar-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="3" y="4" width="18" height="13" rx="2"/>
-          <path d="M8 21h8 M12 17v4"/>
-          <path d="M8.5 10.5l2.5 2.5 4.5-4.5"/>
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M9 12l2 2 4-4"/>
         </svg>
       </div>
       <div class="prose-on-dark">
-        <h3 class="t-subtitle mb-1 text-white">Guest mode</h3>
-        <p class="t-body">If you play without signing in, your progress — XP, streaks, answered questions, spaced-repetition schedule — is stored <strong>only in your browser</strong> via <span class="mono text-white">localStorage</span>. Nothing is sent to our servers. Clear your browser data and your progress is gone with it — sign in to preserve it across devices.</p>
+        <h3 class="t-subtitle mb-1 text-white">Do you use advertising cookies?</h3>
+        <p class="t-body">No. We don't run ads, we don't profile visitors for advertising, and we don't embed Facebook pixels, Google Ads tags, or TikTok trackers. We never have.</p>
       </div>
     </div>
 
     <div class="pillar">
-      <!-- Accounts — user profile card -->
       <div class="pillar-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="3" y="5" width="18" height="14" rx="2"/>
-          <circle cx="9" cy="11" r="2.2"/>
-          <path d="M5.5 17c.5-2 2-3 3.5-3s3 1 3.5 3"/>
-          <path d="M14.5 10h4.5 M14.5 13.5h4 M14.5 16.5h3"/>
+          <path d="M4 12h16 M4 6h16 M4 18h10"/>
         </svg>
       </div>
       <div class="prose-on-dark">
-        <h3 class="t-subtitle mb-1 text-white">Accounts (when you sign in)</h3>
-        <p class="t-body">Authentication runs on Supabase. If you sign in we keep exactly two things:</p>
+        <h3 class="t-subtitle mb-1 text-white">What happens if I choose "Essential only"?</h3>
+        <p class="t-body">The site works completely. You can play as a guest, sign in, complete cases, earn XP, and sync progress. We just don't create a <code class="mono text-cyan-200">bq_visitor_id</code>, don't tag the landing variant, and don't log activity events to our server. You won't appear on the analytics dashboard. Everything you care about as a user works identically.</p>
+      </div>
+    </div>
+
+    <div class="pillar">
+      <div class="pillar-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 6h18v12H3z"/>
+          <path d="M3 10h18"/>
+          <circle cx="7" cy="14" r="1" fill="currentColor"/>
+        </svg>
+      </div>
+      <div class="prose-on-dark">
+        <h3 class="t-subtitle mb-1 text-white">What about Stripe, for Pro subscriptions?</h3>
+        <p class="t-body">If you subscribe, Stripe sets its own cookies at <span class="mono text-white">stripe.com</span> — these are essential for fraud prevention and payment processing, and are set only on the checkout page. See <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe's privacy policy</a> for details. We don't receive or store your card number.</p>
+      </div>
+    </div>
+
+    <div class="pillar">
+      <div class="pillar-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M6 4h12l-1 8H7z"/>
+          <path d="M8 20l-2-8 M16 20l2-8"/>
+        </svg>
+      </div>
+      <div class="prose-on-dark">
+        <h3 class="t-subtitle mb-1 text-white">How do I clear everything?</h3>
+        <p class="t-body">Two paths:</p>
         <ul>
-          <li>Your <strong>email address</strong>, for login.</li>
-          <li>Your <strong>progress JSON</strong> — XP, streaks, SRS schedule, per-case scores.</li>
+          <li><strong>Revoke consent:</strong> click <em>Open cookie settings</em> above and choose <em>Essential only</em>. This immediately stops analytics writes. Existing <code class="mono text-cyan-200">bq_visitor_id</code> and <code class="mono text-cyan-200">bq_landing_variant</code> entries are removed from localStorage.</li>
+          <li><strong>Nuclear option:</strong> use your browser's site-data tools (Chrome: DevTools → Application → Storage → Clear site data; Safari: Privacy → Manage Website Data → Remove). This also signs you out.</li>
         </ul>
-        <p>We do <strong>not</strong> share or sell this data. Ever. Delete your account and everything attached to it any time by emailing <a href="mailto:info@biostatquest.com">info@biostatquest.com</a>.</p>
+        <p>To also delete server-side event history tied to your account, email <a href="mailto:info@biostatquest.com">info@biostatquest.com</a>.</p>
       </div>
     </div>
 
     <div class="pillar">
-      <!-- Analytics — anonymized bar chart -->
-      <div class="pillar-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M3 20h18"/>
-          <rect x="5"    y="14" width="3.2" height="6"  rx="0.5"/>
-          <rect x="10.4" y="9"  width="3.2" height="11" rx="0.5"/>
-          <rect x="15.8" y="5"  width="3.2" height="15" rx="0.5"/>
-          <path d="M3 4l18 0" stroke-dasharray="1.2 2" opacity="0.5"/>
-        </svg>
-      </div>
-      <div class="prose-on-dark">
-        <h3 class="t-subtitle mb-1 text-white">Analytics (opt-in only)</h3>
-        <p class="t-body">If you accept analytics on the cookie banner, we create a per-browser <span class="mono text-white">visitor_id</span> (UUID, no PII on its own) and log lightweight activity events — page loads, case starts, answer correct/wrong — to our Supabase database. Used only to understand which cases are working. <strong>No advertising, no third-party trackers, no cross-site profiling.</strong> We also use Vercel Web Analytics, which is cookieless. See the <a href="/cookies.html">Cookies page</a> for the full inventory.</p>
-      </div>
-    </div>
-
-    <div class="pillar">
-      <!-- Cookies — session key -->
-      <div class="pillar-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="8" cy="15" r="4.5"/>
-          <path d="M11 12 L 21 2"/>
-          <path d="M17 6l2 2 M19 4l2 2"/>
-        </svg>
-      </div>
-      <div class="prose-on-dark">
-        <h3 class="t-subtitle mb-1 text-white">Cookies &amp; local storage</h3>
-        <p class="t-body">Essential storage only by default: your Supabase session, your saved progress, and your consent choice itself. No advertising cookies, no third-party trackers. Opt-in analytics (the <span class="mono text-white">visitor_id</span> and landing-variant tag) are <strong>off until you accept them</strong> on the consent banner. Change your mind any time from the <button type="button" onclick="if(window.bqConsent)window.bqConsent.open();" style="color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(34,211,238,0.4);">cookie settings</button> or via the <a href="/cookies.html">Cookies page</a>.</p>
-      </div>
-    </div>
-
-    <div class="pillar">
-      <!-- Children — shield with check -->
-      <div class="pillar-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 3 4.5 5.5v6c0 4.3 3.2 8.3 7.5 10 4.3-1.7 7.5-5.7 7.5-10v-6z"/>
-          <path d="M8.5 12l2.5 2.5 4.5-5"/>
-        </svg>
-      </div>
-      <div class="prose-on-dark">
-        <h3 class="t-subtitle mb-1 text-white">Children</h3>
-        <p class="t-body">BioStat Quest is intended for adult learners (16+). We do not knowingly collect data from children under 13.</p>
-      </div>
-    </div>
-
-    <div class="pillar">
-      <!-- Changes — refresh arc -->
       <div class="pillar-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M20 12a8 8 0 1 1-2.34-5.66"/>
@@ -354,36 +448,35 @@
         </svg>
       </div>
       <div class="prose-on-dark">
-        <h3 class="t-subtitle mb-1 text-white">Changes</h3>
-        <p class="t-body">We'll update this page if anything material changes and note the date above. Substantive updates will also surface a one-time notice on next sign-in.</p>
+        <h3 class="t-subtitle mb-1 text-white">Will this list change?</h3>
+        <p class="t-body">If we add or remove anything material, we update the "Last updated" date at the top and re-prompt for consent (you'll see the banner again). Small behind-the-scenes tweaks are covered by the existing consent.</p>
       </div>
     </div>
 
   </div>
 </section>
 
-<!-- Contact CTA — mirrors about.html's CTA rhythm -->
+<!-- Contact CTA -->
 <section class="max-w-4xl mx-auto px-6 pb-28">
   <div class="premium-border rounded-3xl p-12 md:p-16 text-center" style="background: linear-gradient(145deg, rgba(22,28,54,0.55), rgba(12,16,36,0.65));">
-    <!-- Envelope icon -->
     <div class="mb-5 inline-flex justify-center" style="color: var(--accent);">
       <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <rect x="3" y="5" width="18" height="14" rx="2"/>
         <path d="M3.5 6.5l8.5 7 8.5-7"/>
       </svg>
     </div>
-    <h2 class="t-title mb-4">Questions, or want your data deleted?</h2>
-    <p class="t-body text-lg mb-8 max-w-xl mx-auto">Email <a href="mailto:info@biostatquest.com" style="color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(34,211,238,0.4);">info@biostatquest.com</a>. Real person, real reply, usually within a few days.</p>
+    <h2 class="t-title mb-4">A question about storage?</h2>
+    <p class="t-body text-lg mb-8 max-w-xl mx-auto">Email <a href="mailto:info@biostatquest.com" style="color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(34,211,238,0.4);">info@biostatquest.com</a>. We reply like humans, not a FAQ bot.</p>
     <div class="flex flex-col sm:flex-row gap-3 justify-center items-center">
-      <a href="mailto:info@biostatquest.com" class="btn btn-primary px-10 py-4 rounded-xl text-base">Contact us</a>
-      <a href="/" class="btn btn-ghost px-10 py-4 rounded-xl text-base">Back to home</a>
+      <a href="/privacy.html" class="btn btn-primary px-10 py-4 rounded-xl text-base">Read the Privacy Policy</a>
+      <a href="/terms.html" class="btn btn-ghost px-10 py-4 rounded-xl text-base">Read the Terms</a>
     </div>
   </div>
 </section>
 
 </main>
 
-<!-- Footer — identical to landing / about -->
+<!-- Footer -->
 <footer class="border-t" style="border-color: var(--line);">
   <div class="max-w-6xl mx-auto px-6 py-12 grid md:grid-cols-3 gap-8">
     <div>
