@@ -1234,6 +1234,19 @@ const CASES: Case[] = [
     { q: "At-risk table under a KM curve shows:", type:"mcq",
       options:["Only the number of events observed","Number still at risk at each time","Censoring rate across follow-up","The sample mean of survival"], answer:1,
       explain:"Always report at-risk numbers — drops dramatically affect curve reliability.", method:"km_logrank" },
+    // ---- Landmark analysis & time-origin pitfalls ----
+    { q: "A screening RCT reports 5-year survival of 85% in the screened arm vs 70% in controls. Why might this OVERSTATE the benefit?", type:"mcq",
+      options:["Lead-time bias — earlier detection inflates apparent survival without extending life","Selection bias at randomization","Loss to follow-up","Sample too small"], answer:0,
+      explain:"Lead-time bias: screening advances the diagnosis date, so 'survival from diagnosis' looks longer even if lifespan is unchanged. Proper screening RCTs use MORTALITY FROM RANDOMIZATION (not from diagnosis) as the endpoint, which sidesteps lead-time bias entirely. Always check: what's the time origin — diagnosis, randomization, or exposure start?", method:"km_logrank" },
+    { q: "Landmark analysis is designed to prevent:", type:"mcq",
+      options:["Informative censoring","Immortal time bias","Measurement error","Publication bias"], answer:1,
+      explain:"Landmark analysis addresses IMMORTAL TIME BIAS — the artifact that arises when a time-varying exposure (e.g., 'responded to induction chemo') is analyzed as a baseline trait. Patients can't be classified as 'responders' until they've survived long enough to respond, so the responder group gains artificial survival time. Landmark fix: pick a fixed time (e.g., 6 months), freeze exposure status at that landmark, and begin follow-up ONLY for patients still alive at the landmark.", method:"target_trial" },
+    { q: "A cancer trial compares 'responders' vs 'non-responders' to induction chemotherapy on 5-year survival. Without landmark analysis, responders appear to live longer mostly because:", type:"mcq",
+      options:["Responders are younger on average","Non-responders die before they can be classified as responders","Response is misclassified","Selection bias at enrollment"], answer:1,
+      explain:"Non-responders who die before the response assessment (often in the first 2–3 months) get classified as non-responders by default — they never had the chance to be anything else. Responders, by definition, survived long enough to respond. This systematically inflates 'responder' survival. Landmark analysis fixes it: restrict both groups to patients still alive at a pre-specified landmark (say, month 3 or 6) and start the survival clock from there.", method:"target_trial" },
+    { q: "A 6-month landmark is chosen for a chemotherapy response analysis. Which patients are EXCLUDED from the landmark analysis?", type:"mcq",
+      options:["All patients regardless of status","Patients who died before month 6, or whose response is still indeterminate at month 6","Only patients who were censored","Only non-responders"], answer:1,
+      explain:"Landmark analysis excludes anyone not yet classifiable at the landmark — deaths before month 6 and patients still being assessed. Follow-up then starts at month 6 for the remaining, classified patients. Trade-off: you lose power (smaller n), but the comparison is unbiased. Sensitivity analyses typically vary the landmark (3, 6, 12 months) to check whether the conclusion is robust to landmark choice.", method:"target_trial" },
   ])
 },
 
