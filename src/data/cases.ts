@@ -796,6 +796,13 @@ const CASES: Case[] = [
     { q: "Equipoise refers to:", type:"mcq",
       options:["An equal randomization allocation ratio","Genuine uncertainty about treatment","Equal observed outcome event rates","Equal statistical power across arms"], answer:1,
       explain:"Clinical equipoise is an ethical prerequisite for RCTs.", method:"study_design" },
+    // ---- Reporting guidelines (CONSORT) ----
+    { q: "CONSORT guidelines primarily standardize reporting of:", type:"mcq",
+      options:["Systematic reviews","Randomized controlled trials","Diagnostic-accuracy studies","Observational cohort studies"], answer:1,
+      explain:"CONSORT (Consolidated Standards Of Reporting Trials) is the standard reporting checklist for parallel-group RCTs, required by JAMA, Lancet, BMJ, NEJM, and >500 other journals. Covers the flow diagram (enrollment → allocation → follow-up → analysis), baseline comparability, outcome definitions, blinding, adverse events, and trial registration. Extensions: CONSORT-cluster, CONSORT-pragmatic, CONSORT-NI (non-inferiority), CONSORT-pilot.", method:"study_design" },
+    { q: "The CONSORT flow diagram tracks participants through four stages. Which is NOT one of them?", type:"mcq",
+      options:["Enrollment","Allocation","Follow-up","Peer-review decision"], answer:3,
+      explain:"CONSORT flow: Enrollment (assessed for eligibility) → Allocation (randomized to arms) → Follow-up (lost, discontinued) → Analysis (included in analysis). Peer review isn't participant flow — that's the editorial pathway. The diagram makes attrition transparent at each stage, which is exactly where selection bias enters a trial.", method:"study_design" },
   ])
 },
 
@@ -868,6 +875,13 @@ const CASES: Case[] = [
     { q: "G-methods (IPW, g-computation) address:", type:"mcq",
       options:["Measurement error","Time-varying confounding","Randomization","Publication bias"], answer:1,
       explain:"Standard regression fails here; g-methods handle feedback loops between exposure and confounders.", method:"causal_assumptions" },
+    // ---- Reporting guidelines (STROBE) ----
+    { q: "STROBE is the reporting guideline for:", type:"mcq",
+      options:["Randomized trials","Systematic reviews","Observational studies (cohort, case-control, cross-sectional)","Diagnostic-accuracy studies"], answer:2,
+      explain:"STROBE (STrengthening the Reporting of OBservational studies in Epidemiology) is the standard 22-item checklist for observational work — cohort, case-control, and cross-sectional. Covers study-design rationale, participant selection, variable definitions, statistical methods, and sources of bias. Extensions include STROBE-MR (Mendelian randomization) and RECORD (routinely-collected data).", method:"study_design" },
+    { q: "A STROBE-compliant observational study must transparently report:", type:"mcq",
+      options:["Randomization method","Eligibility criteria and sources of selection bias","Blinding procedures","Intention-to-treat analysis"], answer:1,
+      explain:"STROBE emphasizes what's unique to observational research: explicit eligibility criteria, sources of selection bias, handling of missing data, methods used to control confounding, and sensitivity analyses. Randomization and blinding are CONSORT territory — observational studies don't have them. ITT is an RCT-analysis concept.", method:"study_design" },
   ])
 },
 
@@ -1112,6 +1126,13 @@ const CASES: Case[] = [
     { q: "Optimal threshold depends on:", type:"mcq",
       options:["ROC curve only","Costs of false positives","Prevalence alone","Sample size alone"], answer:1,
       explain:"Clinical context (screening vs confirmatory) dictates where to operate on the ROC.", method:"roc_auc" },
+    // ---- Reporting guidelines (TRIPOD + STARD) ----
+    { q: "TRIPOD guidelines apply to:", type:"mcq",
+      options:["Reporting RCT results","Developing and validating multivariable prediction models","Reporting meta-analyses","Reporting diagnostic-accuracy studies"], answer:1,
+      explain:"TRIPOD (Transparent Reporting of a multivariable prediction model for Individual Prognosis Or Diagnosis) covers prediction-model studies — both DEVELOPMENT (how the model was derived) and VALIDATION (how it performed on new data). Essential for biomarker-based risk scores and clinical prediction rules. TRIPOD+AI (2024 update) extends the checklist to machine-learning and AI models.", method:"roc_auc" },
+    { q: "STARD (Standards for Reporting of Diagnostic Accuracy studies) requires reporting of:", type:"mcq",
+      options:["Sample-size justification for the primary endpoint only","Sensitivity, specificity, and their 95% CIs with the full 2×2 table","The placebo-adjusted effect size","Kaplan-Meier survival estimates"], answer:1,
+      explain:"STARD is the 30-item checklist for diagnostic-accuracy studies. It emphasizes transparency about the reference standard, participant flow, indeterminate results, and the FULL 2×2 cross-tabulation so readers can compute sensitivity, specificity, predictive values, and likelihood ratios — all with 95% CIs. Spectrum of disease and selection of participants must be clearly described.", method:"roc_auc" },
   ])
 },
 
@@ -1264,6 +1285,10 @@ const CASES: Case[] = [
     { q: "Pooling studies that are too heterogeneous is:", type:"mcq",
       options:["Always fine","Potentially misleading","Required","Better than no pooling"], answer:1,
       explain:"If studies differ in population, intervention, or outcome, pooling may not be meaningful.", method:"meta_analysis" },
+    // ---- Reporting guidelines (PRISMA) ----
+    { q: "PRISMA is the reporting standard for:", type:"mcq",
+      options:["Randomized trials","Observational studies","Systematic reviews and meta-analyses","Diagnostic-accuracy studies"], answer:2,
+      explain:"PRISMA (Preferred Reporting Items for Systematic reviews and Meta-Analyses) is the standard for systematic reviews. 27-item checklist plus a flow diagram tracking studies through Identification → Screening → Eligibility → Inclusion, with reasons for exclusion at each step. PRISMA 2020 is the current version; PRISMA-P covers protocols and PRISMA-NMA extends to network meta-analyses. Required by Cochrane and most high-impact journals.", method:"meta_analysis" },
   ])
 },
 
