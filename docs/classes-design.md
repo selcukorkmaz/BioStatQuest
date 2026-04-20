@@ -50,10 +50,12 @@ create table if not exists public.institutions (
   id            uuid primary key default gen_random_uuid(),
   name          text not null,
   billing_email text,
-  created_by    uuid not null references auth.users(id) on delete set null,
+  created_by    uuid references auth.users(id) on delete set null,   -- nullable: survive user deletion as orphan
   created_at    timestamptz not null default now()
 );
 ```
+
+> **FK design note:** every `created_by` column is `nullable + on delete set null`. If a user is deleted, the row survives with `created_by = NULL` rather than cascading or blocking. Previous doc draft had `not null + on delete set null`, which is internally inconsistent (the SET NULL action would fail the NOT NULL constraint). Same fix applied to `classes.created_by` and `class_invites.created_by` below.
 
 ### `public.classes`
 
@@ -65,7 +67,7 @@ create table if not exists public.classes (
   institution_name     text,                                           -- free-text attribution when no institutions row
   description          text,
   code                 text not null unique,                           -- 6-char uppercase, e.g., "BQ7K2F"
-  created_by           uuid not null references auth.users(id) on delete set null,
+  created_by           uuid references auth.users(id) on delete set null,   -- nullable: survive user deletion
   created_at           timestamptz not null default now(),
   archived_at          timestamptz,                                    -- soft-delete
   subscription_status  text not null default 'active'                  -- 'active' | 'lapsed' | 'trialing'
@@ -111,12 +113,20 @@ create table if not exists public.class_invites (
   expires_at     timestamptz not null default now() + interval '14 days',
   accepted_at    timestamptz,
   accepted_by    uuid references auth.users(id) on delete set null,
-  created_by     uuid not null references auth.users(id) on delete set null,
+  created_by     uuid references auth.users(id) on delete set null,   -- nullable: survive user deletion
   created_at     timestamptz not null default now()
 );
 
 create index if not exists class_invites_class_idx on public.class_invites(class_id);
 create index if not exists class_invites_email_idx on public.class_invites(invited_email);
+
+-- Dedup guard: at most one OPEN (unaccepted) invite per (class, email) pair.
+-- Prevents instructors from accidentally issuing multiple pending tokens for
+-- the same person. Expired-but-unaccepted rows still count; API handles
+-- "resend" by flipping expires_at forward rather than inserting a duplicate.
+create unique index if not exists class_invites_open_unique
+  on public.class_invites (class_id, invited_email)
+  where accepted_at is null;
 ```
 
 ## Row-Level Security policies
@@ -159,16 +169,23 @@ create policy "classes members read"
       and cm.left_at is null
   ));
 
--- Instructors and co-instructors update their classes.
+-- Instructors and co-instructors update their classes — but only when the
+-- class is active (not archived, not lapsed). Lapsed and archived classes
+-- are read-only; an instructor who wants to update them must first
+-- reactivate (re-subscribe in Phase C, or un-archive).
 create policy "classes instructors update"
   on public.classes for update to authenticated
-  using (exists (
-    select 1 from public.class_members cm
-    where cm.class_id = classes.id
-      and cm.user_id = auth.uid()
-      and cm.role in ('instructor', 'co-instructor')
-      and cm.left_at is null
-  ));
+  using (
+    classes.archived_at is null
+    and classes.subscription_status != 'lapsed'
+    and exists (
+      select 1 from public.class_members cm
+      where cm.class_id = classes.id
+        and cm.user_id = auth.uid()
+        and cm.role in ('instructor', 'co-instructor')
+        and cm.left_at is null
+    )
+  );
 
 -- No public INSERT policy: all class creation goes through the SECURITY DEFINER
 -- create_class RPC below, which atomically creates the class + instructor row.
@@ -205,15 +222,20 @@ create policy "class_members update own"
   on public.class_members for update to authenticated
   using (user_id = auth.uid());
 
--- Instructors update members in their classes (e.g., promote to co-instructor, soft-remove).
+-- Instructors update members in their classes (promote to co-instructor,
+-- soft-remove). Blocked when the class is archived or lapsed — read-only
+-- means the roster can't change either.
 create policy "class_members instructors update all in class"
   on public.class_members for update to authenticated
   using (exists (
     select 1 from public.class_members cm2
+    join public.classes c on c.id = cm2.class_id
     where cm2.class_id = class_members.class_id
       and cm2.user_id = auth.uid()
       and cm2.role in ('instructor', 'co-instructor')
       and cm2.left_at is null
+      and c.archived_at is null
+      and c.subscription_status != 'lapsed'
   ));
 
 -- No public INSERT policy: all memberships are created by RPC
@@ -238,16 +260,23 @@ create policy "class_invites instructors read"
       and cm.left_at is null
   ));
 
--- Instructors create invites for their classes.
+-- Instructors create invites for their classes. Blocked when the class
+-- is archived or lapsed — a lapsed class cannot add new members.
 create policy "class_invites instructors insert"
   on public.class_invites for insert to authenticated
-  with check (exists (
-    select 1 from public.class_members cm
-    where cm.class_id = class_invites.class_id
-      and cm.user_id = auth.uid()
-      and cm.role in ('instructor', 'co-instructor')
-      and cm.left_at is null
-  ) and created_by = auth.uid());
+  with check (
+    exists (
+      select 1 from public.class_members cm
+      join public.classes c on c.id = cm.class_id
+      where cm.class_id = class_invites.class_id
+        and cm.user_id = auth.uid()
+        and cm.role in ('instructor', 'co-instructor')
+        and cm.left_at is null
+        and c.archived_at is null
+        and c.subscription_status != 'lapsed'
+    )
+    and created_by = auth.uid()
+  );
 ```
 
 ### Critical new policy on `user_progress`
@@ -347,9 +376,13 @@ Request body: `{ class_id: string, email: string, role?: 'student' | 'co-instruc
 Auth: must be instructor of `class_id` (RLS enforces).
 Behavior:
 1. Generate 32-char URL-safe token.
-2. Insert `class_invites` row.
+2. Insert `class_invites` row. If a unique-index conflict fires (an open invite already exists for this `(class_id, email)` pair), UPDATE the existing row with a fresh token + new `expires_at` rather than returning an error — this is what instructors expect when they click "invite" on a name that's already pending.
 3. Send email via Resend with invite link: `https://biostatquest.com/join?token=XXX`.
-Response: `{ invite_id: string, expires_at: timestamptz }`.
+4. If email send fails, DO NOT roll back the invite row. Return the join URL in the response so the instructor has a copy-paste fallback (see below).
+
+Response: `{ invite_id: string, expires_at: timestamptz, join_url: string, email_sent: boolean }`.
+
+`join_url` is always returned so instructors can share it manually (Slack, LMS embed, verbal). `email_sent = false` signals the instructor that they need to use the copy-paste path because Resend failed silently.
 
 ### `POST /api/classes/accept-invite`
 
@@ -367,9 +400,18 @@ Response: `{ class_id: string, class_name: string, role: string }`.
 Request body: `{ code: string, consent: true }`
 Auth: signed-in user.
 Behavior (**uses service-role client** to bypass RLS for code lookup):
-1. Resolve code → classes row. If missing / archived / lapsed, error.
+1. Resolve code → classes row. If missing → `404 class not found`. If `archived_at is not null` OR `subscription_status = 'lapsed'` → `409 class unavailable`.
 2. Verify `consent === true`.
-3. Insert `class_members` row: `(class_id, user_id=auth.uid(), role='student', consented_to_instructor_visibility=true)`. Use `ON CONFLICT (class_id, user_id) DO NOTHING` so re-joining is idempotent.
+3. Upsert into `class_members`. A previously-left student rejoining should be reactivated cleanly, not silently no-op'd. Use:
+   ```sql
+   insert into class_members (class_id, user_id, role, consented_to_instructor_visibility)
+   values ($1, auth.uid(), 'student', true)
+   on conflict (class_id, user_id) do update
+     set left_at = null,
+         consented_to_instructor_visibility = true;
+   -- joined_at intentionally preserved from the original row so the
+   -- "when did they first enroll" timestamp survives a leave/rejoin.
+   ```
 Response: `{ class_id: string, class_name: string }`.
 
 ### `GET /api/classes/mine`
@@ -392,16 +434,20 @@ Complete SQL, idempotent via `IF NOT EXISTS` / `OR REPLACE`. Runs from the Supab
 
 ## Test plan (before Phase A.1 closes)
 
-Six tests, all run manually from the Supabase SQL editor as different auth identities.
+**Ten** tests, all run manually from the Supabase SQL editor as different auth identities. No policy goes unverified.
 
-1. **Create class as instructor.** `supabase.rpc('create_class', {class_name: 'Test'})` returns an ID; `classes` has the row; `class_members` has the instructor row with `consented=true`.
+1. **Create class as instructor.** `supabase.rpc('create_class', {class_name: 'Test'})` returns an ID; `classes` has the row; `class_members` has the instructor row with `consented_to_instructor_visibility = true`.
 2. **Non-member cannot read class.** A second user queries `classes` by ID → 0 rows (RLS correctly filters).
 3. **Student joins via code.** Second user calls `/api/classes/join-by-code` with the class's code + `consent:true`; `class_members` has their row; they can now see the class in `/api/classes/mine`.
 4. **Student joins without consent is rejected.** `consent:false` → API returns 400, no row inserted.
 5. **Instructor reads student progress.** Instructor queries `user_progress` for the student's `user_id` → row returned (new policy works).
 6. **Non-instructor cannot read student progress.** Another user (not in any shared class) queries the same `user_id` → 0 rows. Another student in the same class queries → 0 rows (not an instructor).
+7. **Instructor with `left_at` set loses access.** Set `class_members.left_at = now()` for the instructor row. Re-query `user_progress` for the student → 0 rows. Exercises the `cm_instr.left_at is null` conjunct on the user_progress policy.
+8. **Student flipping consent off cuts the instructor's read.** Set `class_members.consented_to_instructor_visibility = false` on the student row. Instructor re-queries `user_progress` → 0 rows. Exercises the `cm_student.consented_to_instructor_visibility = true` conjunct.
+9. **Accepted invite token reused → 404.** Call `/api/classes/accept-invite` twice with the same token. First call succeeds; second returns `404 invite not found or already accepted`. Exercises the dedup check in the accept-invite function (service-role client filters on `accepted_at is null` when looking up the token).
+10. **Archived or lapsed class rejects new joins.** Set `classes.archived_at = now()` (or `subscription_status = 'lapsed'`) on a class. Call `/api/classes/join-by-code` with its code → API returns `409 class unavailable`. Also confirms the `classes instructors update` policy now blocks instructor writes (test #10b: try to update the class's `name` field — should fail at RLS).
 
-Each test produces a clear pass/fail. If any fails, Phase A.1 does not ship.
+Each test produces a clear pass/fail. If any fails, Phase A.1 does not ship. Tests are also documented as SQL snippets in `docs/classes-migration.sql` (to be written during A.1) so they can be re-run after any schema change.
 
 ## Risks & open questions
 
@@ -418,6 +464,8 @@ Each test produces a clear pass/fail. If any fails, Phase A.1 does not ship.
 6. **Rate limiting.** A bad actor could call `create_class` in a loop to consume codes. For MVP, not a concern at our traffic; add a per-user-per-hour rate limit in Phase B or when traffic justifies it.
 
 7. **Instructor discovery.** How does a user find out they can teach a class? For MVP: they have to know about the Teach tab. We'll add it conditionally based on `class_members.role` — visible only to users who are already instructors. A user's first class is therefore created by Selçuk on their behalf, or via a future "Request instructor access" flow. For pilots this is fine; for scale it's not.
+
+8. **Hardcoded admin email is technical debt.** The `classes admin read` policy (and the identical pattern on five other tables in the existing schema) uses `auth.jwt() ->> 'email' = 'selcukorkmaz@gmail.com'`. This is acceptable at 33 users and 1 admin, but drifts dangerously once (a) the admin email changes, (b) a second admin is added, or (c) the email string is changed in one SQL policy and forgotten in another. A dedicated `public.admins` table with a single row — referenced by every admin policy via `exists (select 1 from admins where user_id = auth.uid())` — is one migration away and removes all future drift. Defer to Phase E or the day a second admin is needed, whichever is first.
 
 ## Sign-off checklist
 
