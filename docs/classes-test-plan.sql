@@ -1,0 +1,172 @@
+-- BioStat Quest — Classes Phase A.1 test plan
+-- Run each test in the Supabase SQL editor as the specified auth role.
+-- Expected result is stated after each block. Any deviation blocks ship.
+--
+-- Setup once:
+--   1. Apply supabase_schema_classes.sql to the project.
+--   2. Have three real auth.users rows available (created via the app
+--      or the Supabase auth dashboard):
+--        • instructor_a   → future instructor of class X
+--        • student_a      → future student in class X (consenting)
+--        • stranger_b     → not in any class, used for negative tests
+--      Record each user's UUID and note them below.
+--
+-- Tip: to switch the JWT you SELECT as in the SQL editor, use
+-- `set local role authenticated;` and
+-- `set local request.jwt.claims = '{"sub":"<uuid>","email":"<email>"}';`
+-- or log in with that user from a second browser profile and copy the
+-- access_token into a curl/REST client hitting /api/classes/*.
+
+-- Substitute these before running:
+-- \set instructor_a '00000000-0000-0000-0000-000000000001'
+-- \set student_a    '00000000-0000-0000-0000-000000000002'
+-- \set stranger_b   '00000000-0000-0000-0000-000000000003'
+
+-- ============================================================
+-- TEST 1 — Create class as instructor_a
+-- ============================================================
+-- Call as instructor_a (JWT):
+--   select public.create_class('Test Class A', 'Test University', 'A pilot');
+-- Expected:
+--   • Returns a uuid
+--   • SELECT * FROM classes WHERE code IS NOT NULL → 1 row with
+--     code of 6 uppercase alphanumeric chars, subscription_status='active'
+--   • SELECT * FROM class_members WHERE class_id = <new_id> returns
+--     one row: role='instructor', consented_to_instructor_visibility=true
+-- Record: class_id = ______________ ;  code = ________ ;
+
+-- ============================================================
+-- TEST 2 — Non-member cannot read class
+-- ============================================================
+-- Call as stranger_b:
+--   select id, name from public.classes where id = <class_id from test 1>;
+-- Expected: 0 rows (RLS filters it out).
+
+-- ============================================================
+-- TEST 3 — Student joins via code
+-- ============================================================
+-- Call as student_a against /api/classes/join-by-code with:
+--   { "code": "<code>", "consent": true }
+-- Expected: 200 { class_id, class_name }
+-- Follow-up:
+--   select * from class_members where user_id = <student_a>
+--     and class_id = <class_id>;
+-- Expected: 1 row, role='student', consented_to_instructor_visibility=true,
+-- left_at=null.
+
+-- ============================================================
+-- TEST 4 — Join-by-code without consent is rejected
+-- ============================================================
+-- Call as stranger_b against /api/classes/join-by-code with:
+--   { "code": "<code>", "consent": false }
+-- Expected: 400 { error: "consent required — ..." }
+-- Confirm:
+--   select count(*) from class_members where user_id = <stranger_b>
+--     and class_id = <class_id>;
+-- Expected: 0.
+
+-- ============================================================
+-- TEST 5 — Instructor reads student progress
+-- ============================================================
+-- Precondition: student_a has a row in user_progress (this is true
+-- automatically after they've logged in and done one case). If they
+-- don't, create it via the app or insert a stub.
+-- Call as instructor_a:
+--   select user_id, email, state from public.user_progress
+--    where user_id = <student_a>;
+-- Expected: 1 row. The new
+-- `user_progress instructor read students` policy grants the read
+-- because (a) student_a is in the class, (b) consented, (c) left_at null,
+-- (d) instructor_a is an active instructor in the same class.
+
+-- ============================================================
+-- TEST 6 — Non-instructor cannot read student progress
+-- ============================================================
+-- Call as stranger_b (not in any shared class):
+--   select * from public.user_progress where user_id = <student_a>;
+-- Expected: 0 rows.
+--
+-- Also call as a second student in the same class (create via test 3
+-- pattern with a fourth user "student_c"), then:
+--   select * from public.user_progress where user_id = <student_a>;
+-- Expected: 0 rows (students can't see each other's progress).
+
+-- ============================================================
+-- TEST 7 — Instructor with left_at set loses access to student progress
+-- ============================================================
+-- As service-role (or a direct SQL UPDATE in the SQL editor):
+--   update public.class_members
+--      set left_at = now()
+--    where class_id = <class_id> and user_id = <instructor_a>;
+-- Then as instructor_a:
+--   select * from public.user_progress where user_id = <student_a>;
+-- Expected: 0 rows. Exercises the `cm_instr.left_at is null` conjunct.
+-- Clean-up: revert
+--   update public.class_members set left_at = null
+--    where class_id = <class_id> and user_id = <instructor_a>;
+
+-- ============================================================
+-- TEST 8 — Student flipping consent off cuts access
+-- ============================================================
+-- As student_a (their own row via RLS):
+--   update public.class_members
+--      set consented_to_instructor_visibility = false
+--    where class_id = <class_id> and user_id = <student_a>;
+-- Then as instructor_a:
+--   select * from public.user_progress where user_id = <student_a>;
+-- Expected: 0 rows. Exercises the
+-- `cm_student.consented_to_instructor_visibility = true` conjunct.
+-- Clean-up: as student_a, set it back to true.
+
+-- ============================================================
+-- TEST 9 — Accepted invite token cannot be reused
+-- ============================================================
+-- 1. As instructor_a, POST /api/classes/invite with
+--    { class_id, email: "test@example.com", role: "student" }
+--    → 200 { invite_id, expires_at, join_url, email_sent }.
+-- 2. Grab the token from join_url (?token=XXX).
+-- 3. As a user who happens to know the token (simulate):
+--    POST /api/classes/accept-invite { token, consent: true }
+--    Expected: 200 { class_id, class_name, role }.
+-- 4. Call #3 again with the same token.
+--    Expected: 404 { error: "invite not found or already accepted" }.
+
+-- ============================================================
+-- TEST 10a — Archived / lapsed class rejects new joins
+-- ============================================================
+-- As service-role (SQL editor):
+--   update public.classes set archived_at = now() where id = <class_id>;
+-- Call /api/classes/join-by-code with the class code.
+-- Expected: 409 { error: "class unavailable (archived or lapsed)" }.
+-- Clean-up:
+--   update public.classes set archived_at = null where id = <class_id>;
+
+-- ============================================================
+-- TEST 10b — Instructor writes blocked on archived / lapsed class
+-- ============================================================
+-- As service-role:
+--   update public.classes set subscription_status = 'lapsed' where id = <class_id>;
+-- As instructor_a, try:
+--   update public.classes set name = 'Renamed' where id = <class_id>;
+-- Expected: update affects 0 rows (RLS blocks). PostgREST / the client
+-- might report an empty result rather than an error — check that the
+-- row was NOT actually renamed.
+-- Clean-up:
+--   update public.classes set subscription_status = 'active' where id = <class_id>;
+
+-- ============================================================
+-- PASS / FAIL checklist (fill in before Phase A.2 starts)
+-- ============================================================
+-- Test  1: ___ PASS / ___ FAIL   Notes: _________________________
+-- Test  2: ___ PASS / ___ FAIL   Notes: _________________________
+-- Test  3: ___ PASS / ___ FAIL   Notes: _________________________
+-- Test  4: ___ PASS / ___ FAIL   Notes: _________________________
+-- Test  5: ___ PASS / ___ FAIL   Notes: _________________________
+-- Test  6: ___ PASS / ___ FAIL   Notes: _________________________
+-- Test  7: ___ PASS / ___ FAIL   Notes: _________________________
+-- Test  8: ___ PASS / ___ FAIL   Notes: _________________________
+-- Test  9: ___ PASS / ___ FAIL   Notes: _________________________
+-- Test 10a: ___ PASS / ___ FAIL  Notes: _________________________
+-- Test 10b: ___ PASS / ___ FAIL  Notes: _________________________
+--
+-- Any FAIL blocks Phase A.2. Debug, patch, re-run failing test.
