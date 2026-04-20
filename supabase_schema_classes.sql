@@ -2,12 +2,26 @@
 -- Append to supabase_schema.sql, or run standalone in the Supabase SQL editor.
 -- Idempotent via IF NOT EXISTS / DROP POLICY IF EXISTS / OR REPLACE so re-runs
 -- are safe. Run AFTER reviewing docs/classes-design.md.
+--
+-- ORDER OF OPERATIONS (matters because some policies reference other tables):
+--   1. All CREATE TABLE statements    (so policies' referenced tables exist)
+--   2. All CREATE INDEX statements
+--   3. All ALTER TABLE ... ENABLE RLS
+--   4. All DROP / CREATE POLICY
+--   5. RPC definitions
+--
+-- Supabase's SQL editor validates policy table references at CREATE POLICY
+-- time, so "classes" policies that reference "class_members" must wait until
+-- class_members exists. That's why every CREATE TABLE comes before any
+-- CREATE POLICY.
 
 -- ============================================================
--- INSTITUTIONS — nullable parent for multi-class programs.
+-- SECTION 1 — TABLES
+-- ============================================================
+
+-- 1a. INSTITUTIONS — nullable parent for multi-class programs.
 -- Empty in Phase A.1; schema exists so classes.institution_id is
 -- usable without migration when Phase C / D introduce the UI.
--- ============================================================
 create table if not exists public.institutions (
   id            uuid primary key default gen_random_uuid(),
   name          text not null,
@@ -16,8 +30,92 @@ create table if not exists public.institutions (
   created_at    timestamptz not null default now()
 );
 
-alter table public.institutions enable row level security;
+-- 1b. CLASSES
+-- created_by is nullable: orphan survives user deletion rather than
+-- blocking the delete or cascading the whole class.
+create table if not exists public.classes (
+  id                   uuid primary key default gen_random_uuid(),
+  institution_id       uuid references public.institutions(id) on delete set null,
+  name                 text not null,
+  institution_name     text,                                -- free-text attribution when no institutions row
+  description          text,
+  code                 text not null unique,                -- 6-char uppercase alphanumeric, e.g. "BQ7K2F"
+  created_by           uuid references auth.users(id) on delete set null,
+  created_at           timestamptz not null default now(),
+  archived_at          timestamptz,                         -- soft-delete
+  subscription_status  text not null default 'active'
+    check (subscription_status in ('active', 'lapsed', 'trialing'))
+);
 
+-- 1c. CLASS MEMBERS
+-- Soft-leave via left_at preserves history for cohort aggregates
+-- while filtering out of active-member queries (WHERE left_at IS NULL).
+-- Consent flag is explicit — defaults to false, flipped to true only
+-- at invite acceptance / code join.
+create table if not exists public.class_members (
+  class_id                              uuid not null references public.classes(id) on delete cascade,
+  user_id                               uuid not null references auth.users(id) on delete cascade,
+  role                                  text not null default 'student'
+    check (role in ('instructor', 'co-instructor', 'student')),
+  joined_at                             timestamptz not null default now(),
+  left_at                               timestamptz,
+  consented_to_instructor_visibility    boolean not null default false,
+  primary key (class_id, user_id)
+);
+
+-- 1d. CLASS INVITES — magic-link tokens for email-based join.
+create table if not exists public.class_invites (
+  id             uuid primary key default gen_random_uuid(),
+  class_id       uuid not null references public.classes(id) on delete cascade,
+  invited_email  text not null,
+  role           text not null default 'student'
+    check (role in ('instructor', 'co-instructor', 'student')),
+  token          text not null unique,                            -- 32-char URL-safe random
+  expires_at     timestamptz not null default now() + interval '14 days',
+  accepted_at    timestamptz,
+  accepted_by    uuid references auth.users(id) on delete set null,
+  created_by     uuid references auth.users(id) on delete set null,
+  created_at     timestamptz not null default now()
+);
+
+-- ============================================================
+-- SECTION 2 — INDEXES
+-- ============================================================
+
+create index if not exists classes_code_idx on public.classes(code);
+create index if not exists classes_created_by_idx on public.classes(created_by);
+
+create index if not exists class_members_user_idx on public.class_members(user_id)
+  where left_at is null;
+create index if not exists class_members_class_role_idx on public.class_members(class_id, role)
+  where left_at is null;
+
+create index if not exists class_invites_class_idx on public.class_invites(class_id);
+create index if not exists class_invites_email_idx on public.class_invites(invited_email);
+
+-- Dedup guard: at most one OPEN (unaccepted) invite per (class, email).
+-- Instructors clicking "invite" on an already-pending address get the
+-- existing token refreshed, not a duplicate row — handled by the API.
+create unique index if not exists class_invites_open_unique
+  on public.class_invites (class_id, invited_email)
+  where accepted_at is null;
+
+-- ============================================================
+-- SECTION 3 — ENABLE ROW LEVEL SECURITY
+-- ============================================================
+
+alter table public.institutions   enable row level security;
+alter table public.classes        enable row level security;
+alter table public.class_members  enable row level security;
+alter table public.class_invites  enable row level security;
+
+-- ============================================================
+-- SECTION 4 — POLICIES
+-- (All referenced tables exist from Section 1. Policies can now
+-- cross-reference each other without hitting forward-ref errors.)
+-- ============================================================
+
+-- 4a. institutions policies
 drop policy if exists "institutions creator read" on public.institutions;
 create policy "institutions creator read" on public.institutions
   for select to authenticated
@@ -33,30 +131,7 @@ create policy "institutions insert self" on public.institutions
   for insert to authenticated
   with check (created_by = auth.uid());
 
--- ============================================================
--- CLASSES
--- created_by is nullable: orphan survives user deletion rather
--- than blocking the delete or cascading the whole class.
--- ============================================================
-create table if not exists public.classes (
-  id                   uuid primary key default gen_random_uuid(),
-  institution_id       uuid references public.institutions(id) on delete set null,
-  name                 text not null,
-  institution_name     text,                                -- free-text attribution when no institutions row
-  description          text,
-  code                 text not null unique,                -- 6-char uppercase alphanumeric, e.g. "BQ7K2F"
-  created_by           uuid references auth.users(id) on delete set null,
-  created_at           timestamptz not null default now(),
-  archived_at          timestamptz,                         -- soft-delete
-  subscription_status  text not null default 'active'
-    check (subscription_status in ('active', 'lapsed', 'trialing'))
-);
-
-create index if not exists classes_code_idx on public.classes(code);
-create index if not exists classes_created_by_idx on public.classes(created_by);
-
-alter table public.classes enable row level security;
-
+-- 4b. classes policies
 -- Members read classes they're in (any role).
 drop policy if exists "classes members read" on public.classes;
 create policy "classes members read" on public.classes
@@ -87,10 +162,6 @@ create policy "classes instructors update" on public.classes
 
 -- No public INSERT policy — all class creation goes through the
 -- SECURITY DEFINER create_class RPC defined at the bottom of this file.
--- Putting an INSERT policy here would require solving the chicken-
--- and-egg problem of "instructor row must exist to create a class"
--- and would open paths to bypass the atomic (class + membership)
--- creation.
 
 -- Admin (email-gated) full read — mirrors the pattern used on
 -- user_progress, events, etc. See "Risks #8" in docs/classes-design.md
@@ -101,31 +172,7 @@ create policy "classes admin read" on public.classes
   for select to authenticated
   using (auth.jwt() ->> 'email' = 'selcukorkmaz@gmail.com');
 
--- ============================================================
--- CLASS MEMBERS
--- Soft-leave via left_at preserves history for cohort aggregates
--- while filtering out of active-member queries (WHERE left_at IS NULL).
--- Consent flag is explicit — defaults to false, flipped to true
--- only at invite acceptance / code join.
--- ============================================================
-create table if not exists public.class_members (
-  class_id                              uuid not null references public.classes(id) on delete cascade,
-  user_id                               uuid not null references auth.users(id) on delete cascade,
-  role                                  text not null default 'student'
-    check (role in ('instructor', 'co-instructor', 'student')),
-  joined_at                             timestamptz not null default now(),
-  left_at                               timestamptz,
-  consented_to_instructor_visibility    boolean not null default false,
-  primary key (class_id, user_id)
-);
-
-create index if not exists class_members_user_idx on public.class_members(user_id)
-  where left_at is null;
-create index if not exists class_members_class_role_idx on public.class_members(class_id, role)
-  where left_at is null;
-
-alter table public.class_members enable row level security;
-
+-- 4c. class_members policies
 -- Users read their own membership row.
 drop policy if exists "class_members read own" on public.class_members;
 create policy "class_members read own" on public.class_members
@@ -173,35 +220,7 @@ create policy "class_members instructors update all in class" on public.class_me
 -- (create_class) or via service-role handlers (accept-invite, join-by-code)
 -- that do their own consent + class-state validation.
 
--- ============================================================
--- CLASS INVITES — magic-link tokens for email-based join
--- ============================================================
-create table if not exists public.class_invites (
-  id             uuid primary key default gen_random_uuid(),
-  class_id       uuid not null references public.classes(id) on delete cascade,
-  invited_email  text not null,
-  role           text not null default 'student'
-    check (role in ('instructor', 'co-instructor', 'student')),
-  token          text not null unique,                            -- 32-char URL-safe random
-  expires_at     timestamptz not null default now() + interval '14 days',
-  accepted_at    timestamptz,
-  accepted_by    uuid references auth.users(id) on delete set null,
-  created_by     uuid references auth.users(id) on delete set null,
-  created_at     timestamptz not null default now()
-);
-
-create index if not exists class_invites_class_idx on public.class_invites(class_id);
-create index if not exists class_invites_email_idx on public.class_invites(invited_email);
-
--- Dedup guard: at most one OPEN (unaccepted) invite per (class, email).
--- Instructors clicking "invite" on an already-pending address get the
--- existing token refreshed, not a duplicate row — handled by the API.
-create unique index if not exists class_invites_open_unique
-  on public.class_invites (class_id, invited_email)
-  where accepted_at is null;
-
-alter table public.class_invites enable row level security;
-
+-- 4d. class_invites policies
 -- Instructors read invites for their classes.
 drop policy if exists "class_invites instructors read" on public.class_invites;
 create policy "class_invites instructors read" on public.class_invites
@@ -251,13 +270,11 @@ create policy "class_invites instructors update" on public.class_invites
 -- The handler re-validates the token, expiry, consent, and class state
 -- (archived_at / subscription_status) BEFORE upserting the membership.
 
--- ============================================================
--- USER_PROGRESS — instructor read-with-consent policy
+-- 4e. user_progress — NEW policy for instructor-with-consent read.
 -- AUGMENTS existing user_progress RLS. A student's own access is
 -- unchanged. This is the most sensitive policy in Phase A.1 — tests
 -- #5, #6, #7, #8 in classes-test-plan.sql each exercise a different
 -- conjunct.
--- ============================================================
 drop policy if exists "user_progress instructor read students" on public.user_progress;
 create policy "user_progress instructor read students"
   on public.user_progress for select to authenticated
@@ -275,7 +292,7 @@ create policy "user_progress instructor read students"
   ));
 
 -- ============================================================
--- RPC: create_class (SECURITY DEFINER)
+-- SECTION 5 — RPC: create_class (SECURITY DEFINER)
 -- Atomic class + instructor-membership creation. The SECURITY DEFINER
 -- pattern is required because of the RLS chicken-and-egg: a public
 -- INSERT policy on classes would need to check class_members (which
@@ -283,6 +300,7 @@ create policy "user_progress instructor read students"
 -- class_members either. Uses auth.uid() directly — NEVER accepts a
 -- user_id parameter from the caller.
 -- ============================================================
+
 create or replace function public.create_class(
   class_name text,
   institution_name_in text default null,
