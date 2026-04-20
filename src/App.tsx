@@ -1274,7 +1274,7 @@ function SkillTree({ state, onStartCase, initialBranch }) {
                 <div className="bar mt-3"><div style={{width: cases.length?(done/cases.length*100)+"%":"0%"}}></div></div>
               </button>
               {open && (
-                <div className="p-4 border-t border-purple-900/20 grid sm:grid-cols-2 gap-2">
+                <div className="p-4 border-t border-purple-900/20 grid md:grid-cols-2 gap-2">
                   {cases.map(c => {
                     const isDone = state.completed.includes(c.id);
                     const best = state.caseScores[c.id];
