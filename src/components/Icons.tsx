@@ -603,7 +603,7 @@ const ICON_MARKUP: Record<string, string> = {
   medal:           `<path d="M8 3 L 11 11 M 16 3 L 13 11 M 7 3 h 10"/><circle cx="12" cy="16" r="5"/><path d="M10 16 L 11.3 17.3 L 14 14.5"/>`,
   "medal-1":       `<circle cx="12" cy="12" r="9"/><path d="M10.5 9 L 12.5 8 V 16" stroke-linecap="round"/>`,
   "medal-2":       `<circle cx="12" cy="12" r="9"/><path d="M9.5 10 a 2.5 2.5 0 0 1 5 0 C 14.5 13 9.5 14 9.5 16 h 5"/>`,
-  "medal-3":       `<circle cx="12" cy="12" r="9"/><path d="M9.5 9 h 5 L 11 12.5 a 2 2 0 1 1 -1.5 3.5"/>`,
+  "medal-3":       `<circle cx="12" cy="12" r="9"/><path d="M10 10 a 2.5 1.5 0 0 1 0 3 a 2.5 1.5 0 0 1 0 3" stroke-linecap="round"/>`,
   camera:          `<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7 L 9 4 h 6 l 1 3"/><circle cx="12" cy="13.5" r="3.5"/>`,
   "alarm-clock":   `<circle cx="12" cy="13" r="7"/><path d="M12 9 V 13 L 15 15"/><path d="M5 5 L 3 7 M 19 5 l 2 2"/>`,
   refresh:         `<path d="M4 12 a 8 8 0 0 1 14 -5"/><path d="M18 3 v 5 h -5"/><path d="M20 12 a 8 8 0 0 1 -14 5"/><path d="M6 21 v -5 h 5"/>`,
