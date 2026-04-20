@@ -4,15 +4,15 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-<title>Privacy — BioStat Quest</title>
-<meta name="description" content="How BioStat Quest handles your data. No ads, no tracking cookies, no data sales — a plain-English policy for guest and signed-in use." />
+<title>For Educators &amp; Institutions — BioStat Quest</title>
+<meta name="description" content="Use BioStat Quest in your course. Assign cases as structured homework, route students to method deep-dives when they stumble, and get a class-level view of where the cohort is strong and where it's not." />
 
 <!-- Open Graph -->
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="BioStat Quest" />
-<meta property="og:url" content="https://www.biostatquest.com/privacy.html" />
-<meta property="og:title" content="Privacy — BioStat Quest" />
-<meta property="og:description" content="How BioStat Quest handles your data. No ads, no tracking cookies, no data sales — a plain-English policy." />
+<meta property="og:url" content="https://www.biostatquest.com/for-educators.html" />
+<meta property="og:title" content="For Educators &amp; Institutions — BioStat Quest" />
+<meta property="og:description" content="Teach biostatistics with cases, not slides. Structured homework, method deep-dives, and a cohort dashboard for your class." />
 <meta property="og:image" content="https://www.biostatquest.com/og-image.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
@@ -22,14 +22,11 @@
 
 <!-- Twitter / X -->
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="Privacy — BioStat Quest" />
-<meta name="twitter:description" content="How BioStat Quest handles your data — plain English, no legalese." />
+<meta name="twitter:title" content="For Educators &amp; Institutions — BioStat Quest" />
+<meta name="twitter:description" content="Case-based biostatistics for MPH, residency, and board-prep programs." />
 <meta name="twitter:image" content="https://www.biostatquest.com/og-image.png" />
 <meta name="twitter:image:alt" content="BioStat Quest — biostatistics prep that actually sticks." />
 
-<!-- Auth-aware nav: hides "Sign in" for signed-in visitors and shows the
-     account chip. Runs sync in <head> so there's no flash. Reads Supabase's
-     localStorage session directly (no network, no JS dependency). -->
 <style>
   html.bq-authed [data-authed-hide]{display:none!important}
   html:not(.bq-authed) [data-authed-show]{display:none!important}
@@ -38,7 +35,7 @@
 (function(){try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(!k||k.indexOf("sb-")!==0||k.indexOf("-auth-token")===-1)continue;var raw=localStorage.getItem(k);if(!raw)continue;var s=JSON.parse(raw);if(!s)continue;var exp=s.expires_at||(s.currentSession&&s.currentSession.expires_at);if(!exp||Date.now()/1000>=exp)continue;var u=(s.user&&s.user.email)||(s.currentSession&&s.currentSession.user&&s.currentSession.user.email)||"";var name=u?String(u).split("@")[0]:"";window.__bqUsername=name;document.documentElement.classList.add("bq-authed");document.addEventListener("DOMContentLoaded",function(){try{var initial=name?name.charAt(0).toUpperCase():"";var els=document.querySelectorAll("[data-username]");for(var j=0;j<els.length;j++)els[j].textContent=name;var iEls=document.querySelectorAll("[data-user-initial]");for(var k=0;k<iEls.length;k++)iEls[k].textContent=initial;}catch(e){}});return;}}catch(e){}})();
 </script>
 
-<link rel="canonical" href="https://www.biostatquest.com/privacy.html" />
+<link rel="canonical" href="https://www.biostatquest.com/for-educators.html" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -51,7 +48,7 @@
     --accent-2:#0891b2;
     --accent-ink: rgba(34,211,238,0.35);
     --violet:  #8b5cf6;
-    --violet-ink: rgba(139,92,246,0.22);
+    --violet-ink: rgba(139,92,246,0.3);
     --gold:    #fbbf24;
     --ink-1:   #f1f5f9;
     --ink-2:   #cbd5e1;
@@ -72,9 +69,9 @@
   body::before {
     content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
     background:
-      radial-gradient(55rem 40rem at 8% -10%,  rgba(34,211,238,0.10), transparent 60%),
-      radial-gradient(45rem 35rem at 105% 10%, rgba(139,92,246,0.08), transparent 60%),
-      radial-gradient(60rem 45rem at 50% 120%, rgba(8,145,178,0.09),  transparent 60%);
+      radial-gradient(55rem 40rem at 8% -10%,  rgba(139,92,246,0.12), transparent 60%),
+      radial-gradient(45rem 35rem at 105% 10%, rgba(34,211,238,0.08),  transparent 60%),
+      radial-gradient(60rem 45rem at 50% 120%, rgba(8,145,178,0.09),   transparent 60%);
   }
   body::after {
     content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
@@ -103,7 +100,7 @@
   .premium-border { position: relative; border-radius: 1.25rem; }
   .premium-border::before {
     content: ''; position: absolute; inset: 0; padding: 1px;
-    background: linear-gradient(135deg, rgba(34,211,238,0.55), rgba(139,92,246,0.35) 55%, rgba(251,191,36,0.3));
+    background: linear-gradient(135deg, rgba(139,92,246,0.55), rgba(34,211,238,0.35) 55%, rgba(251,191,36,0.3));
     border-radius: inherit;
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor; mask-composite: exclude;
@@ -116,42 +113,66 @@
   }
   .btn:hover:not(:disabled) { transform: translateY(-2px); }
   .btn-primary {
+    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    color: #f5f3ff; box-shadow: 0 8px 20px -6px rgba(139,92,246,0.5);
+  }
+  .btn-primary:hover { box-shadow: 0 12px 28px -6px rgba(139,92,246,0.7); }
+  .btn-ghost { background: rgba(148,163,184,0.06); color: var(--ink-2); border: 1px solid rgba(148,163,184,0.14); }
+  .btn-ghost:hover { background: rgba(148,163,184,0.12); }
+  /* Nav "Launch Quest" uses cyan, same as other pages — override inside nav only */
+  nav .btn-primary {
     background: linear-gradient(135deg, #22d3ee, #0891b2);
     color: #042f3a; box-shadow: 0 8px 20px -6px rgba(34,211,238,0.45);
   }
-  .btn-primary:hover { box-shadow: 0 12px 28px -6px rgba(34,211,238,0.65); }
-  .btn-ghost { background: rgba(148,163,184,0.06); color: var(--ink-2); border: 1px solid rgba(148,163,184,0.14); }
-  .btn-ghost:hover { background: rgba(148,163,184,0.12); }
+  nav .btn-primary:hover { box-shadow: 0 12px 28px -6px rgba(34,211,238,0.65); }
 
+  .violet-text { background: linear-gradient(135deg, #a78bfa, #8b5cf6); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
   .stat-number { background: linear-gradient(135deg, #22d3ee, #67e8f9); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
   .gold-text { background: linear-gradient(135deg, #fbbf24, #f59e0b); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 
   .tag { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
   .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(148,163,184,0.06); border: 1px solid var(--line); font-size: 12px; font-weight: 500; color: var(--ink-2); }
+  .chip-violet { background: rgba(139,92,246,0.08); border-color: var(--violet-ink); color: #c4b5fd; }
 
-  /* Article content in section cards */
   .prose-on-dark p { color: var(--ink-2); line-height: 1.75; }
   .prose-on-dark p + p { margin-top: 1rem; }
   .prose-on-dark strong { color: var(--ink-1); font-weight: 600; }
   .prose-on-dark em { color: var(--ink-1); font-style: italic; }
-  .prose-on-dark a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(34,211,238,0.4); }
-  .prose-on-dark a:hover { text-decoration-color: var(--accent); }
+  .prose-on-dark a { color: var(--violet); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(139,92,246,0.4); }
+  .prose-on-dark a:hover { text-decoration-color: var(--violet); }
   .prose-on-dark ul { margin-top: 0.75rem; padding-left: 1.25rem; list-style: disc; color: var(--ink-2); }
   .prose-on-dark li { line-height: 1.7; margin-top: 0.35rem; }
 
-  /* Pillar list — matches about.html */
   .pillar {
     display: grid; grid-template-columns: auto 1fr; gap: 1rem 1.25rem; align-items: start;
     padding: 1.25rem 0; border-bottom: 1px solid var(--line);
   }
   .pillar:last-child { border-bottom: 0; }
   .pillar-icon {
-    width: 42px; height: 42px; border-radius: 12px;
+    width: 46px; height: 46px; border-radius: 12px;
     display: inline-flex; align-items: center; justify-content: center;
-    background: rgba(34,211,238,0.08); border: 1px solid var(--accent-ink);
-    color: var(--accent);
+    background: rgba(139,92,246,0.10); border: 1px solid var(--violet-ink);
+    color: #c4b5fd;
   }
-  .pillar-icon svg { width: 22px; height: 22px; }
+  .pillar-icon svg { width: 24px; height: 24px; }
+
+  /* Step cards — numbered circle + blurb */
+  .step-card {
+    position: relative;
+    background: linear-gradient(145deg, rgba(22,28,54,0.55), rgba(12,16,36,0.65));
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    padding: 1.5rem 1.5rem 1.5rem 4.25rem;
+  }
+  .step-card::before {
+    content: attr(data-step);
+    position: absolute; left: 1.25rem; top: 1.25rem;
+    width: 2.25rem; height: 2.25rem; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #a78bfa, #7c3aed);
+    color: #f5f3ff; font-weight: 800; font-size: 1rem;
+    box-shadow: 0 6px 16px -4px rgba(139,92,246,0.55);
+  }
 
   @keyframes fadeInUp { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
   .fade-in { animation: fadeInUp 0.2s cubic-bezier(0.4,0,0.2,1) backwards; }
@@ -167,7 +188,7 @@
 </head>
 <body>
 
-<!-- Nav — identical to landing / about -->
+<!-- Nav — identical to landing / privacy / terms / cookies -->
 <nav class="sticky top-0 z-50 backdrop-blur-xl" style="background: rgba(5,7,15,0.72); border-bottom: 1px solid var(--line);">
   <div class="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
     <a href="/" class="flex items-center gap-3">
@@ -230,76 +251,64 @@
 <main>
 
 <!-- Hero -->
-<section class="max-w-3xl mx-auto px-6 pt-20 pb-12 md:pt-28 md:pb-16 text-center fade-in">
-  <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8" style="background: rgba(139,92,246,0.08); border: 1px solid var(--violet-ink);">
-    <span class="tag" style="color: var(--violet);">● Privacy</span>
-    <span class="text-xs text-slate-300">How your data is handled</span>
+<section class="max-w-3xl mx-auto px-6 pt-20 pb-14 md:pt-28 md:pb-20 text-center fade-in">
+  <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8" style="background: rgba(139,92,246,0.10); border: 1px solid var(--violet-ink);">
+    <span class="tag" style="color: var(--violet);">● For educators &amp; institutions</span>
+    <span class="text-xs text-slate-300">Built with teaching in mind</span>
   </div>
   <h1 class="t-display mb-6">
-    Plain-English <span class="stat-number">privacy</span>.
+    Teach biostatistics with <span class="violet-text">cases, not slides</span>.
   </h1>
   <p class="t-lead max-w-2xl mx-auto">
-    No ads. No tracking cookies. No data sales. Here's what that actually means, section by section.
+    BioStat Quest turns 50 case-based challenges and 1,000+ board-style questions into structured coursework — with per-student progress, method-specific remediation, and a cohort view that tells you where your class actually stands.
   </p>
-  <p class="t-caption mt-6 mono">Last updated: April 2026</p>
-</section>
-
-<!-- Intro card -->
-<section class="max-w-3xl mx-auto px-6 pb-16">
-  <div class="card rounded-2xl p-8 md:p-10 prose-on-dark">
-    <div class="t-eyebrow mb-3" style="color: var(--accent);">The short version</div>
-    <h2 class="t-title mb-5">Your progress is yours</h2>
-    <p>Play as a guest and your data never leaves your browser. Sign in and the only things we keep are your email and your progress JSON — encrypted in transit, never shared, deletable on request. No behavioral profiling, no advertising, no dark patterns.</p>
-    <p>If you want the detail, every category below is written to be checkable rather than reassuring.</p>
+  <div class="mt-10 flex flex-col sm:flex-row gap-3 justify-center items-center">
+    <a href="mailto:info@biostatquest.com?subject=Institutional%20pilot%20inquiry&amp;body=Hi%20%E2%80%94%20I'd%20like%20to%20talk%20about%20using%20BioStat%20Quest%20for%20a%20course.%0A%0A%E2%80%A2%20Program%2Fcourse%3A%0A%E2%80%A2%20Approximate%20cohort%20size%3A%0A%E2%80%A2%20Typical%20semester%20start%3A%0A%E2%80%A2%20Topics%20I'd%20want%20emphasised%3A" class="btn btn-primary px-8 py-4 rounded-xl text-base">Request a pilot →</a>
+    <a href="#how-it-works" class="btn btn-ghost px-8 py-4 rounded-xl text-base">See how it works</a>
   </div>
 </section>
 
-<!-- Policy pillars -->
+<!-- What institutions get -->
 <section class="max-w-4xl mx-auto px-6 pb-20">
   <div class="text-center mb-10 max-w-2xl mx-auto">
-    <div class="t-eyebrow mb-3" style="color: var(--accent);">What we collect, and don't</div>
-    <h2 class="t-title mb-3">Category by category</h2>
+    <div class="t-eyebrow mb-3" style="color: var(--violet);">What institutions get</div>
+    <h2 class="t-title mb-3">Features built for teaching a cohort</h2>
   </div>
   <div class="card rounded-2xl p-6 md:p-8">
 
     <div class="pillar">
-      <!-- Guest mode — monitor with check (local-only) -->
+      <!-- Assign homework — clipboard with check -->
       <div class="pillar-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="3" y="4" width="18" height="13" rx="2"/>
-          <path d="M8 21h8 M12 17v4"/>
-          <path d="M8.5 10.5l2.5 2.5 4.5-4.5"/>
+          <rect x="6" y="4" width="12" height="16" rx="2"/>
+          <path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/>
+          <path d="M9.5 12.5l2 2 4-4"/>
         </svg>
       </div>
       <div class="prose-on-dark">
-        <h3 class="t-subtitle mb-1 text-white">Guest mode</h3>
-        <p class="t-body">If you play without signing in, your progress — XP, streaks, answered questions, spaced-repetition schedule — is stored <strong>only in your browser</strong> via <span class="mono text-white">localStorage</span>. Nothing is sent to our servers. Clear your browser data and your progress is gone with it — sign in to preserve it across devices.</p>
+        <h3 class="t-subtitle mb-1 text-white">Assign cases as structured homework</h3>
+        <p class="t-body">Pick specific cases or entire branches that map to your syllabus. Students work through them on their own schedule; you track completion, accuracy, and time-per-case at the class level. No more "read chapter 7 and we'll discuss it Thursday" with no way to know who actually did.</p>
       </div>
     </div>
 
     <div class="pillar">
-      <!-- Accounts — user profile card -->
+      <!-- Method deep-dives — book with lens -->
       <div class="pillar-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="3" y="5" width="18" height="14" rx="2"/>
-          <circle cx="9" cy="11" r="2.2"/>
-          <path d="M5.5 17c.5-2 2-3 3.5-3s3 1 3.5 3"/>
-          <path d="M14.5 10h4.5 M14.5 13.5h4 M14.5 16.5h3"/>
+          <path d="M4 5a2 2 0 0 1 2-2h12v14H6a2 2 0 0 0-2 2z"/>
+          <path d="M6 17h12"/>
+          <circle cx="15.5" cy="8.5" r="2.5"/>
+          <path d="M17.3 10.3l2 2"/>
         </svg>
       </div>
       <div class="prose-on-dark">
-        <h3 class="t-subtitle mb-1 text-white">Accounts (when you sign in)</h3>
-        <p class="t-body">Authentication runs on Supabase. If you sign in we keep exactly two things:</p>
-        <ul>
-          <li>Your <strong>email address</strong>, for login.</li>
-          <li>Your <strong>progress JSON</strong> — XP, streaks, SRS schedule, per-case scores.</li>
-        </ul>
-        <p>We do <strong>not</strong> share or sell this data. Ever. Delete your account and everything attached to it any time by emailing <a href="mailto:info@biostatquest.com">info@biostatquest.com</a>.</p>
+        <h3 class="t-subtitle mb-1 text-white">Method deep-dives where students stumble</h3>
+        <p class="t-body">Every wrong answer routes the student to that method's deep-dive panel — intuition, formula, assumptions, common pitfalls, and cited sources. A student who misses a confidence-interval question sees the CI explainer. One who misses a Cox-model question sees survival. The remediation is automatic and specific; you don't have to write it.</p>
       </div>
     </div>
 
     <div class="pillar">
-      <!-- Analytics — anonymized bar chart -->
+      <!-- Cohort dashboard — bar chart -->
       <div class="pillar-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M3 20h18"/>
@@ -310,80 +319,200 @@
         </svg>
       </div>
       <div class="prose-on-dark">
-        <h3 class="t-subtitle mb-1 text-white">Analytics (opt-in only)</h3>
-        <p class="t-body">If you accept analytics on the cookie banner, we create a per-browser <span class="mono text-white">visitor_id</span> (UUID, no PII on its own) and log lightweight activity events — page loads, case starts, answer correct/wrong — to our Supabase database. Used only to understand which cases are working. <strong>No advertising, no third-party trackers, no cross-site profiling.</strong> We also use Vercel Web Analytics, which is cookieless. See the <a href="/cookies.html">Cookies page</a> for the full inventory.</p>
+        <h3 class="t-subtitle mb-1 text-white">Class-level cohort dashboard</h3>
+        <p class="t-body">Your instructor view shows aggregate accuracy per branch (foundations, probability, regression, study design, causal, Bayesian, etc.), flagged weak areas across the class, and per-student status. You teach to the <em>actual</em> gap — not the gap you assumed from last year's cohort.</p>
       </div>
     </div>
 
     <div class="pillar">
-      <!-- Cookies — session key -->
+      <!-- Syllabus-aligned — layered grid -->
       <div class="pillar-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="8" cy="15" r="4.5"/>
-          <path d="M11 12 L 21 2"/>
-          <path d="M17 6l2 2 M19 4l2 2"/>
+          <path d="M12 3 3 7.5 12 12 21 7.5 z"/>
+          <path d="M3 12 12 16.5 21 12"/>
+          <path d="M3 16.5 12 21 21 16.5"/>
         </svg>
       </div>
       <div class="prose-on-dark">
-        <h3 class="t-subtitle mb-1 text-white">Cookies &amp; local storage</h3>
-        <p class="t-body">Essential storage only by default: your Supabase session, your saved progress, and your consent choice itself. No advertising cookies, no third-party trackers. Opt-in analytics (the <span class="mono text-white">visitor_id</span> and landing-variant tag) are <strong>off until you accept them</strong> on the consent banner. Change your mind any time from the <button type="button" onclick="if(window.bqConsent)window.bqConsent.open();" style="color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(34,211,238,0.4);">cookie settings</button> or via the <a href="/cookies.html">Cookies page</a>.</p>
+        <h3 class="t-subtitle mb-1 text-white">Syllabus-aligned collections</h3>
+        <p class="t-body">We curate case bundles to match your course — MPH methods, USMLE Step 1 biostats, residency didactics, doctoral quals. With 50 cases and 1,000+ questions spanning foundations through causal inference and Bayesian methods, there's plenty to work with. You keep what maps, we drop what doesn't.</p>
       </div>
     </div>
 
     <div class="pillar">
-      <!-- Children — shield with check -->
+      <!-- Bulk seats — group of users -->
       <div class="pillar-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 3 4.5 5.5v6c0 4.3 3.2 8.3 7.5 10 4.3-1.7 7.5-5.7 7.5-10v-6z"/>
-          <path d="M8.5 12l2.5 2.5 4.5-5"/>
+          <circle cx="9" cy="8" r="3"/>
+          <path d="M3 20c.6-3 3-5 6-5s5.4 2 6 5"/>
+          <circle cx="17" cy="9" r="2.3"/>
+          <path d="M14.5 20c.4-2 1.8-3.5 3.5-3.5s3.1 1.5 3.5 3.5"/>
         </svg>
       </div>
       <div class="prose-on-dark">
-        <h3 class="t-subtitle mb-1 text-white">Children</h3>
-        <p class="t-body">BioStat Quest is intended for adult learners (16+). We do not knowingly collect data from children under 13.</p>
-      </div>
-    </div>
-
-    <div class="pillar">
-      <!-- Changes — refresh arc -->
-      <div class="pillar-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M20 12a8 8 0 1 1-2.34-5.66"/>
-          <path d="M20 4v5h-5"/>
-          <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-        </svg>
-      </div>
-      <div class="prose-on-dark">
-        <h3 class="t-subtitle mb-1 text-white">Changes</h3>
-        <p class="t-body">We'll update this page if anything material changes and note the date above. Substantive updates will also surface a one-time notice on next sign-in.</p>
+        <h3 class="t-subtitle mb-1 text-white">Bulk seats, one invoice</h3>
+        <p class="t-body">A single institutional subscription covers your whole cohort. Students get full Pro access for the duration of your licence. Renews annually; we invoice through standard academic procurement (net-30 or net-45). No per-student sign-up friction for your course coordinator to manage.</p>
       </div>
     </div>
 
   </div>
 </section>
 
-<!-- Contact CTA — mirrors about.html's CTA rhythm -->
+<!-- How it works -->
+<section id="how-it-works" class="max-w-4xl mx-auto px-6 pb-20">
+  <div class="text-center mb-10 max-w-2xl mx-auto">
+    <div class="t-eyebrow mb-3" style="color: var(--violet);">How it works today</div>
+    <h2 class="t-title mb-3">Three steps, no engineering</h2>
+    <p class="t-caption mt-3">
+      We're at the stage where each institution gets a real conversation, not an automated onboarding. Setup is typically 3–5 business days from email to go-live.
+    </p>
+  </div>
+  <div class="grid gap-4 md:grid-cols-3">
+
+    <div class="step-card" data-step="1">
+      <h3 class="t-subtitle mb-1 text-white">Email us with your course details.</h3>
+      <p class="t-body text-sm">Cohort size, level, topics you cover, syllabus timing. One paragraph is enough to start.</p>
+    </div>
+
+    <div class="step-card" data-step="2">
+      <h3 class="t-subtitle mb-1 text-white">We scope syllabus alignment together.</h3>
+      <p class="t-body text-sm">A 30-minute call to map the case library against your learning objectives and propose a curated collection.</p>
+    </div>
+
+    <div class="step-card" data-step="3">
+      <h3 class="t-subtitle mb-1 text-white">Students get access; you get the dashboard.</h3>
+      <p class="t-body text-sm">Rolling enrolment or semester-batched — your call. You see cohort progress from day one; students see their own.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- Who it's for -->
+<section class="max-w-4xl mx-auto px-6 pb-20">
+  <div class="card rounded-2xl p-8 md:p-10">
+    <div class="t-eyebrow mb-3" style="color: var(--violet);">Who it's for</div>
+    <h2 class="t-title mb-5">Programs already using case-based methods teaching</h2>
+    <div class="flex flex-wrap gap-2">
+      <span class="chip chip-violet">MPH / SPH methods programs</span>
+      <span class="chip chip-violet">Residency &amp; fellowship didactics</span>
+      <span class="chip chip-violet">USMLE Step 1 / Step 2 biostats blocks</span>
+      <span class="chip chip-violet">Doctoral qualifying-exam prep</span>
+      <span class="chip chip-violet">Clinical research methods electives</span>
+      <span class="chip chip-violet">Early-career researcher training</span>
+      <span class="chip chip-violet">Grant-writing methods refreshers</span>
+    </div>
+    <p class="t-body text-sm mt-6 text-slate-400">
+      Not listed? Email us anyway — the same case library serves most biostatistics curricula, and curation is fast.
+    </p>
+  </div>
+</section>
+
+<!-- Pricing framework -->
+<section class="max-w-4xl mx-auto px-6 pb-20">
+  <div class="text-center mb-10 max-w-2xl mx-auto">
+    <div class="t-eyebrow mb-3" style="color: var(--violet);">Pricing framework</div>
+    <h2 class="t-title mb-3">Per-seat, volume-tiered, simple to scope</h2>
+  </div>
+  <div class="grid gap-4 md:grid-cols-3">
+    <div class="card rounded-2xl p-6">
+      <div class="t-eyebrow mb-2" style="color: var(--accent);">Small course</div>
+      <div class="t-title text-white mb-2" style="font-size:1.5rem;">Up to 40 seats</div>
+      <p class="t-caption">Predictable flat rate. One semester of access. Ideal for a single methods block or residency cohort.</p>
+    </div>
+    <div class="card rounded-2xl p-6" style="border: 1px solid var(--violet-ink);">
+      <div class="t-eyebrow mb-2" style="color: var(--violet);">Program-wide</div>
+      <div class="t-title text-white mb-2" style="font-size:1.5rem;">Whole cohort year</div>
+      <p class="t-caption">Volume discount. Annual seat pool. For MPH year-one classes, full residency program, or a doctoral cohort.</p>
+    </div>
+    <div class="card rounded-2xl p-6">
+      <div class="t-eyebrow mb-2" style="color: var(--gold);">Institutional</div>
+      <div class="t-title text-white mb-2" style="font-size:1.5rem;">Multi-program</div>
+      <p class="t-caption">Custom quote. Multi-year site licence covering multiple departments or schools within one institution.</p>
+    </div>
+  </div>
+  <p class="t-body text-sm mt-6 text-center text-slate-400 max-w-2xl mx-auto">
+    Every plan includes the full case library, the instructor dashboard, a syllabus-alignment setup call, and priority support. Email <a href="mailto:info@biostatquest.com" style="color: var(--violet); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(139,92,246,0.4);">info@biostatquest.com</a> with cohort size and we respond with a quote within 2 business days.
+  </p>
+</section>
+
+<!-- FAQ -->
+<section class="max-w-3xl mx-auto px-6 pb-24">
+  <div class="text-center mb-8 max-w-2xl mx-auto">
+    <div class="t-eyebrow mb-3" style="color: var(--violet);">Frequently asked</div>
+    <h2 class="t-title mb-3">Before you email us</h2>
+  </div>
+  <div class="space-y-3">
+    <details class="card rounded-2xl p-6 group">
+      <summary class="cursor-pointer list-none t-subtitle text-white flex items-center justify-between">
+        Is this FERPA-compliant?
+        <span class="text-slate-500 group-open:rotate-180 transition">▾</span>
+      </summary>
+      <p class="t-body text-sm mt-3 text-slate-300">We collect email and progress data only; no identifiable grades or PII beyond the learner's own account. For institutions with stricter requirements we can execute a data-processing addendum specifying retention, deletion, and incident-notification terms. Ask about our standard DPA template.</p>
+    </details>
+    <details class="card rounded-2xl p-6 group">
+      <summary class="cursor-pointer list-none t-subtitle text-white flex items-center justify-between">
+        Can students use their institutional email?
+        <span class="text-slate-500 group-open:rotate-180 transition">▾</span>
+      </summary>
+      <p class="t-body text-sm mt-3 text-slate-300">Yes. Single sign-on via Google OAuth works with most institutional Google Workspace domains (<span class="mono">*.edu</span>, <span class="mono">*.ac.uk</span>, <span class="mono">*.edu.tr</span>, etc.). Email-with-OTP works with any institutional inbox. No student credential harvesting; we never see a password.</p>
+    </details>
+    <details class="card rounded-2xl p-6 group">
+      <summary class="cursor-pointer list-none t-subtitle text-white flex items-center justify-between">
+        Do students keep access after the course?
+        <span class="text-slate-500 group-open:rotate-180 transition">▾</span>
+      </summary>
+      <p class="t-body text-sm mt-3 text-slate-300">Institutional seats are tied to your subscription period. When the licence ends, students can convert to an individual Pro subscription at the standard personal rate and keep all their progress, streak, and spaced-repetition history. No data is lost or reset.</p>
+    </details>
+    <details class="card rounded-2xl p-6 group">
+      <summary class="cursor-pointer list-none t-subtitle text-white flex items-center justify-between">
+        Can we preview before committing?
+        <span class="text-slate-500 group-open:rotate-180 transition">▾</span>
+      </summary>
+      <p class="t-body text-sm mt-3 text-slate-300">Yes — a free 2-week pilot for you and 2–3 colleagues to evaluate the workflow and content fit. You see the instructor dashboard with your own accounts acting as the cohort. Email us to schedule.</p>
+    </details>
+    <details class="card rounded-2xl p-6 group">
+      <summary class="cursor-pointer list-none t-subtitle text-white flex items-center justify-between">
+        How long does setup take?
+        <span class="text-slate-500 group-open:rotate-180 transition">▾</span>
+      </summary>
+      <p class="t-body text-sm mt-3 text-slate-300">Typically 3–5 business days from first email to student-ready, including the syllabus-alignment call. Multi-program institutional deals take 1–2 weeks to align procurement. We can work to an academic-year start date if you email at least two weeks ahead.</p>
+    </details>
+    <details class="card rounded-2xl p-6 group">
+      <summary class="cursor-pointer list-none t-subtitle text-white flex items-center justify-between">
+        Can we bring our own questions?
+        <span class="text-slate-500 group-open:rotate-180 transition">▾</span>
+      </summary>
+      <p class="t-body text-sm mt-3 text-slate-300">Yes, with some scoping. Custom case authoring is included for program-wide and institutional plans (typically 2–10 bespoke cases aligned to your specific syllabus). Smaller plans use the shared library only.</p>
+    </details>
+  </div>
+</section>
+
+<!-- CTA -->
 <section class="max-w-4xl mx-auto px-6 pb-28">
-  <div class="premium-border rounded-3xl p-12 md:p-16 text-center" style="background: linear-gradient(145deg, rgba(22,28,54,0.55), rgba(12,16,36,0.65));">
-    <!-- Envelope icon -->
-    <div class="mb-5 inline-flex justify-center" style="color: var(--accent);">
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <div class="premium-border rounded-3xl p-12 md:p-16 text-center" style="background: linear-gradient(145deg, rgba(139,92,246,0.12), rgba(12,16,36,0.75));">
+    <div class="mb-5 inline-flex justify-center" style="color: #c4b5fd;">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <rect x="3" y="5" width="18" height="14" rx="2"/>
         <path d="M3.5 6.5l8.5 7 8.5-7"/>
       </svg>
     </div>
-    <h2 class="t-title mb-4">Questions, or want your data deleted?</h2>
-    <p class="t-body text-lg mb-8 max-w-xl mx-auto">Email <a href="mailto:info@biostatquest.com" style="color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(34,211,238,0.4);">info@biostatquest.com</a>. Real person, real reply, usually within a few days.</p>
+    <h2 class="t-title mb-4">Want a syllabus-aligned pilot?</h2>
+    <p class="t-body text-lg mb-8 max-w-xl mx-auto">
+      Tell us about your course — program, cohort size, topics you cover, semester start. We respond within 2 business days with a scoped plan and pricing.
+    </p>
     <div class="flex flex-col sm:flex-row gap-3 justify-center items-center">
-      <a href="mailto:info@biostatquest.com" class="btn btn-primary px-10 py-4 rounded-xl text-base">Contact us</a>
+      <a href="mailto:info@biostatquest.com?subject=Institutional%20pilot%20inquiry&amp;body=Hi%20%E2%80%94%20I'd%20like%20to%20talk%20about%20using%20BioStat%20Quest%20for%20a%20course.%0A%0A%E2%80%A2%20Program%2Fcourse%3A%0A%E2%80%A2%20Approximate%20cohort%20size%3A%0A%E2%80%A2%20Typical%20semester%20start%3A%0A%E2%80%A2%20Topics%20I'd%20want%20emphasised%3A" class="btn btn-primary px-10 py-4 rounded-xl text-base">Email us →</a>
       <a href="/" class="btn btn-ghost px-10 py-4 rounded-xl text-base">Back to home</a>
     </div>
+    <p class="t-caption mt-6 text-slate-500">
+      We reply like humans, not a ticket queue. Usually within 1–2 business days.
+    </p>
   </div>
 </section>
 
 </main>
 
-<!-- Footer — identical to landing / about -->
+<!-- Footer — with "For educators" in Product column -->
 <footer class="border-t" style="border-color: var(--line);">
   <div class="max-w-6xl mx-auto px-6 py-12 grid md:grid-cols-3 gap-8">
     <div>

@@ -1246,7 +1246,7 @@ function SkillTree({ state, onStartCase, initialBranch }) {
         <h2 className="text-2xl sm:text-3xl font-extrabold text-white">Skill Tree</h2>
         <p className="text-slate-400 text-sm mt-1">8 branches · {CASES.length} cases · {CASES.reduce((s,c)=>s+c.bank.length,0)}+ unique questions. Every replay draws a fresh set.</p>
       </div>
-      <div className="grid md:grid-cols-2 gap-3 sm:gap-4">
+      <div className="space-y-3 sm:space-y-4">
         {Object.entries(BRANCHES).map(([k, b]) => {
           const cases = CASES.filter(c => c.branch === k);
           const done = cases.filter(c => state.completed.includes(c.id)).length;
@@ -1274,7 +1274,7 @@ function SkillTree({ state, onStartCase, initialBranch }) {
                 <div className="bar mt-3"><div style={{width: cases.length?(done/cases.length*100)+"%":"0%"}}></div></div>
               </button>
               {open && (
-                <div className="p-4 space-y-2 border-t border-purple-900/20">
+                <div className="p-4 border-t border-purple-900/20 grid sm:grid-cols-2 gap-2">
                   {cases.map(c => {
                     const isDone = state.completed.includes(c.id);
                     const best = state.caseScores[c.id];
@@ -6161,7 +6161,151 @@ class AdminErrorBoundary extends React.Component {
 }
 
 // ---- Overview tab ---------------------------------------------------------
-function AdminOverview({ users, openReportsCount, events }) {
+// Compact "what needs attention today" card. Scans every data source the
+// admin already fetches (users, reports, events) and surfaces rows the admin
+// should act on — low-accuracy questions, high-dropoff cases, overdue reports,
+// stuck users, and fresh signups. Each row calls onNavigate to jump to the
+// right tab; admins apply filters there (click-through deep linking is later).
+function NeedsAttention({ users, reports, events, onNavigate }) {
+  const now = Date.now();
+  const HOUR = 3600e3;
+  const DAY = 24 * HOUR;
+
+  // 1) Low-accuracy questions (possibly broken content).
+  //    Threshold: ≥10 answers, <40% correct. 10 is a noise floor; under that
+  //    one lucky streak flips the signal. The 40% cutoff is empirical — below
+  //    that a 4-option MCQ is doing worse than random-plus-distractor-avoidance.
+  const accuracy = {};
+  for (const e of events || []) {
+    if (!e.qid) continue;
+    if (e.type !== "answer_correct" && e.type !== "answer_wrong") continue;
+    const b = accuracy[e.qid] || { correct: 0, total: 0 };
+    b.total += 1;
+    if (e.type === "answer_correct") b.correct += 1;
+    accuracy[e.qid] = b;
+  }
+  const lowAcc = Object.entries(accuracy)
+    .filter(([, b]) => b.total >= 10 && b.correct / b.total < 0.4)
+    .map(([qid, b]) => ({ qid, pct: Math.round((b.correct / b.total) * 100), n: b.total }))
+    .sort((a, b) => a.pct - b.pct);
+
+  // 2) Cases with start→complete dropoff. Only fire if a case has ≥5 starts
+  //    (small-n guard) AND completion rate <50%.
+  const starts = {}, completes = {};
+  for (const e of events || []) {
+    if (e.type === "case_start" && e.case_id) starts[e.case_id] = (starts[e.case_id] || 0) + 1;
+    if (e.type === "case_complete" && e.case_id) completes[e.case_id] = (completes[e.case_id] || 0) + 1;
+  }
+  const dropoffCases = Object.entries(starts)
+    .filter(([, n]) => n >= 5)
+    .map(([id, n]) => ({ id, starts: n, completes: completes[id] || 0, rate: Math.round((completes[id] || 0) / n * 100) }))
+    .filter(c => c.rate < 50)
+    .sort((a, b) => a.rate - b.rate);
+
+  // 3) Reports open > 72h (triage overdue).
+  const overdueReports = (reports || []).filter(r =>
+    r.status === "open" && (now - new Date(r.created_at).getTime()) > 72 * HOUR
+  );
+
+  // 4) Stuck users: signed up ≥7 days ago, completed 0 cases. Signal that the
+  //    funnel leaks between signup and first case.
+  const stuckUsers = (users || []).filter(u =>
+    (u.state?.completed?.length || 0) === 0 &&
+    (now - new Date(u.created_at).getTime()) > 7 * DAY
+  );
+
+  // 5) Fresh signups in last 24h (informational — you probably want to welcome
+  //    or watch). Not a "problem," but worth knowing before the day starts.
+  const freshSignups = (users || []).filter(u =>
+    (now - new Date(u.created_at).getTime()) < 1 * DAY
+  );
+
+  const items = [];
+  if (overdueReports.length > 0) items.push({
+    key: "overdue-reports",
+    severity: "red",
+    icon: "flag",
+    title: `${overdueReports.length} open report${overdueReports.length === 1 ? "" : "s"} > 72h`,
+    detail: "Triage overdue",
+    tab: "reports",
+  });
+  if (lowAcc.length > 0) items.push({
+    key: "low-acc",
+    severity: "red",
+    icon: "cross",
+    title: `${lowAcc.length} question${lowAcc.length === 1 ? "" : "s"} < 40% accuracy`,
+    detail: lowAcc.slice(0, 3).map(q => `${q.qid} (${q.pct}%, n=${q.n})`).join(" · ") + (lowAcc.length > 3 ? ` · +${lowAcc.length - 3} more` : ""),
+    tab: "content",
+  });
+  if (dropoffCases.length > 0) items.push({
+    key: "dropoff",
+    severity: "amber",
+    icon: "alarm-clock",
+    title: `${dropoffCases.length} case${dropoffCases.length === 1 ? "" : "s"} with high dropoff`,
+    detail: dropoffCases.slice(0, 3).map(c => `${c.id} (${c.rate}% complete, ${c.starts} starts)`).join(" · ") + (dropoffCases.length > 3 ? ` · +${dropoffCases.length - 3} more` : ""),
+    tab: "content",
+  });
+  if (stuckUsers.length > 0) items.push({
+    key: "stuck",
+    severity: "amber",
+    icon: "calendar",
+    title: `${stuckUsers.length} stuck user${stuckUsers.length === 1 ? "" : "s"}`,
+    detail: "Signed up ≥7 days ago, 0 cases completed",
+    tab: "users",
+  });
+  if (freshSignups.length > 0) items.push({
+    key: "fresh",
+    severity: "cyan",
+    icon: "star-shine",
+    title: `${freshSignups.length} new signup${freshSignups.length === 1 ? "" : "s"} · last 24h`,
+    detail: freshSignups.slice(0, 3).map(u => u.email || "no email").join(" · ") + (freshSignups.length > 3 ? ` · +${freshSignups.length - 3} more` : ""),
+    tab: "users",
+  });
+
+  const sevCls = {
+    red:   { border: "border-red-700/50",    bg: "bg-red-950/20",    text: "text-red-300",    chip: "bg-red-900/50 text-red-200" },
+    amber: { border: "border-amber-700/50",  bg: "bg-amber-950/20",  text: "text-amber-300",  chip: "bg-amber-900/50 text-amber-200" },
+    cyan:  { border: "border-cyan-700/50",   bg: "bg-cyan-950/20",   text: "text-cyan-300",   chip: "bg-cyan-900/50 text-cyan-200" },
+  };
+
+  return (
+    <div className="card rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-[10px] uppercase tracking-widest text-slate-500">Needs attention</div>
+        {items.length === 0 && <div className="text-[10px] text-emerald-400 uppercase tracking-widest">All clear</div>}
+      </div>
+      {items.length === 0 ? (
+        <div className="text-sm text-slate-500 flex items-center gap-2">
+          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-900/40 text-emerald-400"><Ico name="check" size={12}/></span>
+          Nothing urgent. Backlog is clean, no broken content signals, no stuck users.
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {items.map(it => {
+            const c = sevCls[it.severity];
+            return (
+              <button
+                key={it.key}
+                onClick={() => onNavigate?.(it.tab)}
+                className={`w-full text-left flex items-start gap-3 px-3 py-2.5 rounded-lg border ${c.border} ${c.bg} hover:bg-opacity-60 transition group`}>
+                <span className={`shrink-0 w-6 h-6 rounded inline-flex items-center justify-center ${c.chip}`}>
+                  <Ico name={it.icon} size={12}/>
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className={`text-sm font-semibold ${c.text}`}>{it.title}</div>
+                  {it.detail && <div className="text-xs text-slate-400 mt-0.5 truncate">{it.detail}</div>}
+                </div>
+                <span className="shrink-0 text-[11px] text-slate-500 mono opacity-0 group-hover:opacity-100 transition self-center">→ {it.tab}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminOverview({ users, openReportsCount, events, reports, onNavigate }) {
   const now = Date.now();
   const DAY = 24 * 60 * 60 * 1000;
   const safe = users || [];
@@ -6242,6 +6386,7 @@ function AdminOverview({ users, openReportsCount, events }) {
 
   return (
     <div className="space-y-4">
+      <NeedsAttention users={users} reports={reports} events={events} onNavigate={onNavigate}/>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {card("Total users", safe.length)}
         {card("Active today", active1d, `${active7d} past 7d · ${active30d} past 30d`)}
@@ -7073,7 +7218,7 @@ function AdminReports({ onHome }) {
       {err && <div className="card rounded-xl p-4 mb-4 text-sm text-red-400">{err}</div>}
 
       <AdminErrorBoundary>
-        {tab === "overview" && <AdminOverview users={users} openReportsCount={openReports} events={events}/>}
+        {tab === "overview" && <AdminOverview users={users} openReportsCount={openReports} events={events} reports={allReports} onNavigate={setTab}/>}
         {tab === "users"    && (users === null ? <div className="text-slate-500 text-sm">Loading…</div> : <AdminUsers users={users} onRefresh={loadShared}/>)}
         {tab === "content"  && <AdminContent users={users} reports={allReports} events={events}/>}
         {tab === "activity" && <AdminActivity events={events}/>}

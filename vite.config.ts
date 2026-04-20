@@ -17,6 +17,7 @@ export default defineConfig({
         privacy: resolve(__dirname, "privacy.html"),
         terms: resolve(__dirname, "terms.html"),
         cookies: resolve(__dirname, "cookies.html"),
+        forEducators: resolve(__dirname, "for-educators.html"),
       },
       output: {
         manualChunks(id) {
