@@ -207,6 +207,12 @@ create policy "class_members read own"
   using (user_id = auth.uid());
 
 -- Instructors read all members of their classes (for the roster / cohort view).
+-- INTENTIONAL: this policy does NOT gate on archived_at / subscription_status.
+-- "Read-only" for a lapsed or archived class means the instructor can still
+-- SEE the roster and history; they just can't WRITE (update/insert/invite).
+-- If a future maintainer "fixes" this by adding an archived/lapsed gate here,
+-- instructors would lose all visibility into their historical cohorts the
+-- moment a subscription lapses — which is exactly the wrong outcome.
 create policy "class_members instructors read all in class"
   on public.class_members for select to authenticated
   using (exists (
@@ -389,10 +395,21 @@ Response: `{ invite_id: string, expires_at: timestamptz, join_url: string, email
 Request body: `{ token: string, consent: true }`
 Auth: signed-in user.
 Behavior (**uses service-role client** to bypass RLS for token lookup):
-1. Resolve token → class_invites row. If missing / expired / accepted, 404.
-2. Verify `consent === true` (no implicit consent).
-3. Insert `class_members` row: `(class_id, user_id=auth.uid(), role=invites.role, consented_to_instructor_visibility=true)`.
-4. Mark invite as accepted.
+1. Resolve token → class_invites row. If missing / expired / already-accepted → `404 invite not found or already accepted`.
+2. **Re-check the class's current state** — service-role bypasses RLS, so the `subscription_status != 'lapsed'` check that gates ordinary writes doesn't apply here. A stale token created before the class lapsed could otherwise slip a student in. Resolve `invites.class_id → classes`; if `archived_at is not null` OR `subscription_status = 'lapsed'` → `409 class unavailable`.
+3. Verify `consent === true` (no implicit consent).
+4. Upsert into `class_members`, symmetric with `join-by-code` so a user who was invited → accepted → left → re-invited is reactivated cleanly rather than hitting a PK collision:
+   ```sql
+   insert into class_members (class_id, user_id, role, consented_to_instructor_visibility)
+   values ($class_id, auth.uid(), $invite_role, true)
+   on conflict (class_id, user_id) do update
+     set left_at = null,
+         consented_to_instructor_visibility = true,
+         role = excluded.role;                 -- honor the role from the NEW invite
+   -- joined_at intentionally preserved from the original row.
+   ```
+5. Mark invite as accepted: `update class_invites set accepted_at = now(), accepted_by = auth.uid() where id = $invite_id`.
+
 Response: `{ class_id: string, class_name: string, role: string }`.
 
 ### `POST /api/classes/join-by-code`
@@ -451,7 +468,7 @@ Each test produces a clear pass/fail. If any fails, Phase A.1 does not ship. Tes
 
 ## Risks & open questions
 
-1. **RLS policy correctness.** The `user_progress instructor read students` policy is the most sensitive single piece of SQL in this feature. One wrong conjunct = cross-class data leak. Test #5 and #6 above specifically exercise it; I'll also run a negative test with a user who IS in a class but left (`left_at` set) to confirm they lose access.
+1. **RLS policy correctness.** The `user_progress instructor read students` policy is the most sensitive single piece of SQL in this feature. One wrong conjunct = cross-class data leak. Tests #5, #6, #7, and #8 each exercise a different conjunct (positive read, non-member read, instructor `left_at` set, student consent revoked). If any of those tests fails, the policy does not ship; we stop and debug before going near UI.
 
 2. **Class code generation entropy.** `gen_random_bytes(6)` + base64 strip + uppercase may produce codes shorter than 6 chars after stripping non-alphanumeric. The retry loop handles this, but if `gen_random_bytes` isn't available on this Supabase plan we'll need to use `md5(random()::text)` as a fallback.
 
@@ -476,7 +493,7 @@ Before any Phase A.1 SQL or API code is committed:
 - [ ] `create_class` RPC security-definer pattern approved
 - [ ] API contracts (input/output shapes) approved
 - [ ] Resend sender domain verification confirmed
-- [ ] Test plan understood — all 6 tests will run before code ships
+- [ ] Test plan understood — all 10 tests will run before code ships
 
 Once all six boxes are ticked, Phase A.1 ships as one commit: migration SQL + RPC + API endpoints. No UI yet.
 
