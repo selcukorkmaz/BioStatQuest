@@ -30,7 +30,23 @@ export async function authedClient(req: VercelRequest): Promise<AuthedOK | Authe
   });
 
   const { data, error } = await supa.auth.getUser(jwt);
-  if (error || !data?.user) return { error: "unauthorized", status: 401 };
+  if (error || !data?.user) {
+    // Log the actual reason server-side so Vercel logs tell us what's wrong.
+    // Return a slightly more informative (but still safe) error to the client.
+    // NOTE: the jwt tail is logged but not returned; it's useful for
+    // correlating with the session you're testing from.
+    // eslint-disable-next-line no-console
+    console.error("[authed] getUser failed:", {
+      message: error?.message,
+      status: (error as any)?.status,
+      name: error?.name,
+      jwtTail: jwt.slice(-12),
+    });
+    return {
+      error: `auth failed: ${error?.message || "no user"}`,
+      status: 401,
+    };
+  }
 
   return { supa, user: data.user };
 }
