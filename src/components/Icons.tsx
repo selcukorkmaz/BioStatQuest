@@ -601,9 +601,12 @@ const ICON_MARKUP: Record<string, string> = {
   home:            `<path d="M3 11 L 12 3 L 21 11"/><path d="M5 10 V 20 h 5 v -6 h 4 v 6 h 5 V 10"/>`,
   lock:            `<rect x="5" y="11" width="14" height="10" rx="1.5"/><path d="M8 11 V 7 a 4 4 0 0 1 8 0 v 4"/>`,
   medal:           `<path d="M8 3 L 11 11 M 16 3 L 13 11 M 7 3 h 10"/><circle cx="12" cy="16" r="5"/><path d="M10 16 L 11.3 17.3 L 14 14.5"/>`,
-  "medal-1":       `<circle cx="12" cy="12" r="9"/><path d="M10.5 9 L 12.5 8 V 16" stroke-linecap="round"/>`,
-  "medal-2":       `<circle cx="12" cy="12" r="9"/><path d="M9.5 10 a 2.5 2.5 0 0 1 5 0 C 14.5 13 9.5 14 9.5 16 h 5"/>`,
-  "medal-3":       `<circle cx="12" cy="12" r="9"/><path d="M10 10 a 2.5 1.5 0 0 1 0 3 a 2.5 1.5 0 0 1 0 3" stroke-linecap="round"/>`,
+  // Medal numerals use SVG <text> so the glyph is a real font character — much
+  // more legible than hand-drawn paths and visually consistent across 1/2/3.
+  // stroke="none" opts out of the inherited stroke so we get a clean filled glyph.
+  "medal-1":       `<circle cx="12" cy="12" r="9"/><text x="12" y="16" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="800" fill="currentColor" stroke="none">1</text>`,
+  "medal-2":       `<circle cx="12" cy="12" r="9"/><text x="12" y="16" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="800" fill="currentColor" stroke="none">2</text>`,
+  "medal-3":       `<circle cx="12" cy="12" r="9"/><text x="12" y="16" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="800" fill="currentColor" stroke="none">3</text>`,
   camera:          `<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7 L 9 4 h 6 l 1 3"/><circle cx="12" cy="13.5" r="3.5"/>`,
   "alarm-clock":   `<circle cx="12" cy="13" r="7"/><path d="M12 9 V 13 L 15 15"/><path d="M5 5 L 3 7 M 19 5 l 2 2"/>`,
   refresh:         `<path d="M4 12 a 8 8 0 0 1 14 -5"/><path d="M18 3 v 5 h -5"/><path d="M20 12 a 8 8 0 0 1 -14 5"/><path d="M6 21 v -5 h 5"/>`,
