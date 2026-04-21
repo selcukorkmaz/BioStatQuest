@@ -10,10 +10,8 @@
 // Response 4xx:  { error: string }
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { authedClient, isAuthedErr } from "../_lib/authed";
+import { authedClient, isAuthedErr } from "../_lib/authed.js";
 import { randomBytes } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { join as pathJoin } from "node:path";
 
 const DEFAULT_FROM = "BioStat Quest <info@biostatquest.com>";
 const SITE_URL = "https://www.biostatquest.com";

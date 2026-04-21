@@ -30,7 +30,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { supabaseAdmin } from "../_lib/supabaseAdmin";
+import { supabaseAdmin } from "../_lib/supabaseAdmin.js";
 
 const DEFAULT_FROM = "BioStat Quest <info@biostatquest.com>";
 const DEFAULT_CAMPAIGN = "reengage_v1";

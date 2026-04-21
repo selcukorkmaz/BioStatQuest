@@ -10,7 +10,7 @@
 // Response 4xx:  { error: string }
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { authedClient, isAuthedErr } from "../_lib/authed";
+import { authedClient, isAuthedErr } from "../_lib/authed.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" });
