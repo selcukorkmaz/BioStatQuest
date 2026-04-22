@@ -11,6 +11,8 @@ import { Confetti } from "./components/Confetti";
 import { AuthButton, SignInCard } from "./components/AuthButton";
 import { DeepDive } from "./components/DeepDive";
 import { CasePlay } from "./components/CasePlay";
+import { TeachView } from "./components/TeachView";
+import { hasAnyInstructorRole } from "./lib/classesApi";
 import { levelFromXP, xpForLevel } from "./lib/xp";
 import { DIFFICULTIES, REVIEW_CASE_ID } from "./lib/difficulty";
 import { getMethodMastery } from "./lib/mastery";
@@ -507,6 +509,25 @@ function TopBar({ state, setState, onReset, onNav, current }) {
     if (!window.BQAuth?.onAuthChange) return;
     return window.BQAuth.onAuthChange(() => setIsAdminNow(window.BQAuth.isAdmin()));
   }, []);
+
+  // Instructor nav: "Teach" tab, shown only when the signed-in user has at
+  // least one instructor/co-instructor membership. Checked once on mount
+  // and whenever the auth user changes (sign-in / sign-out). Failure mode
+  // is "hide the tab" — we never show Teach speculatively.
+  const [isInstructorNow, setIsInstructorNow] = React.useState(false);
+  React.useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      const yes = await hasAnyInstructorRole();
+      if (!cancelled) setIsInstructorNow(yes);
+    };
+    check();
+    if (window.BQAuth?.onAuthChange) {
+      const off = window.BQAuth.onAuthChange(check);
+      return () => { cancelled = true; off?.(); };
+    }
+    return () => { cancelled = true; };
+  }, []);
   return (
     <div className="sticky top-0 z-40 backdrop-blur-xl bg-slate-950/70 border-b border-purple-900/30">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 flex-wrap">
@@ -587,6 +608,19 @@ function TopBar({ state, setState, onReset, onNav, current }) {
                 <span className="hidden md:inline">{l}</span>
               </button>
             ))}
+            {isInstructorNow && (
+              <button onClick={()=>onNav("teach")} className={`nav-btn ${current==="teach"?"active":""}`} title="Teach — manage classes you instruct">
+                <span className="inline-flex items-center justify-center w-[18px] h-[18px] shrink-0" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="9" cy="8" r="3"/>
+                    <path d="M3 20c.6-3 3-5 6-5s5.4 2 6 5"/>
+                    <circle cx="17" cy="9" r="2.3"/>
+                    <path d="M14.5 20c.4-2 1.8-3.5 3.5-3.5s3.1 1.5 3.5 3.5"/>
+                  </svg>
+                </span>
+                <span className="hidden md:inline">Teach</span>
+              </button>
+            )}
             {isAdminNow && (
               <button onClick={()=>onNav("admin")} className={`nav-btn ${current==="admin"?"active":""}`} title="Admin — question reports">
                 <span className="inline-flex items-center justify-center w-[18px] h-[18px] shrink-0" aria-hidden="true">
@@ -7629,6 +7663,7 @@ function App() {
       {view === "play"     && <CasePlay caseId={activeCase} difficulty={activeDiff} questions={activeQuestions} onFinish={finishCase} onExit={()=>setView("home")} srs={state.srs} onOpenGlossary={openGlossary}/>}
       {view === "result"   && <CaseResult result={lastResult} onHome={()=>setView("home")} onReplay={replay} onNext={(id)=>{setActiveCase(id); setView("select");}} onShare={(a)=>setSharePending(a)} srs={state.srs} state={state} onOpenGlossary={openGlossary}/>}
       {view === "admin"    && <AdminReports onHome={()=>setView("home")}/>}
+      {view === "teach"    && <TeachView onHome={()=>setView("home")}/>}
       {sharePending && (
         <ShareCardModal
           achievement={sharePending}
