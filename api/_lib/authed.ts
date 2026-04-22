@@ -1,10 +1,14 @@
 // Shared auth helper for /api/classes/* endpoints.
 //
 // Extracts the caller's Supabase JWT from the Authorization header and
-// returns a Supabase client configured to use that JWT. All queries made
-// through this client are subject to RLS as the authenticated user —
-// which is what we want for every endpoint except the two handlers that
-// intentionally bypass RLS via supabaseAdmin() (accept-invite, join-by-code).
+// validates it by calling Supabase's GoTrue endpoint directly — NOT
+// via supa.auth.getUser() which has SDK-version-specific quirks that
+// can return "Auth session missing!" for JWTs that are actually valid
+// (observed on Safari + newer SDK versions when persistSession is false).
+//
+// Returns an RLS-enforced Supabase client ready for downstream queries.
+// Handlers that need to BYPASS RLS (accept-invite, join-by-code) should
+// use supabaseAdmin() from ../_lib/supabaseAdmin instead.
 
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import type { VercelRequest } from "@vercel/node";
@@ -24,31 +28,46 @@ export async function authedClient(req: VercelRequest): Promise<AuthedOK | Authe
   const jwt = header.replace(/^Bearer\s+/i, "").trim();
   if (!jwt) return { error: "unauthorized", status: 401 };
 
+  // Validate the JWT by asking Supabase auth directly. Reliable across
+  // SDK versions and browser origins. Returns the user object on 200,
+  // or a structured error on 401/403/etc.
+  let userRes: Response;
+  try {
+    userRes = await fetch(`${url}/auth/v1/user`, {
+      method: "GET",
+      headers: {
+        apikey: anon,
+        Authorization: `Bearer ${jwt}`,
+      },
+    });
+  } catch (e: any) {
+    console.error("[authed] network error calling /auth/v1/user:", e?.message);
+    return { error: "auth endpoint unreachable", status: 502 };
+  }
+
+  if (!userRes.ok) {
+    const text = await userRes.text().catch(() => "(no body)");
+    console.error("[authed] /auth/v1/user returned", userRes.status, text.slice(0, 200));
+    return {
+      error: `auth failed: ${userRes.status} ${text.slice(0, 120)}`,
+      status: 401,
+    };
+  }
+
+  const user = (await userRes.json()) as User;
+  if (!user?.id) {
+    return { error: "auth failed: no user id in response", status: 401 };
+  }
+
+  // RLS-enforced client for the handler's downstream queries. The JWT
+  // goes into the Authorization header so PostgREST knows who's asking
+  // and applies the right row-level policies.
   const supa = createClient(url, anon, {
     global: { headers: { Authorization: `Bearer ${jwt}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const { data, error } = await supa.auth.getUser(jwt);
-  if (error || !data?.user) {
-    // Log the actual reason server-side so Vercel logs tell us what's wrong.
-    // Return a slightly more informative (but still safe) error to the client.
-    // NOTE: the jwt tail is logged but not returned; it's useful for
-    // correlating with the session you're testing from.
-    // eslint-disable-next-line no-console
-    console.error("[authed] getUser failed:", {
-      message: error?.message,
-      status: (error as any)?.status,
-      name: error?.name,
-      jwtTail: jwt.slice(-12),
-    });
-    return {
-      error: `auth failed: ${error?.message || "no user"}`,
-      status: 401,
-    };
-  }
-
-  return { supa, user: data.user };
+  return { supa, user };
 }
 
 export function isAuthedErr(x: AuthedOK | AuthedErr): x is AuthedErr {
