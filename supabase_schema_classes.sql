@@ -277,7 +277,6 @@ as $$
 declare
   new_id uuid;
   new_code text;
-  raw text;
   attempts int := 0;
 begin
   if auth.uid() is null then
@@ -287,14 +286,19 @@ begin
     raise exception 'Class name required';
   end if;
 
+  -- Generate a 6-char uppercase hex class code using Postgres built-ins
+  -- (md5 of random() + clock_timestamp to avoid same-txn collisions).
+  -- Yields 16^6 = ~16.7M possible codes — plenty for a join-aid code
+  -- whose real security is RLS + explicit consent, not obscurity.
+  -- Retry on the rare collision; bail after 10 attempts so a corrupt
+  -- loop can't hang the RPC.
   loop
-    raw := upper(encode(gen_random_bytes(6), 'base64'));
-    raw := regexp_replace(raw, '[^A-Z0-9]', '', 'g');
-    if length(raw) >= 6 then
-      new_code := substring(raw, 1, 6);
-      if not exists (select 1 from public.classes where code = new_code) then
-        exit;
-      end if;
+    new_code := upper(substring(
+      md5(random()::text || clock_timestamp()::text || attempts::text),
+      1, 6
+    ));
+    if not exists (select 1 from public.classes where code = new_code) then
+      exit;
     end if;
     attempts := attempts + 1;
     if attempts > 10 then
