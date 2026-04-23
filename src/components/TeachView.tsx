@@ -20,10 +20,25 @@ import {
   listClassMembers,
   updateMember,
   setClassArchived,
+  getClassInsights,
   type ClassSummary,
   type ClassMember,
+  type InsightsPayload,
+  type InsightsMember,
 } from "../lib/classesApi";
 import { Ico } from "./Icons";
+import { CASES } from "../data/cases";
+import { METHODS } from "../data/methods";
+import { BRANCHES } from "../data/branches";
+
+// Case ID → branch lookup for aggregating per-case accuracy into per-branch
+// rollups in the Insights tab. Built once at module load; cheap enough that
+// a memoized hook would be overkill.
+const CASE_BRANCH: Record<string, string> = (() => {
+  const map: Record<string, string> = {};
+  for (const c of CASES) map[c.id] = c.branch;
+  return map;
+})();
 
 type Sub = { kind: "list" } | { kind: "new" } | { kind: "detail"; classId: string } | { kind: "invite"; classId: string };
 
@@ -225,6 +240,7 @@ function ClassDetail({ classId, onInvite, onArchived }: { classId: string; onInv
   const [members, setMembers] = useState<ClassMember[] | null>(null);
   const [err, setErr] = useState("");
   const [copied, setCopied] = useState(false);
+  const [tab, setTab] = useState<"roster" | "insights">("roster");
 
   // Caller identity — needed so we don't offer "remove" on the caller's
   // own row (server would reject but we hide the button preemptively).
@@ -321,35 +337,48 @@ function ClassDetail({ classId, onInvite, onArchived }: { classId: string; onInv
         </div>
       )}
 
-      {/* Roster */}
-      <div className="card rounded-2xl p-0 overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-700/60 flex items-center justify-between">
-          <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">
-            Members {members && `· ${members.length}`}
-          </div>
-          <button onClick={load} className="text-xs text-slate-400 hover:text-white transition">
-            ↻ Refresh
-          </button>
-        </div>
-        {members === null && <div className="p-5 text-slate-500 text-sm">Loading…</div>}
-        {members !== null && members.length === 0 && (
-          <div className="p-5 text-slate-500 text-sm">No members yet. Invite your first student.</div>
-        )}
-        {members !== null && members.length > 0 && (
-          <div className="divide-y divide-slate-700/40">
-            {members.map((m) => (
-              <MemberRow
-                key={m.user_id}
-                m={m}
-                classId={classId}
-                canManage={canManageMembers}
-                currentUserId={currentUserId}
-                onChanged={load}
-              />
-            ))}
-          </div>
-        )}
+      {/* Tab switcher — Roster | Insights */}
+      <div className="mb-4 flex items-center gap-0 border-b border-slate-800">
+        <TabButton active={tab === "roster"} onClick={() => setTab("roster")}>
+          Roster {members ? `· ${members.length}` : ""}
+        </TabButton>
+        <TabButton active={tab === "insights"} onClick={() => setTab("insights")}>
+          Insights
+        </TabButton>
       </div>
+
+      {tab === "roster" && (
+        <div className="card rounded-2xl p-0 overflow-hidden">
+          <div className="px-5 py-3 border-b border-slate-700/60 flex items-center justify-between">
+            <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">
+              Members {members && `· ${members.length}`}
+            </div>
+            <button onClick={load} className="text-xs text-slate-400 hover:text-white transition">
+              ↻ Refresh
+            </button>
+          </div>
+          {members === null && <div className="p-5 text-slate-500 text-sm">Loading…</div>}
+          {members !== null && members.length === 0 && (
+            <div className="p-5 text-slate-500 text-sm">No members yet. Invite your first student.</div>
+          )}
+          {members !== null && members.length > 0 && (
+            <div className="divide-y divide-slate-700/40">
+              {members.map((m) => (
+                <MemberRow
+                  key={m.user_id}
+                  m={m}
+                  classId={classId}
+                  canManage={canManageMembers}
+                  currentUserId={currentUserId}
+                  onChanged={load}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === "insights" && <InsightsTab classId={classId} />}
 
       {/* Archive / Unarchive — primary-instructor only. Separated from the
           roster card and visually muted so nobody clicks it by accident. */}
@@ -662,6 +691,286 @@ function InviteForm({ classId, onBack }: { classId: string; onBack: () => void }
         </div>
       )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// INSIGHTS TAB — cohort-level analytics, instructor-only
+// ---------------------------------------------------------------------------
+//
+// Four panels, top to bottom:
+//   1. Summary stat strip          — total / consented / active-7d / inactive-14d
+//   2. Per-branch accuracy bars    — 8 branches, cohort-wide correct / attempts
+//   3. Cohort struggles strip      — top 5 lowest-accuracy methods (≥ 10 attempts)
+//   4. Per-member mastery table    — one row per student with per-member
+//                                    strongest + weakest method (≥ 5 attempts)
+//
+// Non-consented members appear in the roster panel (as an "x not sharing"
+// line); their progress columns are blank. This is the consent contract
+// we promised at /join — visible presence, invisible work.
+
+function InsightsTab({ classId }: { classId: string }) {
+  const [data, setData] = useState<InsightsPayload | null>(null);
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    setErr("");
+    setLoading(true);
+    const r = await getClassInsights(classId);
+    setLoading(false);
+    if (!r.ok) { setErr(r.error); return; }
+    setData(r.data);
+  }, [classId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (loading && !data) {
+    return <div className="card rounded-2xl p-5 text-slate-500 text-sm">Loading insights…</div>;
+  }
+  if (err) {
+    return (
+      <div className="card rounded-xl p-4 border-l-4 border-red-500/60 bg-red-900/10 text-sm text-red-200">
+        {err}
+      </div>
+    );
+  }
+  if (!data) return null;
+
+  // Per-branch rollup — compute from per_case using cases.ts branch metadata.
+  const branchTotals = new Map<string, { attempts: number; correct: number }>();
+  for (const row of data.per_case) {
+    const branch = CASE_BRANCH[row.case_id];
+    if (!branch) continue;
+    const cur = branchTotals.get(branch) || { attempts: 0, correct: 0 };
+    cur.attempts += row.attempts;
+    cur.correct += row.correct;
+    branchTotals.set(branch, cur);
+  }
+  const branchBars = (Object.keys(BRANCHES) as Array<keyof typeof BRANCHES>).map((bid) => {
+    const stats = branchTotals.get(bid) || { attempts: 0, correct: 0 };
+    const pct = stats.attempts > 0 ? Math.round((stats.correct / stats.attempts) * 100) : null;
+    return {
+      id: bid,
+      name: BRANCHES[bid].name,
+      color: BRANCHES[bid].color,
+      attempts: stats.attempts,
+      correct: stats.correct,
+      pct,
+    };
+  });
+
+  // Cohort struggles — lowest-accuracy methods with enough data to mean
+  // something. Threshold (10 attempts) is intentional: on a 5-student class
+  // with a few quiz sessions, anything less is noise.
+  const struggles = data.per_method
+    .filter((m) => m.attempts >= 10)
+    .map((m) => ({ ...m, pct: Math.round((m.correct / m.attempts) * 100) }))
+    .sort((a, b) => a.pct - b.pct)
+    .slice(0, 5);
+
+  // Per-member method breakdown → strongest + weakest with ≥ 5 attempts.
+  const byMember: Record<string, Array<{ method: string; attempts: number; correct: number; pct: number }>> = {};
+  for (const row of data.per_member_method) {
+    const pct = row.attempts > 0 ? Math.round((row.correct / row.attempts) * 100) : 0;
+    (byMember[row.user_id] ||= []).push({ ...row, pct });
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Panel 1: Summary strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <SummaryStat label="Members" value={String(data.summary.total_members)} />
+        <SummaryStat
+          label="Sharing progress"
+          value={`${data.summary.consented_members} / ${data.summary.total_members}`}
+          hint={data.summary.consented_members < data.summary.total_members
+            ? `${data.summary.total_members - data.summary.consented_members} haven't consented`
+            : undefined}
+        />
+        <SummaryStat label="Active · 7d" value={String(data.summary.active_7d)} tone="ok" />
+        <SummaryStat label="Inactive · 14d+" value={String(data.summary.inactive_14d)} tone={data.summary.inactive_14d > 0 ? "warn" : undefined} />
+      </div>
+
+      {/* Panel 2: Per-branch accuracy */}
+      <div className="card rounded-2xl p-5">
+        <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-3">
+          Accuracy by branch
+        </div>
+        {branchBars.every((b) => b.attempts === 0) ? (
+          <div className="text-slate-500 text-sm">No attempts yet. Once students answer questions, branch-level accuracy appears here.</div>
+        ) : (
+          <div className="space-y-2">
+            {branchBars.map((b) => (
+              <div key={b.id} className="flex items-center gap-3">
+                <div className="w-40 shrink-0 text-sm text-slate-200 truncate">{b.name}</div>
+                <div className="flex-1 min-w-0 h-2.5 rounded-full bg-slate-800 overflow-hidden relative">
+                  {b.pct !== null && (
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${Math.max(2, b.pct)}%`, background: b.color }}
+                    />
+                  )}
+                </div>
+                <div className="w-24 shrink-0 text-right text-xs">
+                  {b.pct === null ? (
+                    <span className="text-slate-600">—</span>
+                  ) : (
+                    <>
+                      <span className="text-slate-100 font-semibold mono">{b.pct}%</span>
+                      <span className="text-slate-500 mono ml-1.5">· {b.correct}/{b.attempts}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Panel 3: Cohort struggles */}
+      {struggles.length > 0 && (
+        <div className="card rounded-2xl p-5">
+          <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-3">
+            Where the cohort is struggling most
+          </div>
+          <div className="space-y-1.5">
+            {struggles.map((s) => (
+              <div key={s.method} className="flex items-center gap-3 text-sm">
+                <div className="flex-1 min-w-0 text-slate-200 truncate">
+                  {METHODS[s.method]?.title || s.method}
+                </div>
+                <div className="shrink-0 text-xs">
+                  <span className="mono text-amber-300 font-semibold">{s.pct}%</span>
+                  <span className="mono text-slate-500 ml-1.5">· {s.correct}/{s.attempts}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="text-[11px] text-slate-500 mt-3">
+            Shown when a method has at least 10 attempts across the cohort — too few and it's noise.
+          </div>
+        </div>
+      )}
+
+      {/* Panel 4: Per-member mastery table */}
+      <div className="card rounded-2xl p-0 overflow-hidden">
+        <div className="px-5 py-3 border-b border-slate-700/60 flex items-center justify-between">
+          <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">
+            Per-student mastery
+          </div>
+          <button onClick={load} className="text-xs text-slate-400 hover:text-white transition">
+            ↻ Refresh
+          </button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">
+              <tr className="border-b border-slate-800">
+                <th className="text-left px-5 py-2.5">Student</th>
+                <th className="text-right px-3 py-2.5">Cases</th>
+                <th className="text-right px-3 py-2.5">Accuracy</th>
+                <th className="text-left px-3 py-2.5">Strongest</th>
+                <th className="text-left px-3 py-2.5">Weakest</th>
+                <th className="text-right px-5 py-2.5">Last active</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/60">
+              {data.members.map((m) => (
+                <MemberMasteryRow key={m.user_id} m={m} byMember={byMember[m.user_id] || []} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MemberMasteryRow({ m, byMember }: { m: InsightsMember; byMember: Array<{ method: string; attempts: number; correct: number; pct: number }> }) {
+  // Strongest / weakest require ≥ 5 attempts on that method — fewer and
+  // the accuracy number is too noisy to meaningfully call out.
+  const qualified = byMember.filter((x) => x.attempts >= 5);
+  let strong: typeof qualified[number] | null = null;
+  let weak: typeof qualified[number] | null = null;
+  if (qualified.length > 0) {
+    strong = qualified.slice().sort((a, b) => b.pct - a.pct)[0];
+    weak = qualified.slice().sort((a, b) => a.pct - b.pct)[0];
+    // If only one qualifying method, don't show it as both strong and weak.
+    if (qualified.length === 1) weak = null;
+  }
+
+  const accuracyColor =
+    m.accuracy_pct === null ? "text-slate-600"
+      : m.accuracy_pct >= 80 ? "text-emerald-300"
+      : m.accuracy_pct >= 60 ? "text-slate-200"
+      : "text-amber-300";
+
+  const lastActiveLabel = m.last_active
+    ? new Date(m.last_active).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+    : "—";
+
+  return (
+    <tr className="hover:bg-slate-800/20 transition">
+      <td className="px-5 py-2.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-slate-100 truncate">{m.email || "(email hidden)"}</span>
+          {m.role === "co-instructor" && (
+            <span className="chip text-[9px] bg-cyan-950/50 text-cyan-200 border-cyan-900/60">Co-instructor</span>
+          )}
+          {m.role === "instructor" && (
+            <span className="chip text-[9px] bg-cyan-950/50 text-cyan-200 border-cyan-900/60">Instructor</span>
+          )}
+          {!m.consented && (
+            <span className="chip text-[9px]" style={{background:"rgba(251,191,36,0.08)", color:"#fbbf24", borderColor:"rgba(251,191,36,0.25)"}}>Not sharing</span>
+          )}
+        </div>
+      </td>
+      <td className="text-right px-3 py-2.5 mono text-slate-300">
+        {m.consented ? m.cases_completed : "—"}
+      </td>
+      <td className={`text-right px-3 py-2.5 mono font-semibold ${accuracyColor}`}>
+        {m.consented && m.accuracy_pct !== null ? `${m.accuracy_pct}%` : "—"}
+      </td>
+      <td className="px-3 py-2.5 text-xs text-emerald-300/90">
+        {strong ? (METHODS[strong.method]?.title || strong.method) : <span className="text-slate-600">—</span>}
+      </td>
+      <td className="px-3 py-2.5 text-xs text-amber-300/90">
+        {weak ? (METHODS[weak.method]?.title || weak.method) : <span className="text-slate-600">—</span>}
+      </td>
+      <td className="text-right px-5 py-2.5 text-xs text-slate-400 mono">
+        {m.consented ? lastActiveLabel : "—"}
+      </td>
+    </tr>
+  );
+}
+
+function SummaryStat({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: "ok" | "warn" }) {
+  const valueColor =
+    tone === "ok" ? "text-emerald-300"
+      : tone === "warn" ? "text-amber-300"
+      : "text-slate-100";
+  return (
+    <div className="card rounded-xl px-4 py-3">
+      <div className="text-[9px] uppercase tracking-widest text-slate-500 font-bold">{label}</div>
+      <div className={`text-xl font-bold mono ${valueColor}`}>{value}</div>
+      {hint && <div className="text-[10px] text-slate-500 mt-0.5">{hint}</div>}
+    </div>
+  );
+}
+
+function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-2 text-sm font-semibold -mb-px border-b-2 transition ${
+        active
+          ? "text-cyan-300 border-cyan-400"
+          : "text-slate-400 border-transparent hover:text-slate-200"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 

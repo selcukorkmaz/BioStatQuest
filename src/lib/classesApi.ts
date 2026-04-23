@@ -159,6 +159,38 @@ export function setClassArchived(input: {
   return call("POST", "/api/classes/archive", input);
 }
 
+// Cohort-level analytics for a class. Aggregates completion + accuracy
+// from events + user_progress across all consented members. Non-consented
+// students appear in the roster but with zeroed progress fields, so the
+// instructor can see who hasn't opted in without seeing their work.
+export type InsightsMember = {
+  user_id: string;
+  email: string | null;
+  role: "instructor" | "co-instructor" | "student";
+  consented: boolean;
+  cases_completed: number;
+  xp: number;
+  current_streak: number;
+  last_active: string | null;
+  attempts: number;
+  accuracy_pct: number | null;
+};
+export type InsightsPayload = {
+  summary: {
+    total_members: number;
+    consented_members: number;
+    active_7d: number;
+    inactive_14d: number;
+  };
+  members: InsightsMember[];
+  per_method: Array<{ method: string; attempts: number; correct: number }>;
+  per_case: Array<{ case_id: string; attempts: number; correct: number }>;
+  per_member_method: Array<{ user_id: string; method: string; attempts: number; correct: number }>;
+};
+export function getClassInsights(classId: string): Promise<Result<InsightsPayload>> {
+  return call("GET", `/api/classes/insights?class_id=${encodeURIComponent(classId)}`);
+}
+
 // Convenience: is the caller an instructor or co-instructor anywhere?
 // Used by App to decide whether to show the "Teach" nav item. Resolves
 // to false on any error so a failed network call doesn't show the tab
