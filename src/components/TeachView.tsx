@@ -18,6 +18,8 @@ import {
   inviteToClass,
   listMyClasses,
   listClassMembers,
+  updateMember,
+  setClassArchived,
   type ClassSummary,
   type ClassMember,
 } from "../lib/classesApi";
@@ -218,11 +220,17 @@ function NewClassForm({ onCreated }: { onCreated: (id: string) => void }) {
 // ---------------------------------------------------------------------------
 // DETAIL
 // ---------------------------------------------------------------------------
-function ClassDetail({ classId, onInvite }: { classId: string; onInvite: () => void }) {
+function ClassDetail({ classId, onInvite, onArchived }: { classId: string; onInvite: () => void; onArchived?: () => void }) {
   const [cls, setCls] = useState<ClassSummary | null>(null);
   const [members, setMembers] = useState<ClassMember[] | null>(null);
   const [err, setErr] = useState("");
   const [copied, setCopied] = useState(false);
+
+  // Caller identity — needed so we don't offer "remove" on the caller's
+  // own row (server would reject but we hide the button preemptively).
+  const currentUserId: string | undefined = (() => {
+    try { return (window as any).BQAuth?.getUser?.()?.id; } catch { return undefined; }
+  })();
 
   const load = useCallback(async () => {
     setErr("");
@@ -239,6 +247,13 @@ function ClassDetail({ classId, onInvite }: { classId: string; onInvite: () => v
   }, [classId]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Writability + archive-permission derivations. Co-instructors can
+  // manage members in a writable class but cannot archive it — that's
+  // a primary-instructor action.
+  const isWritable = !!cls && !cls.archived_at && cls.subscription_status !== "lapsed";
+  const canManageMembers = isWritable && !!cls && (cls.role === "instructor" || cls.role === "co-instructor");
+  const isPrimaryInstructor = !!cls && cls.role === "instructor";
 
   async function copyCode() {
     if (!cls?.code) return;
@@ -263,15 +278,25 @@ function ClassDetail({ classId, onInvite }: { classId: string; onInvite: () => v
     <div>
       <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
         <div className="min-w-0">
-          <h2 className="t-title text-white mb-1 truncate">{cls?.name}</h2>
+          <h2 className="t-title text-white mb-1 truncate inline-flex items-center gap-3">
+            {cls?.name}
+            {cls?.archived_at && (
+              <span className="chip text-[10px]" style={{background:"rgba(148,163,184,0.10)", color:"#94a3b8"}}>Archived</span>
+            )}
+            {cls?.subscription_status === "lapsed" && (
+              <span className="chip text-[10px]" style={{background:"rgba(251,191,36,0.10)", color:"#fbbf24", borderColor:"rgba(251,191,36,0.3)"}}>Lapsed · read-only</span>
+            )}
+          </h2>
           {cls?.institution_name && (
             <p className="text-sm text-slate-400">{cls.institution_name}</p>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={onInvite} className="btn btn-primary px-5 py-2.5 rounded-xl text-sm">
-            + Invite
-          </button>
+          {isWritable && (
+            <button onClick={onInvite} className="btn btn-primary px-5 py-2.5 rounded-xl text-sm">
+              + Invite
+            </button>
+          )}
         </div>
       </div>
 
@@ -313,38 +338,226 @@ function ClassDetail({ classId, onInvite }: { classId: string; onInvite: () => v
         {members !== null && members.length > 0 && (
           <div className="divide-y divide-slate-700/40">
             {members.map((m) => (
-              <MemberRow key={m.user_id} m={m} />
+              <MemberRow
+                key={m.user_id}
+                m={m}
+                classId={classId}
+                canManage={canManageMembers}
+                currentUserId={currentUserId}
+                onChanged={load}
+              />
             ))}
           </div>
         )}
       </div>
+
+      {/* Archive / Unarchive — primary-instructor only. Separated from the
+          roster card and visually muted so nobody clicks it by accident. */}
+      {isPrimaryInstructor && (
+        <ArchiveBlock
+          classId={classId}
+          archived={!!cls?.archived_at}
+          onChanged={() => { load(); onArchived?.(); }}
+        />
+      )}
     </div>
   );
 }
 
-function MemberRow({ m }: { m: ClassMember }) {
-  const isInstructor = m.role === "instructor" || m.role === "co-instructor";
+// ---------------------------------------------------------------------------
+// Archive block — bottom of ClassDetail, primary-instructor only
+// ---------------------------------------------------------------------------
+function ArchiveBlock({ classId, archived, onChanged }: { classId: string; archived: boolean; onChanged: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function apply(next: boolean) {
+    setBusy(true);
+    setErr("");
+    const r = await setClassArchived({ class_id: classId, archived: next });
+    setBusy(false);
+    if (!r.ok) { setErr(r.error); return; }
+    setConfirming(false);
+    onChanged();
+  }
+
   return (
-    <div className="px-5 py-3 flex items-center gap-4 hover:bg-slate-800/30 transition">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <div className="text-sm font-semibold text-white truncate">{m.email || "(email hidden)"}</div>
-          <span className={`chip text-[10px] ${isInstructor ? "bg-cyan-950/50 text-cyan-200 border-cyan-900/60" : ""}`} style={isInstructor ? {} : {background:"rgba(148,163,184,0.08)"}}>
-            {m.role === "co-instructor" ? "Co-instructor" : m.role === "instructor" ? "Instructor" : "Student"}
-          </span>
-          {!m.consented && (
-            <span className="chip text-[10px]" title="Student hasn't consented to progress visibility" style={{background:"rgba(251,191,36,0.08)", color:"#fbbf24", borderColor:"rgba(251,191,36,0.25)"}}>No progress visible</span>
+    <div className="mt-6 card rounded-2xl p-5 border border-slate-800/60">
+      <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2">Danger zone</div>
+      {!archived && !confirming && (
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
+            <div className="text-sm text-slate-200 font-semibold">Archive this class</div>
+            <div className="text-xs text-slate-500 mt-0.5">
+              Freezes the roster — no new invites, no role changes. Members keep their own progress. You can unarchive later.
+            </div>
+          </div>
+          <button
+            onClick={() => setConfirming(true)}
+            className="btn btn-ghost px-4 py-2 rounded-lg text-xs whitespace-nowrap border border-amber-600/40 text-amber-300 hover:bg-amber-900/20"
+          >
+            Archive class
+          </button>
+        </div>
+      )}
+      {!archived && confirming && (
+        <div>
+          <div className="text-sm text-amber-200 mb-3">
+            Archive this class? You can unarchive it again from this page.
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setConfirming(false)}
+              disabled={busy}
+              className="btn btn-ghost px-4 py-2 rounded-lg text-xs"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => apply(true)}
+              disabled={busy}
+              className="btn px-4 py-2 rounded-lg text-xs bg-amber-600 hover:bg-amber-500 text-white disabled:opacity-50"
+            >
+              {busy ? "Archiving…" : "Confirm archive"}
+            </button>
+          </div>
+        </div>
+      )}
+      {archived && (
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
+            <div className="text-sm text-slate-200 font-semibold">This class is archived</div>
+            <div className="text-xs text-slate-500 mt-0.5">
+              Unarchiving restores full write access — you can invite, remove members, and change roles again.
+            </div>
+          </div>
+          <button
+            onClick={() => apply(false)}
+            disabled={busy}
+            className="btn btn-ghost px-4 py-2 rounded-lg text-xs whitespace-nowrap border border-emerald-600/40 text-emerald-300 hover:bg-emerald-900/20 disabled:opacity-50"
+          >
+            {busy ? "Unarchiving…" : "Unarchive"}
+          </button>
+        </div>
+      )}
+      {err && <div className="text-xs text-red-400 mt-2">{err}</div>}
+    </div>
+  );
+}
+
+function MemberRow({
+  m,
+  classId,
+  canManage,
+  currentUserId,
+  onChanged,
+}: {
+  m: ClassMember;
+  classId: string;
+  canManage: boolean;
+  currentUserId?: string;
+  onChanged: () => void;
+}) {
+  const isInstructor = m.role === "instructor" || m.role === "co-instructor";
+
+  // Show action affordances when:
+  //   • the class is writable and caller is an instructor/co-instructor
+  //   • target isn't the caller themselves
+  //   • target isn't the class's primary instructor (protected)
+  const showActions =
+    canManage && currentUserId !== m.user_id && m.role !== "instructor";
+
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [confirmRemove, setConfirmRemove] = useState(false);
+
+  async function act(action: "promote" | "demote" | "remove") {
+    setBusy(true);
+    setErr("");
+    const r = await updateMember({ class_id: classId, user_id: m.user_id, action });
+    setBusy(false);
+    if (!r.ok) { setErr(r.error); return; }
+    setConfirmRemove(false);
+    onChanged();
+  }
+
+  return (
+    <div className="px-5 py-3 hover:bg-slate-800/30 transition">
+      <div className="flex items-center gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="text-sm font-semibold text-white truncate">{m.email || "(email hidden)"}</div>
+            <span className={`chip text-[10px] ${isInstructor ? "bg-cyan-950/50 text-cyan-200 border-cyan-900/60" : ""}`} style={isInstructor ? {} : {background:"rgba(148,163,184,0.08)"}}>
+              {m.role === "co-instructor" ? "Co-instructor" : m.role === "instructor" ? "Instructor" : "Student"}
+            </span>
+            {!m.consented && (
+              <span className="chip text-[10px]" title="Student hasn't consented to progress visibility" style={{background:"rgba(251,191,36,0.08)", color:"#fbbf24", borderColor:"rgba(251,191,36,0.25)"}}>No progress visible</span>
+            )}
+          </div>
+          <div className="text-[11px] text-slate-500 mono mt-0.5">
+            Joined {new Date(m.joined_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
+          </div>
+        </div>
+        <div className="flex items-center gap-5 text-right shrink-0 text-xs">
+          <Stat label="XP" value={typeof m.xp === "number" ? m.xp.toLocaleString() : "—"} />
+          <Stat label="Cases" value={typeof m.cases_completed === "number" ? String(m.cases_completed) : "—"} />
+          <Stat label="Streak" value={typeof m.current_streak === "number" ? String(m.current_streak) : "—"} />
+        </div>
+      </div>
+
+      {showActions && (
+        <div className="mt-2.5 flex items-center gap-2 flex-wrap text-[11px]">
+          {m.role === "student" && (
+            <button
+              onClick={() => act("promote")}
+              disabled={busy}
+              className="px-2.5 py-1 rounded-md border border-cyan-800/50 text-cyan-300 hover:bg-cyan-900/20 disabled:opacity-50"
+              title="Grant co-instructor permissions"
+            >
+              ↑ Promote to co-instructor
+            </button>
           )}
+          {m.role === "co-instructor" && (
+            <button
+              onClick={() => act("demote")}
+              disabled={busy}
+              className="px-2.5 py-1 rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800/40 disabled:opacity-50"
+              title="Revoke co-instructor permissions"
+            >
+              ↓ Demote to student
+            </button>
+          )}
+          {!confirmRemove ? (
+            <button
+              onClick={() => setConfirmRemove(true)}
+              disabled={busy}
+              className="px-2.5 py-1 rounded-md border border-red-900/50 text-red-300/90 hover:bg-red-900/20 disabled:opacity-50 ml-auto"
+            >
+              Remove
+            </button>
+          ) : (
+            <div className="ml-auto inline-flex items-center gap-2">
+              <span className="text-red-300">Remove from class?</span>
+              <button
+                onClick={() => setConfirmRemove(false)}
+                disabled={busy}
+                className="px-2.5 py-1 rounded-md border border-slate-700 text-slate-300 hover:bg-slate-800/40 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => act("remove")}
+                disabled={busy}
+                className="px-2.5 py-1 rounded-md bg-red-600 hover:bg-red-500 text-white disabled:opacity-50"
+              >
+                {busy ? "Removing…" : "Confirm"}
+              </button>
+            </div>
+          )}
+          {err && <span className="text-red-400">{err}</span>}
         </div>
-        <div className="text-[11px] text-slate-500 mono mt-0.5">
-          Joined {new Date(m.joined_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
-        </div>
-      </div>
-      <div className="flex items-center gap-5 text-right shrink-0 text-xs">
-        <Stat label="XP" value={typeof m.xp === "number" ? m.xp.toLocaleString() : "—"} />
-        <Stat label="Cases" value={typeof m.cases_completed === "number" ? String(m.cases_completed) : "—"} />
-        <Stat label="Streak" value={typeof m.current_streak === "number" ? String(m.current_streak) : "—"} />
-      </div>
+      )}
     </div>
   );
 }

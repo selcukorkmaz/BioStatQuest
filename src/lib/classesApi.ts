@@ -137,6 +137,28 @@ export function joinByCode(input: {
   return call("POST", "/api/classes/join-by-code", input);
 }
 
+// Member management — promote student → co-instructor, demote co-instructor
+// → student, or remove a member entirely (soft-delete via left_at).
+// Server-side guards block acting on 'instructor' rows, acting on your own
+// row, and acting in a non-writable class.
+export function updateMember(input: {
+  class_id: string;
+  user_id: string;
+  action: "promote" | "demote" | "remove";
+}): Promise<Result<{ ok: true; role: "student" | "co-instructor" | null }>> {
+  return call("POST", "/api/classes/update-member", input);
+}
+
+// Archive or unarchive a class. Only the primary instructor can flip this.
+// Archived classes stay visible but are frozen — no invites, no roster
+// writes, roster still readable.
+export function setClassArchived(input: {
+  class_id: string;
+  archived: boolean;
+}): Promise<Result<{ ok: true; archived_at: string | null }>> {
+  return call("POST", "/api/classes/archive", input);
+}
+
 // Convenience: is the caller an instructor or co-instructor anywhere?
 // Used by App to decide whether to show the "Teach" nav item. Resolves
 // to false on any error so a failed network call doesn't show the tab
