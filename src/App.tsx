@@ -12,6 +12,8 @@ import { AuthButton, SignInCard } from "./components/AuthButton";
 import { DeepDive } from "./components/DeepDive";
 import { CasePlay } from "./components/CasePlay";
 import { TeachView } from "./components/TeachView";
+import { JoinView } from "./components/JoinView";
+import { MyClassesBand } from "./components/MyClassesBand";
 import { hasAnyInstructorRole } from "./lib/classesApi";
 import { levelFromXP, xpForLevel } from "./lib/xp";
 import { DIFFICULTIES, REVIEW_CASE_ID } from "./lib/difficulty";
@@ -821,6 +823,10 @@ function Home({ state, onStartCase, onNav, onOpenBranch, onReview }) {
           )}
         </div>
       </div>
+
+      {/* Class memberships band — shows every active membership (any role)
+          plus a "Join by code" form. Invisible to guests. */}
+      <MyClassesBand onOpenTeach={() => onNav("teach")} />
 
       {/* Contextual nudge — only renders if the streak is at risk */}
       <StreakBanner state={state} onStartCase={onStartCase} />
@@ -7271,6 +7277,10 @@ function App() {
   // First-run routing: zero-progress + never-decided users land on onboarding.
   const [view, setView] = useState(() => {
     if (typeof window !== "undefined") {
+      // Class invite landing — vercel.json rewrites /join → biostat-quest.html
+      // so the React app handles the URL. Check the pathname first; query-
+      // param token is read inside JoinView from window.location.search.
+      if (window.location.pathname === "/join") return "join";
       const qs = new URLSearchParams(window.location.search);
       if (qs.get("admin") === "1" || window.location.hash === "#admin") return "admin";
       // Intent-to-sign-in (e.g. landing page "Sign in" → ?auth=1) should mount
@@ -7621,7 +7631,7 @@ function App() {
 
   return (
     <div className="min-h-screen">
-      {view !== "onboarding" && view !== "diagnostic" && view !== "results" && (
+      {view !== "onboarding" && view !== "diagnostic" && view !== "results" && view !== "join" && (
         <TopBar state={state} setState={setState} onReset={resetProgress} onNav={(v)=>{ if(v==="tree") setInitialBranch(null); setView(v); }} current={view}/>
       )}
       {view === "onboarding" && <OnboardingIntro state={state} setState={setState} onStart={beginDiagnostic} onSkip={skipDiagnostic}/>}
@@ -7664,6 +7674,7 @@ function App() {
       {view === "result"   && <CaseResult result={lastResult} onHome={()=>setView("home")} onReplay={replay} onNext={(id)=>{setActiveCase(id); setView("select");}} onShare={(a)=>setSharePending(a)} srs={state.srs} state={state} onOpenGlossary={openGlossary}/>}
       {view === "admin"    && <AdminReports onHome={()=>setView("home")}/>}
       {view === "teach"    && <TeachView onHome={()=>setView("home")}/>}
+      {view === "join"     && <JoinView/>}
       {sharePending && (
         <ShareCardModal
           achievement={sharePending}

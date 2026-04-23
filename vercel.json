@@ -6,6 +6,9 @@
   "crons": [
     { "path": "/api/cron/reengagement", "schedule": "0 10 * * *" }
   ],
+  "rewrites": [
+    { "source": "/join", "destination": "/biostat-quest.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
