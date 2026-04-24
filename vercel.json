@@ -7,7 +7,18 @@
     { "path": "/api/cron/reengagement", "schedule": "0 10 * * *" }
   ],
   "rewrites": [
-    { "source": "/join", "destination": "/biostat-quest" }
+    { "source": "/join", "destination": "/biostat-quest" },
+    { "source": "/diagnostic", "destination": "/biostat-quest" },
+    { "source": "/diagnostic/results", "destination": "/biostat-quest" },
+    { "source": "/tree", "destination": "/biostat-quest" },
+    { "source": "/lab", "destination": "/biostat-quest" },
+    { "source": "/rlab", "destination": "/biostat-quest" },
+    { "source": "/badges", "destination": "/biostat-quest" },
+    { "source": "/leaderboard", "destination": "/biostat-quest" },
+    { "source": "/stats", "destination": "/biostat-quest" },
+    { "source": "/glossary", "destination": "/biostat-quest" },
+    { "source": "/admin", "destination": "/biostat-quest" },
+    { "source": "/teach", "destination": "/biostat-quest" }
   ],
   "headers": [
     {

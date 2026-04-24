@@ -44,6 +44,8 @@ import { getNarrative, getNarrativeQids, getActForQid } from "./data/caseNarrati
 import { GLOSSARY, GLOSSARY_BY_ID, GLOSSARY_KIND_META, normalizeGlossaryText } from "./data/glossary";
 import { fmtNumber, fmtDate, fmtDateTime, fmtTime } from "./lib/format";
 import { buildStudyPath, recommendedDifficultyFromBand, bandLabel } from "./lib/diagnostic";
+import { useUrlPath } from "./lib/useUrlPath";
+import { viewFromPath, pathFromView, viewHasUrl } from "./lib/viewRoutes";
 
 
 // ============================================================
@@ -7249,18 +7251,34 @@ function AdminReports({ onHome }) {
 // ============================================================
 function App() {
   const [state, setState] = useState(loadState());
+
+  // URL ↔ view sync. The initial view is resolved once; thereafter the
+  // wrapped setView pushes URL updates, and popstate (back/forward) is
+  // handled via the effect below.
+  const { path: urlPath, navigate } = useUrlPath();
+
   // First-run routing: zero-progress + never-decided users land on onboarding.
-  const [view, setView] = useState(() => {
+  const [view, _setView] = useState(() => {
     if (typeof window !== "undefined") {
-      // Class invite landing — vercel.json rewrites /join → biostat-quest.html
+      // Class invite landing — vercel.json rewrites /join → /biostat-quest
       // so the React app handles the URL. Check the pathname first; query-
       // param token is read inside JoinView from window.location.search.
       if (window.location.pathname === "/join") return "join";
       const qs = new URLSearchParams(window.location.search);
-      if (qs.get("admin") === "1" || window.location.hash === "#admin") return "admin";
+      // Back-compat triggers: pre-URL-routing era used ?admin=1 / #admin.
+      // Honor them and replace the URL with the canonical /admin so the
+      // back button doesn't take the user to ?admin=1 ad infinitum.
+      if (qs.get("admin") === "1" || window.location.hash === "#admin") {
+        try { window.history.replaceState(null, "", "/admin"); } catch {}
+        return "admin";
+      }
       // Intent-to-sign-in (e.g. landing page "Sign in" → ?auth=1) should mount
       // the TopBar so AuthButton can open its modal; skip onboarding for now.
       if (qs.get("auth") === "1") return "home";
+      // Honor an explicit URL path. /teach, /admin, /glossary, etc. all
+      // route here without query-param hacks.
+      const fromUrl = viewFromPath(window.location.pathname);
+      if (fromUrl) return fromUrl;
     }
     const glossaryHash = typeof window !== "undefined" ? parseGlossaryHash(window.location.hash) : null;
     if (glossaryHash) return "glossary";
@@ -7282,6 +7300,29 @@ function App() {
     } catch { /* sandboxed contexts → treat as guest */ }
     return neverDecided && zeroProgress && !isSignedInOnMount ? "onboarding" : "home";
   });
+
+  // Wrapped setView: every state change also pushes the canonical URL
+  // (when the view has one). Transient views — play / select / result —
+  // leave the URL alone since they need params we haven't put there yet.
+  // Phase 6's view extraction is the natural moment to migrate those
+  // to /case/:caseId / /case/:caseId/play / /case/:caseId/result.
+  const setView = React.useCallback((next: string) => {
+    _setView(next);
+    if (viewHasUrl(next)) {
+      const path = pathFromView(next);
+      if (path) navigate(path);
+    }
+  }, [navigate]);
+
+  // Browser back/forward: when the URL changes (popstate fires inside
+  // useUrlPath), reconcile the view to whatever the URL now says. Skip
+  // the join view because /join is handled by its own initial-resolver
+  // path and JoinView reads its token directly from window.location.
+  useEffect(() => {
+    if (urlPath === "/join") return;
+    const fromUrl = viewFromPath(urlPath);
+    if (fromUrl && fromUrl !== view) _setView(fromUrl);
+  }, [urlPath]); // eslint-disable-line react-hooks/exhaustive-deps
   const [activeCase, setActiveCase] = useState(null);
   const [activeDiff, setActiveDiff] = useState("intern");
   const [activeQuestions, setActiveQuestions] = useState([]);

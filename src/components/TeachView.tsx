@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Instructor surface — the "Teach" tab. Four sub-views, all in this one
 // file so App.tsx doesn't grow further:
 //
@@ -21,6 +20,7 @@ import {
   updateMember,
   setClassArchived,
   getClassInsights,
+  errorOf,
   type ClassSummary,
   type ClassMember,
   type InsightsPayload,
@@ -75,7 +75,7 @@ function ClassesList({ onOpenClass, onNewClass }: { onOpenClass: (id: string) =>
   const load = useCallback(async () => {
     setErr("");
     const r = await listMyClasses();
-    if (!r.ok) { setErr(r.error); setClasses([]); return; }
+    if (!r.ok) { setErr(errorOf(r)); setClasses([]); return; }
     setClasses(r.data.classes);
   }, []);
 
@@ -183,7 +183,7 @@ function NewClassForm({ onCreated }: { onCreated: (id: string) => void }) {
       description: description.trim() || undefined,
     });
     setBusy(false);
-    if (!r.ok) { setErr(r.error); return; }
+    if (!r.ok) { setErr(errorOf(r)); return; }
     onCreated(r.data.id);
   }
 
@@ -256,8 +256,8 @@ function ClassDetail({ classId, onInvite, onArchived }: { classId: string; onInv
       listMyClasses(),
       listClassMembers(classId),
     ]);
-    if (!classesRes.ok) { setErr(classesRes.error); return; }
-    if (!membersRes.ok) { setErr(membersRes.error); return; }
+    if (!classesRes.ok) { setErr(errorOf(classesRes)); return; }
+    if (!membersRes.ok) { setErr(errorOf(membersRes)); return; }
     const found = classesRes.data.classes.find((c) => c.id === classId) || null;
     setCls(found);
     setMembers(membersRes.data.members);
@@ -407,7 +407,7 @@ function ArchiveBlock({ classId, archived, onChanged }: { classId: string; archi
     setErr("");
     const r = await setClassArchived({ class_id: classId, archived: next });
     setBusy(false);
-    if (!r.ok) { setErr(r.error); return; }
+    if (!r.ok) { setErr(errorOf(r)); return; }
     setConfirming(false);
     onChanged();
   }
@@ -507,7 +507,7 @@ function MemberRow({
     setErr("");
     const r = await updateMember({ class_id: classId, user_id: m.user_id, action });
     setBusy(false);
-    if (!r.ok) { setErr(r.error); return; }
+    if (!r.ok) { setErr(errorOf(r)); return; }
     setConfirmRemove(false);
     onChanged();
   }
@@ -619,7 +619,7 @@ function InviteForm({ classId, onBack }: { classId: string; onBack: () => void }
     setBusy(true);
     const r = await inviteToClass({ class_id: classId, email: email.trim(), role });
     setBusy(false);
-    if (!r.ok) { setErr(r.error); return; }
+    if (!r.ok) { setErr(errorOf(r)); return; }
     setResult({ join_url: r.data.join_url, email_sent: r.data.email_sent, expires_at: r.data.expires_at });
   }
 
@@ -720,7 +720,7 @@ function InsightsTab({ classId }: { classId: string }) {
     setLoading(true);
     const r = await getClassInsights(classId);
     setLoading(false);
-    if (!r.ok) { setErr(r.error); return; }
+    if (!r.ok) { setErr(errorOf(r)); return; }
     setData(r.data);
   }, [classId]);
 

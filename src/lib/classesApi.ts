@@ -41,6 +41,16 @@ export type Ok<T> = { ok: true; data: T };
 export type Err = { ok: false; error: string; status?: number };
 export type Result<T> = Ok<T> | Err;
 
+/**
+ * Type-safe error message extraction. Use this at consumer sites instead of
+ * `r.error` because tsconfig sets `strict: false`, which disables the
+ * implicit narrowing of `if (!r.ok) { ... r.error }`. This helper carries
+ * the type assertion in one place so callers stay readable.
+ */
+export function errorOf(r: { ok: boolean }): string {
+  return r.ok ? "" : (r as Err).error;
+}
+
 // ------- JWT plumbing -------
 // Pulls the freshest access_token out of Supabase's localStorage row. No
 // SDK dependency — the app is already using Supabase JS elsewhere; we

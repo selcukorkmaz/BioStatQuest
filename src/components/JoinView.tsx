@@ -1,4 +1,3 @@
-// @ts-nocheck
 // /join?token=XXX landing page. Consumed by instructors' invite emails.
 // Vercel rewrites /join → biostat-quest.html so the React app handles it;
 // App.tsx detects location.pathname === "/join" on mount and renders
@@ -15,7 +14,7 @@
 
 import * as React from "react";
 import { useState } from "react";
-import { acceptInvite } from "../lib/classesApi";
+import { acceptInvite, errorOf } from "../lib/classesApi";
 import { SignInCard } from "./AuthButton";
 import { Ico } from "./Icons";
 
@@ -48,7 +47,7 @@ export function JoinView() {
     setBusy(true);
     const r = await acceptInvite({ token, consent: true });
     setBusy(false);
-    if (!r.ok) { setErr(r.error); return; }
+    if (!r.ok) { setErr(errorOf(r)); return; }
     setResult({ class_name: r.data.class_name, role: r.data.role });
   }
 

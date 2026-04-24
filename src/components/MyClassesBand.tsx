@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Home-screen band for class membership surfacing + join-by-code entry.
 //
 // Shown to all signed-in users. Renders nothing for signed-out users
@@ -18,6 +17,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   listMyClasses,
   joinByCode,
+  errorOf,
   type ClassSummary,
 } from "../lib/classesApi";
 import { Ico } from "./Icons";
@@ -132,7 +132,7 @@ function JoinByCodeForm({ onJoined, compact }: { onJoined: () => void; compact?:
     setBusy(true);
     const r = await joinByCode({ code: normalized, consent: true });
     setBusy(false);
-    if (!r.ok) { setErr(r.error); return; }
+    if (!r.ok) { setErr(errorOf(r)); return; }
     setOk(`Joined ${r.data.class_name}.`);
     setCode("");
     setConsent(false);
