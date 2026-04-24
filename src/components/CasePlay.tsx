@@ -10,6 +10,7 @@ import { CASES } from "../data/cases";
 import { getNarrative, getActForQid } from "../data/caseNarratives";
 import { gradeCard as srsGradeCard } from "../lib/srs";
 import { DIFFICULTIES, REVIEW_CASE_ID } from "../lib/difficulty";
+import { fmtDate } from "../lib/format";
 import { Ico } from "./Icons";
 import { DeepDive } from "./DeepDive";
 
@@ -409,7 +410,7 @@ function FSRSGradeBar({ qid, isLast, correct, timedOut, onAdvance }) {
       </div>
       {nextDue && (
         <div className="mt-2 text-[11px] text-slate-500 text-center mono">
-          Next review · {new Date(nextDue).toLocaleDateString()}
+          Next review · {fmtDate(nextDue)}
         </div>
       )}
       <div className="mt-3 text-center">

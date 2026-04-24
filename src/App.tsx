@@ -42,6 +42,7 @@ import { CASES } from "./data/cases";
 import { DIAGNOSTIC } from "./data/diagnostic";
 import { getNarrative, getNarrativeQids, getActForQid } from "./data/caseNarratives";
 import { GLOSSARY, GLOSSARY_BY_ID, GLOSSARY_KIND_META, normalizeGlossaryText } from "./data/glossary";
+import { fmtNumber, fmtDate, fmtDateTime, fmtTime } from "./lib/format";
 
 
 // ============================================================
@@ -643,7 +644,7 @@ function TopBar({ state, setState, onReset, onNav, current }) {
             <div className="flex items-center gap-1.5 justify-end whitespace-nowrap text-xs text-slate-300">
               <span className="font-semibold text-white">Lv {level}</span>
               <span className="text-slate-600">·</span>
-              <span className="mono text-slate-400">{state.xp.toLocaleString("en-US")} XP</span>
+              <span className="mono text-slate-400">{fmtNumber(state.xp)} XP</span>
             </div>
             <div className="bar w-32 sm:w-40 mt-1.5 ml-auto"><div style={{width: pct+"%"}}></div></div>
           </div>
@@ -816,7 +817,7 @@ function Home({ state, setState, onStartCase, onNav, onOpenBranch, onReview }) {
         <div className="min-w-0">
           <div className="tag text-purple-400 mb-1">Welcome back, {title}</div>
           <div className="text-xs sm:text-sm text-slate-400">
-            {completed.length} of {CASES.length} cases · {state.xp.toLocaleString("en-US")} XP
+            {completed.length} of {CASES.length} cases · {fmtNumber(state.xp)} XP
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
@@ -2832,7 +2833,7 @@ ${l.code}
                   {history.map((h,i) => (
                     <div key={i} className="flex items-center gap-3">
                       <span className="inline-flex items-center" style={{color: h.ok ? "#10b981" : "#ef4444"}}><Ico name={h.ok ? "check" : "cross"} size={12}/></span>
-                      <span className="text-slate-500">{new Date(h.at).toLocaleTimeString()}</span>
+                      <span className="text-slate-500">{fmtTime(h.at)}</span>
                       <span className="text-slate-200">{(R_LESSONS.find(l=>l.id===h.lessonId)||{}).title}</span>
                       {h.ok && <span className="ml-auto">{h.ms} ms</span>}
                     </div>
@@ -3442,7 +3443,7 @@ function buildShareCardSVG({ icon, kindLabel, title, subtitle, xp, level, streak
   const safeTitle = svgEscape(title || "");
   const safeSub   = svgEscape(subtitle || "");
   const safeTag   = svgEscape(tagline || "BioStat Quest · biostat-quest.vercel.app");
-  const xpStr     = (xp ?? 0).toLocaleString("en-US");
+  const xpStr     = fmtNumber(xp ?? 0);
   const lvlStr    = `LV ${level ?? 1}`;
   const streakNum = streak ? String(streak) : "";
   const streakIcon = streak ? iconSvgFragment("flame", 524, 52, 28, "#fbbf24", 2) : "";
@@ -3973,7 +3974,7 @@ function Leaderboard({ state, setState, onNav }) {
                   <td className="p-3 sm:p-4 text-slate-300">Lv {p.level}</td>
                   <td className="p-3 sm:p-4 text-slate-300 hidden sm:table-cell">{p.cases}</td>
                   <td className="p-3 sm:p-4 text-slate-300 hidden sm:table-cell">{p.streak ? (<span className="inline-flex items-center gap-1.5 text-orange-300"><Ico name="flame" size={12}/> {p.streak}</span>) : "—"}</td>
-                  <td className="p-3 sm:p-4 text-right gold-text font-extrabold text-base sm:text-lg">{p.xp.toLocaleString("en-US")}</td>
+                  <td className="p-3 sm:p-4 text-right gold-text font-extrabold text-base sm:text-lg">{fmtNumber(p.xp)}</td>
                 </tr>
               ))}
             </tbody>
@@ -6482,7 +6483,7 @@ function AdminOverview({ users, openReportsCount, events, reports, onNavigate })
         {card("Diagnostic completed", diagnosticCompleters, `${safe.length ? Math.round(diagnosticCompleters/safe.length*100) : 0}% of users`)}
         {card("Activation (≥1 case)", `${activationRate}%`, `${activatedUsers} / ${safe.length} users`)}
         {card("Day-7 retention", d7Retention === null ? "–" : `${d7Retention}%`, cohort.length ? `${cohortRetained} / ${cohort.length} 7d+ cohort active` : "no cohort yet")}
-        {card("Cases completed (all)", totalCasesCompleted, `${totalXP.toLocaleString("en-US")} total XP`)}
+        {card("Cases completed (all)", totalCasesCompleted, `${fmtNumber(totalXP)} total XP`)}
       </div>
 
       {/* Anonymous / guest funnel */}
@@ -6643,7 +6644,7 @@ function AdminUsers({ users, onRefresh }) {
       if (diff < 3600e3) return Math.round(diff/60e3) + "m ago";
       if (diff < day) return Math.round(diff/3600e3) + "h ago";
       if (diff < 30*day) return Math.round(diff/day) + "d ago";
-      return d.toLocaleDateString();
+      return fmtDate(d);
     } catch { return iso; }
   };
 
@@ -6704,7 +6705,7 @@ function AdminUsers({ users, onRefresh }) {
                   </div>
                   <div className="md:col-span-2"><span className={`chip text-xs ${u.user_type==='pro'?'bg-amber-900/40 text-amber-300':u.user_type==='institutional'?'bg-cyan-900/40 text-cyan-300':'bg-slate-800 text-slate-300'}`}>{u.user_type || "free"}</span></div>
                   <div className="md:col-span-1 md:text-right text-slate-300 mono text-xs">Lv {lvl}</div>
-                  <div className="md:col-span-1 md:text-right text-slate-300 mono text-xs">{(s.xp || 0).toLocaleString("en-US")}</div>
+                  <div className="md:col-span-1 md:text-right text-slate-300 mono text-xs">{fmtNumber(s.xp || 0)}</div>
                   <div className="md:col-span-1 md:text-right text-slate-300 mono text-xs">{(s.completed?.length) || 0}</div>
                   <div className="md:col-span-1 md:text-right text-slate-300 mono text-xs">{s.currentStreak || 0}</div>
                   <div className="md:col-span-2 md:text-right text-slate-500 mono text-xs">{fmt(u.updated_at)}</div>
@@ -6732,8 +6733,8 @@ function AdminUsers({ users, onRefresh }) {
                     <div>
                       <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Account</div>
                       <div>User ID: <span className="mono text-slate-400">{u.user_id}</span></div>
-                      <div>Signed up: <span className="text-slate-200">{new Date(u.created_at).toLocaleString()}</span></div>
-                      <div>Last saved: <span className="text-slate-200">{new Date(u.updated_at).toLocaleString()}</span></div>
+                      <div>Signed up: <span className="text-slate-200">{fmtDateTime(u.created_at)}</span></div>
+                      <div>Last saved: <span className="text-slate-200">{fmtDateTime(u.updated_at)}</span></div>
                       <div>Onboarding: {s.onboardingCompletedAt ? <span className="text-emerald-300">completed</span> : s.onboardingSkippedAt ? <span className="text-slate-400">skipped</span> : <span className="text-amber-300">not taken</span>}</div>
                       {typeof s.diagnosticProfile?.label === "string" && (
                         <div>Diagnostic profile: <span className="text-slate-200">{s.diagnosticProfile.label}</span></div>
@@ -6975,7 +6976,7 @@ function AdminWaitlist() {
             <div key={r.id} className="grid grid-cols-12 gap-3 px-4 py-2 border-t border-slate-800/60 text-sm">
               <div className="col-span-7 text-slate-100 truncate">{r.email}</div>
               <div className="col-span-3"><span className="chip text-xs bg-slate-800 text-slate-400">{r.source || "unknown"}</span></div>
-              <div className="col-span-2 text-right text-slate-500 mono text-xs">{new Date(r.created_at).toLocaleDateString()}</div>
+              <div className="col-span-2 text-right text-slate-500 mono text-xs">{fmtDate(r.created_at)}</div>
             </div>
           ))}
         </div>
@@ -7025,7 +7026,7 @@ function AdminActivity({ events }) {
     if (diff < 60e3) return "just now";
     if (diff < 3600e3) return Math.round(diff/60e3) + "m ago";
     if (diff < 86400e3) return Math.round(diff/3600e3) + "h ago";
-    return d.toLocaleString();
+    return fmtDateTime(d);
   };
 
   return (
@@ -7176,7 +7177,7 @@ function AdminReportsTab() {
                   )}
                   <ReportedQuestionDetail qid={r.qid}/>
                   <div className="text-[11px] text-slate-500 mt-2 mono">
-                    {new Date(r.created_at).toLocaleString()} · {r.user_email || "anon"}
+                    {fmtDateTime(r.created_at)} · {r.user_email || "anon"}
                   </div>
                   {r.resolution && (
                     <div className="mt-2 text-xs text-slate-400 border-l-2 border-slate-700 pl-3">
@@ -7225,7 +7226,21 @@ function AdminReportsTab() {
 
 // ---- Admin panel shell ---------------------------------------------------
 function AdminReports({ onHome }) {
-  const isAdmin = window.BQAuth?.isAdmin?.() ?? false;
+  // Reactive admin gate: re-evaluate on every auth change so a fresh tab
+  // that opens /?admin=1 before BQAuth.init() finishes hydrating doesn't
+  // get a permanent "page not found." authReady tracks whether we've
+  // received at least one auth signal — until then we render nothing
+  // (empty page) rather than flashing the not-found state.
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => window.BQAuth?.isAdmin?.() ?? false);
+  const [authReady, setAuthReady] = useState<boolean>(() => !!window.BQAuth?.getUser?.() || isAdmin);
+  useEffect(() => {
+    const off = window.BQAuth?.onAuthChange?.(() => {
+      setIsAdmin(window.BQAuth?.isAdmin?.() ?? false);
+      setAuthReady(true);
+    });
+    return () => { if (typeof off === "function") off(); };
+  }, []);
+
   const [tab, setTab] = useState("overview");
   const [users, setUsers] = useState(null);
   const [openReports, setOpenReports] = useState(null);
@@ -7251,12 +7266,19 @@ function AdminReports({ onHome }) {
   }
   useEffect(() => { if (isAdmin) loadShared(); }, [isAdmin]);
 
+  // While auth is still hydrating, render nothing — avoids a flash of
+  // "page not found" for a real admin who deep-links into /?admin=1.
+  if (!authReady) return <div className="min-h-[40vh]" />;
+
+  // Non-admins see a generic "page not found" rather than "Admin only" —
+  // the existence of an admin area shouldn't be advertised to anyone who
+  // happens to type ?admin=1 in the URL.
   if (!isAdmin) {
     return (
       <div className="max-w-2xl mx-auto p-6 fade-in">
         <div className="card rounded-2xl p-8 text-center">
-          <h2 className="t-title mb-3">Admin only</h2>
-          <p className="t-body text-slate-400 mb-6">This area is restricted to the content reviewer.</p>
+          <h2 className="t-title mb-3">Page not found</h2>
+          <p className="t-body text-slate-400 mb-6">The link you followed didn't lead anywhere we could load.</p>
           <button onClick={onHome} className="btn btn-primary px-5 py-2 rounded-lg">← Home</button>
         </div>
       </div>

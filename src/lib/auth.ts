@@ -264,10 +264,21 @@ async function submitQuestionReport(opts: {
   return true;
 }
 
-const ADMIN_EMAIL = "selcukorkmaz@gmail.com";
+// Admin allow-list comes from VITE_BQ_ADMIN_EMAILS at build time
+// (comma-separated). Falls back to the original single-admin email so
+// existing deploys keep working before the env var is set. Adding a
+// new admin is now a Vercel-env change + redeploy, not a code change.
+const ADMIN_EMAILS: string[] = (() => {
+  const raw = (import.meta as any)?.env?.VITE_BQ_ADMIN_EMAILS as string | undefined;
+  const list = raw && typeof raw === "string"
+    ? raw.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean)
+    : [];
+  return list.length > 0 ? list : ["selcukorkmaz@gmail.com"];
+})();
 
 function isAdmin() {
-  return Boolean(currentUser && currentUser.email === ADMIN_EMAIL);
+  if (!currentUser?.email) return false;
+  return ADMIN_EMAILS.includes(currentUser.email.toLowerCase());
 }
 
 // Fire-and-forget event log. Always fires (signed-in AND anonymous), so the

@@ -30,6 +30,7 @@ import { Ico } from "./Icons";
 import { CASES } from "../data/cases";
 import { METHODS } from "../data/methods";
 import { BRANCHES } from "../data/branches";
+import { fmtNumber, fmtDate, fmtDateMD } from "../lib/format";
 
 // Case ID → branch lookup for aggregating per-case accuracy into per-branch
 // rollups in the Insights tab. Built once at module load; cheap enough that
@@ -525,11 +526,11 @@ function MemberRow({
             )}
           </div>
           <div className="text-[11px] text-slate-500 mono mt-0.5">
-            Joined {new Date(m.joined_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
+            Joined {fmtDate(m.joined_at)}
           </div>
         </div>
         <div className="flex items-center gap-5 text-right shrink-0 text-xs">
-          <Stat label="XP" value={typeof m.xp === "number" ? m.xp.toLocaleString() : "—"} />
+          <Stat label="XP" value={fmtNumber(m.xp)} />
           <Stat label="Cases" value={typeof m.cases_completed === "number" ? String(m.cases_completed) : "—"} />
           <Stat label="Streak" value={typeof m.current_streak === "number" ? String(m.current_streak) : "—"} />
         </div>
@@ -680,7 +681,7 @@ function InviteForm({ classId, onBack }: { classId: string; onBack: () => void }
                 ? <>Email sent to <span className="mono text-slate-100">{email}</span>.</>
                 : <>Email delivery failed — share the link manually below.</>}
             </div>
-            <div className="text-slate-500">Expires {new Date(result.expires_at).toLocaleDateString()}</div>
+            <div className="text-slate-500">Expires {fmtDate(result.expires_at)}</div>
           </div>
           <div className="mt-3 flex items-center gap-2 p-2 rounded-lg bg-slate-950/60 border border-slate-700">
             <code className="flex-1 text-[11px] mono text-slate-300 truncate">{result.join_url}</code>
@@ -906,9 +907,7 @@ function MemberMasteryRow({ m, byMember }: { m: InsightsMember; byMember: Array<
       : m.accuracy_pct >= 60 ? "text-slate-200"
       : "text-amber-300";
 
-  const lastActiveLabel = m.last_active
-    ? new Date(m.last_active).toLocaleDateString(undefined, { month: "short", day: "numeric" })
-    : "—";
+  const lastActiveLabel = fmtDateMD(m.last_active);
 
   return (
     <tr className="hover:bg-slate-800/20 transition">

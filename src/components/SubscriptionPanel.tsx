@@ -4,6 +4,7 @@
 
 import * as React from "react";
 import { billing } from "../lib/billing";
+import { fmtDate } from "../lib/format";
 
 type Sub = {
   user_type?: "free" | "pro" | "institutional";
@@ -91,7 +92,7 @@ export function SubscriptionPanel() {
         {periodEnd && (
           <div className="text-xs text-slate-400 mb-3">
             {status === "canceled" ? "Access until" : "Renews on"}{" "}
-            <span className="text-slate-200">{periodEnd.toLocaleDateString()}</span>
+            <span className="text-slate-200">{fmtDate(periodEnd)}</span>
           </div>
         )}
         {err && <div className="text-xs text-red-400 mb-2">{err}</div>}
