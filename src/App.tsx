@@ -43,6 +43,7 @@ import { DIAGNOSTIC } from "./data/diagnostic";
 import { getNarrative, getNarrativeQids, getActForQid } from "./data/caseNarratives";
 import { GLOSSARY, GLOSSARY_BY_ID, GLOSSARY_KIND_META, normalizeGlossaryText } from "./data/glossary";
 import { fmtNumber, fmtDate, fmtDateTime, fmtTime } from "./lib/format";
+import { buildStudyPath, recommendedDifficultyFromBand, bandLabel } from "./lib/diagnostic";
 
 
 // ============================================================
@@ -166,45 +167,9 @@ const BADGES = [
     check: s => s.speedRuns >= 1 },
 ];
 
-// Daily-streak helper. "Active" means the user completed a case, diagnostic,
-// or review today. If the previous activity was yesterday the streak grows;
-// otherwise it resets to 1. Idempotent when called multiple times on one day.
-function ymdToday() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-}
-function ymdYesterday() {
-  const d = new Date(); d.setDate(d.getDate() - 1);
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-}
-function bumpDailyStreak(state) {
-  const today = ymdToday();
-  if (state.lastActivityDate === today) return state;      // already counted
-  const continued = state.lastActivityDate === ymdYesterday();
-  const nextStreak = continued ? (state.dailyStreak || 0) + 1 : 1;
-  return {
-    ...state,
-    dailyStreak: nextStreak,
-    dailyStreakBest: Math.max(state.dailyStreakBest || 0, nextStreak),
-    lastActivityDate: today,
-  };
-}
-
-// Review-specific streak: consecutive days with ≥1 due-card review session.
-// Kept separate from dailyStreak (any activity) so we can surface it as a
-// stronger retention metric. Anki-style "study streak" semantics.
-function bumpReviewStreak(state) {
-  const today = ymdToday();
-  if (state.lastReviewDate === today) return state;
-  const continued = state.lastReviewDate === ymdYesterday();
-  const nextStreak = continued ? (state.reviewStreak || 0) + 1 : 1;
-  return {
-    ...state,
-    reviewStreak: nextStreak,
-    reviewStreakBest: Math.max(state.reviewStreakBest || 0, nextStreak),
-    lastReviewDate: today,
-  };
-}
+// Streak helpers — extracted to src/lib/streak.ts for testability. Same
+// semantics, re-exported here so existing call sites continue to work.
+import { bumpDailyStreak, bumpReviewStreak, ymdToday, ymdYesterday } from "./lib/streak";
 
 // Run every badge.check(state) and return the state with any newly-qualifying
 // badges appended to state.badges, plus the list of badges newly awarded.
@@ -399,67 +364,10 @@ function scoreDiagnostic(answers) {
   return { byBranch, overallPct, band, totalCorrect, totalAnswered };
 }
 
-// Turns a diagnostic profile into a 3-case study path:
-//   two weakest branches → one case each ("biggest gap"),
-//   strongest branch     → one confidence case.
-// Deterministic: same profile ⇒ same path. Each recommendation has a reason.
-function buildStudyPath(profile, state) {
-  if (!profile || !profile.byBranch) return [];
-  const branchKeys = Object.keys(BRANCHES);
-  // Any branch in the diagnostic, with pct computed. Unscored branches sort
-  // last as tie-breakers for "strongest" so we never recommend a branch we
-  // didn't actually probe.
-  const ranked = branchKeys
-    .filter((b) => profile.byBranch[b])
-    .map((b) => {
-      const { correct, total } = profile.byBranch[b];
-      return { branch: b, pct: total > 0 ? correct / total : 0, correct, total };
-    })
-    .sort((a, b) => a.pct - b.pct);
-
-  if (ranked.length === 0) return [];
-
-  const completed = new Set(state?.completed || []);
-  const firstUnplayedIn = (branch) =>
-    CASES.find((c) => c.branch === branch && !completed.has(c.id)) ||
-    CASES.find((c) => c.branch === branch);
-
-  const path = [];
-  const weakest = ranked.slice(0, Math.min(2, ranked.length));
-  const strongest = ranked[ranked.length - 1];
-  for (const w of weakest) {
-    const c = firstUnplayedIn(w.branch);
-    if (c && !path.find((p) => p.caseId === c.id)) {
-      path.push({
-        caseId: c.id,
-        branch: w.branch,
-        reason: `Biggest gap: ${BRANCHES[w.branch].name}`,
-        kind: "gap",
-      });
-    }
-  }
-  if (strongest && !weakest.find((w) => w.branch === strongest.branch)) {
-    const c = firstUnplayedIn(strongest.branch);
-    if (c && !path.find((p) => p.caseId === c.id)) {
-      path.push({
-        caseId: c.id,
-        branch: strongest.branch,
-        reason: `Build on strength: ${BRANCHES[strongest.branch].name}`,
-        kind: "strength",
-      });
-    }
-  }
-  return path;
-}
-
-function recommendedDifficultyFromBand(band) {
-  if (band === "strong") return "resident";
-  return "intern";
-}
-
-function bandLabel(band) {
-  return band === "strong" ? "Strong" : band === "developing" ? "Developing" : "Emerging";
-}
+// buildStudyPath / recommendedDifficultyFromBand / bandLabel were moved to
+// src/lib/diagnostic.ts for testability and are imported at the top of
+// this file. scoreDiagnostic kept in-place above for now (App.tsx's
+// finishDiagnostic still calls it locally).
 
 function pickQuestions(caseObj, seenArr, srs) {
   const n = caseObj.qPerRun;

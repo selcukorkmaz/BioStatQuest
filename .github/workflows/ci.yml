@@ -1,0 +1,60 @@
+name: CI
+
+# Runs on every push and PR. Five guards must all pass:
+#   1. typecheck (tsc -b --noEmit)
+#   2. tests     (vitest run)
+#   3. build     (vite build, succeeds)
+#   4. routed-function count under the cap (Hobby: 12)
+#   5. main bundle gzipped size under the budget (currently 280 KB)
+#   6. no NEW @ts-nocheck pragmas in newly-added files
+#
+# CI is the safety net for the master plan's hardening work — every
+# Phase touches risky code, and these guards catch regressions before
+# they reach main.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Need history for the @ts-nocheck delta check (compares to
+          # origin/main). 100 commits is more than enough headroom.
+          fetch-depth: 100
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Check function count
+        run: bash scripts/check-functions-cap.sh
+
+      - name: Check bundle size budget
+        run: bash scripts/check-bundle-size.sh
+
+      - name: Check no new @ts-nocheck
+        # Only meaningful on PRs (compares to base). On push to main we
+        # skip cleanly inside the script.
+        run: bash scripts/check-no-new-tsnocheck.sh

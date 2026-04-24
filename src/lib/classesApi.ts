@@ -37,8 +37,8 @@ export type InviteResult = {
   email_sent: boolean;
 };
 
-type Ok<T> = { ok: true; data: T };
-type Err = { ok: false; error: string; status?: number };
+export type Ok<T> = { ok: true; data: T };
+export type Err = { ok: false; error: string; status?: number };
 export type Result<T> = Ok<T> | Err;
 
 // ------- JWT plumbing -------
