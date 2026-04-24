@@ -659,7 +659,46 @@ function TopBar({ state, setState, onReset, onNav, current }) {
 
 
 
-function Home({ state, onStartCase, onNav, onOpenBranch, onReview }) {
+// Soft prompt that replaces the old onboarding interstitial for signed-in
+// users with zero progress. Renders nothing for guests (the interstitial
+// still handles them), nothing for users who completed or skipped, and
+// nothing for users who already have any progress. "Maybe later" sets
+// onboardingSkippedAt so this never reappears for the account.
+function DiagnosticPromptCard({ state, setState, onStart }) {
+  const isSignedIn = !!(window.BQAuth && window.BQAuth.getUser && window.BQAuth.getUser());
+  const neverDecided = !state.onboardingCompletedAt && !state.onboardingSkippedAt;
+  const zeroProgress = (state.completed || []).length === 0 && (state.xp || 0) === 0;
+  if (!isSignedIn || !neverDecided || !zeroProgress) return null;
+
+  const dismiss = () => {
+    setState((s) => ({ ...s, onboardingSkippedAt: Date.now() }));
+    try { window.BQAuth?.logEvent?.("diagnostic_skipped"); } catch {}
+  };
+
+  return (
+    <div className="card rounded-2xl p-5 sm:p-6 border-l-4 border-violet-500/50">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] uppercase tracking-widest text-violet-300 font-bold mb-1">New here?</div>
+          <div className="text-base font-semibold text-white mb-1">Take a 6-minute diagnostic for a personalized study path.</div>
+          <div className="text-sm text-slate-400">
+            Eight short questions across the core branches. We'll pick the right cases for you to start with — and explain why.
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button onClick={dismiss} className="btn btn-ghost px-3 py-2 rounded-lg text-xs">
+            Maybe later
+          </button>
+          <button onClick={onStart} className="btn btn-primary px-4 py-2 rounded-lg text-sm whitespace-nowrap">
+            Start diagnostic →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Home({ state, setState, onStartCase, onNav, onOpenBranch, onReview }) {
   const level = levelFromXP(state.xp);
   const title = level < 3 ? "Intern" : level < 6 ? "Resident" : level < 10 ? "Fellow" : "Principal Investigator";
   const srs = state.srs || {};
@@ -823,6 +862,12 @@ function Home({ state, onStartCase, onNav, onOpenBranch, onReview }) {
           )}
         </div>
       </div>
+
+      {/* Diagnostic prompt — shown to signed-in users who never decided AND
+          have zero progress. Replaces the old interstitial gate, so it's a
+          suggestion they can take or dismiss without losing the home screen.
+          Auto-hidden once they start, finish, or click "Maybe later". */}
+      <DiagnosticPromptCard state={state} setState={setState} onStart={() => onNav("diagnostic")} />
 
       {/* Class memberships band — shows every active membership (any role)
           plus a "Join by code" form. Invisible to guests. */}
@@ -7292,7 +7337,20 @@ function App() {
     const s = loadState();
     const neverDecided = !s.onboardingCompletedAt && !s.onboardingSkippedAt;
     const zeroProgress = (s.completed || []).length === 0 && (s.xp || 0) === 0;
-    return neverDecided && zeroProgress ? "onboarding" : "home";
+    // Interstitial diagnostic gate is reserved for first-time guests. Signed-in
+    // users — even with zero progress — go straight to home and see the
+    // diagnostic as a dismissible prompt card; gating an established account
+    // behind a "find your weak spots" wall every visit was a UX bug. Detect
+    // sign-in via Supabase's localStorage entry rather than waiting for
+    // BQAuth.init() so we get the correct answer on the first paint.
+    let isSignedInOnMount = false;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i) || "";
+        if (k.startsWith("sb-") && k.endsWith("-auth-token")) { isSignedInOnMount = true; break; }
+      }
+    } catch { /* sandboxed contexts → treat as guest */ }
+    return neverDecided && zeroProgress && !isSignedInOnMount ? "onboarding" : "home";
   });
   const [activeCase, setActiveCase] = useState(null);
   const [activeDiff, setActiveDiff] = useState("intern");
@@ -7334,6 +7392,33 @@ function App() {
         ((state.completed?.length || 0) > 0 || (state.xp || 0) > 0)) {
       setState((s) => ({ ...s, onboardingSkippedAt: Date.now() }));
     }
+  }, []);
+
+  // Instructor auto-skip: if the signed-in user owns or co-owns any class,
+  // they aren't the audience for "find your weak spots in 6 minutes" — they
+  // teach this stuff. Mark onboarding as skipped so the prompt card on home
+  // doesn't keep nagging them. Re-checks on auth change so a freshly-signed-
+  // in instructor identity gets the same treatment without a reload.
+  useEffect(() => {
+    let alive = true;
+    const check = async () => {
+      const signedIn = !!(window.BQAuth?.getUser?.());
+      if (!signedIn) return;
+      // Bail if we already have a decision on file — don't overwrite a
+      // completion timestamp with a skip timestamp.
+      try {
+        const yes = await hasAnyInstructorRole();
+        if (!alive || !yes) return;
+        setState((s) => (
+          s.onboardingCompletedAt || s.onboardingSkippedAt
+            ? s
+            : { ...s, onboardingSkippedAt: Date.now() }
+        ));
+      } catch { /* network failures shouldn't block UI */ }
+    };
+    check();
+    const off = window.BQAuth?.onAuthChange?.(() => check());
+    return () => { alive = false; if (typeof off === "function") off(); };
   }, []);
 
   // When remote state is loaded after sign-in, refresh from localStorage.
@@ -7637,7 +7722,7 @@ function App() {
       {view === "onboarding" && <OnboardingIntro state={state} setState={setState} onStart={beginDiagnostic} onSkip={skipDiagnostic}/>}
       {view === "diagnostic"  && <DiagnosticPlay onFinish={finishDiagnostic} onExit={() => setView("home")}/>}
       {view === "results"     && <DiagnosticResults profile={state.diagnosticProfile} studyPath={state.studyPath} onStartCase={startCaseSelect} onNav={setView} learnerGoal={state.learnerGoal}/>}
-      {view === "home"     && <Home state={state} onStartCase={startCaseSelect} onNav={setView} onOpenBranch={(b)=>{setInitialBranch(b); setView("tree");}} onReview={beginReview}/>}
+      {view === "home"     && <Home state={state} setState={setState} onStartCase={startCaseSelect} onNav={setView} onOpenBranch={(b)=>{setInitialBranch(b); setView("tree");}} onReview={beginReview}/>}
       {view === "tree"     && <SkillTree state={state} onStartCase={startCaseSelect} initialBranch={initialBranch}/>}
       {view === "lab"      && <Lab onVisit={handleLabSimVisit}/>}
       {view === "rlab"     && (
