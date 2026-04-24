@@ -838,6 +838,47 @@ const METHODS: Record<string, Method> = {
       "Amrhein, Greenland, McShane (2019), 'Retire statistical significance'"
     ]
   },
+  sampling_methods: {
+    title: "Sampling Methods (SRS, Stratified, Cluster, Multi-stage)",
+    intuition: "How you draw the sample shapes both precision and representativeness. Simple random sampling (SRS) is the baseline. Stratified sampling forces representation of subgroups and usually reduces SE. Cluster sampling is cheaper but units in a cluster are correlated, so SE is larger than SRS. Multi-stage designs nest these to balance cost and precision. Convenience sampling is not a probability design and forfeits unbiased inference.",
+    formula: "Design effect: DEFF = 1 + (m − 1)·ρ   (m = avg cluster size, ρ = intracluster correlation);   effective n ≈ n / DEFF",
+    assumptions: [
+      "Well-defined sampling frame covering the target population.",
+      "Known, non-zero inclusion probabilities for every unit (needed for design-weighted estimation).",
+      "Probability design — convenience / volunteer samples break inference."
+    ],
+    pitfalls: [
+      "Applying SRS formulas to cluster or multi-stage data understates SE and overstates precision.",
+      "Stratification only helps precision if strata are more homogeneous within than between — on an irrelevant stratifier it does nothing.",
+      "Weighting fixes unequal selection but can inflate variance; always report design-based SEs.",
+      "Convenience / non-response issues are selection bias, not sampling error — larger n does not fix them."
+    ],
+    reading: [
+      "Lohr, 'Sampling: Design and Analysis'",
+      "Cochran, 'Sampling Techniques'",
+      "R: survey package (svydesign, svymean, svyglm)"
+    ]
+  },
+  lln: {
+    title: "Law of Large Numbers",
+    intuition: "As n grows, the sample mean converges to the population mean. This is what lets you treat a large-enough average as a trustworthy estimate of μ. LLN says the mean gets close; CLT tells you how fast and with what shape.",
+    formula: "x̄_n → μ   as n → ∞   (weak LLN: in probability;   strong LLN: almost surely)",
+    assumptions: [
+      "Observations are i.i.d. (or at least ergodic with a well-defined mean).",
+      "Finite population mean — heavy-tailed distributions (e.g., Cauchy) have no mean and LLN fails.",
+      "Identically distributed — systematic drift in the data-generating process breaks convergence."
+    ],
+    pitfalls: [
+      "LLN is about averages, not about individual outcomes 'balancing out' — that's the gambler's fallacy.",
+      "Convergence can be slow for skewed or heavy-tailed data; a large n is not automatically a 'safe' n.",
+      "Selection bias, not sample size, is the usual culprit when large samples produce biased estimates — LLN does not fix a biased sampling frame."
+    ],
+    reading: [
+      "Feller, 'An Introduction to Probability Theory and Its Applications', Vol. 1",
+      "Casella & Berger, 'Statistical Inference', Ch. 5",
+      "Billingsley, 'Probability and Measure' for the strong LLN"
+    ]
+  },
   bland_altman: {
     title: "Bland–Altman Limits of Agreement",
     intuition: "Plot the difference between two methods against their mean; draw limits at mean ± 1.96·SD of differences. If most points fall within clinically acceptable limits, methods agree.",
@@ -861,3 +902,77 @@ const METHODS: Record<string, Method> = {
 };
 
 export { METHODS };
+
+// Method → branch attribution. Used by the Insights endpoint and
+// dashboard to roll up per-method accuracy into the 8 branches without
+// going through case_id (which gave the wrong answer when a case in
+// branch X contained questions tagged with methods naturally belonging
+// to branch Y).
+//
+// The mapping is hand-tuned against BRANCHES[*].desc in src/data/branches.ts,
+// not auto-derived. If you add a method to METHODS, add it here too;
+// the test suite (src/data/methods.test.ts) verifies every key in METHODS
+// has a branch assignment.
+import type { BranchId } from "./branches";
+
+export const METHOD_BRANCH: Record<string, BranchId> = {
+  // Foundations — data types, descriptive stats, distributions
+  descriptive: "foundations",
+  variable_types: "foundations",
+  central_tendency: "foundations",
+  spread_variability: "foundations",
+  normal_zscore: "foundations",
+
+  // Probability & Sampling — random variables, CLT, sampling, LLN
+  prob_dist: "probability",
+  clt_sampling: "probability",
+  sampling_methods: "probability",
+  lln: "probability",
+
+  // Estimation & Inference — CIs, p-values, classical tests
+  ci: "estimation_inference",
+  bootstrap: "estimation_inference",
+  t_test: "estimation_inference",
+  chi_square: "estimation_inference",
+  anova: "estimation_inference",
+  hypothesis_testing: "estimation_inference",
+
+  // Regression — linear, logistic, survival, mixed
+  lm: "regression",
+  logistic: "regression",
+  cox_ph: "regression",
+  km_logrank: "regression",
+  regression_diagnostics: "regression",
+  model_selection: "regression",
+  mixed_models: "regression",
+
+  // Study Design & Bias
+  study_design: "design_bias",
+  bias: "design_bias",
+
+  // Missing Data & Measurement — imputation, reliability, validity, ROC
+  mice: "missing_measurement",
+  kappa: "missing_measurement",
+  icc_agreement: "missing_measurement",
+  bland_altman: "missing_measurement",
+  measurement_validity: "missing_measurement",
+  roc_auc: "missing_measurement",
+
+  // Causal Inference
+  iptw: "causal",
+  e_value: "causal",
+  confounding: "causal",
+  iv: "causal",
+  did: "causal",
+  rdd: "causal",
+  psm: "causal",
+  mediation: "causal",
+  causal_assumptions: "causal",
+  target_trial: "causal",
+
+  // Advanced & Bayesian — multiple testing, power, meta-analysis, Bayes
+  multiple_testing: "advanced_bayesian",
+  meta_analysis: "advanced_bayesian",
+  bayes: "advanced_bayesian",
+  power: "advanced_bayesian",
+};

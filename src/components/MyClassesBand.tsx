@@ -102,7 +102,9 @@ function ClassRow({ c, onOpenTeach }: { c: ClassSummary; onOpenTeach: () => void
           <span className={isInstructor ? "text-cyan-300" : "text-slate-400"}>
             {c.role === "co-instructor" ? "Co-instructor" : c.role === "instructor" ? "Instructor" : "Student"}
           </span>
-          {c.subscription_status === "lapsed" && <span className="ml-2 text-amber-400">· Read-only (lapsed)</span>}
+          {/* "Read-only (lapsed)" suffix removed in Phase 3: subscription_status
+              has no code path that flips it to "lapsed" until institutional
+              billing ships. Restore here when that integration lands. */}
         </div>
       </div>
       {isInstructor && (

@@ -27,19 +27,9 @@ import {
   type InsightsMember,
 } from "../lib/classesApi";
 import { Ico } from "./Icons";
-import { CASES } from "../data/cases";
-import { METHODS } from "../data/methods";
+import { METHODS, METHOD_BRANCH } from "../data/methods";
 import { BRANCHES } from "../data/branches";
 import { fmtNumber, fmtDate, fmtDateMD } from "../lib/format";
-
-// Case ID → branch lookup for aggregating per-case accuracy into per-branch
-// rollups in the Insights tab. Built once at module load; cheap enough that
-// a memoized hook would be overkill.
-const CASE_BRANCH: Record<string, string> = (() => {
-  const map: Record<string, string> = {};
-  for (const c of CASES) map[c.id] = c.branch;
-  return map;
-})();
 
 type Sub = { kind: "list" } | { kind: "new" } | { kind: "detail"; classId: string } | { kind: "invite"; classId: string };
 
@@ -140,9 +130,11 @@ function ClassesList({ onOpenClass, onNewClass }: { onOpenClass: (id: string) =>
                     <div className="text-xs text-slate-400 truncate">{c.institution_name}</div>
                   )}
                 </div>
-                {c.subscription_status === "lapsed" && (
-                  <span className="chip" style={{background:"rgba(251,191,36,0.10)", color:"#fbbf24", borderColor:"rgba(251,191,36,0.3)"}}>Lapsed</span>
-                )}
+                {/* "Lapsed" chip removed in Phase 3: classes.subscription_status
+                    has no code path that flips it to "lapsed" yet (Stripe-to-classes
+                    integration is unbuilt), so the chip was always dead UI making
+                    a promise the backend can't keep. Restore here when institutional
+                    billing ships. */}
                 {c.archived_at && (
                   <span className="chip" style={{background:"rgba(148,163,184,0.10)", color:"#94a3b8"}}>Archived</span>
                 )}
@@ -267,8 +259,9 @@ function ClassDetail({ classId, onInvite, onArchived }: { classId: string; onInv
 
   // Writability + archive-permission derivations. Co-instructors can
   // manage members in a writable class but cannot archive it — that's
-  // a primary-instructor action.
-  const isWritable = !!cls && !cls.archived_at && cls.subscription_status !== "lapsed";
+  // a primary-instructor action. Note: subscription_status is no longer
+  // consulted here (Phase 3 — see the chip removal above for context).
+  const isWritable = !!cls && !cls.archived_at;
   const canManageMembers = isWritable && !!cls && (cls.role === "instructor" || cls.role === "co-instructor");
   const isPrimaryInstructor = !!cls && cls.role === "instructor";
 
@@ -300,9 +293,7 @@ function ClassDetail({ classId, onInvite, onArchived }: { classId: string; onInv
             {cls?.archived_at && (
               <span className="chip text-[10px]" style={{background:"rgba(148,163,184,0.10)", color:"#94a3b8"}}>Archived</span>
             )}
-            {cls?.subscription_status === "lapsed" && (
-              <span className="chip text-[10px]" style={{background:"rgba(251,191,36,0.10)", color:"#fbbf24", borderColor:"rgba(251,191,36,0.3)"}}>Lapsed · read-only</span>
-            )}
+            {/* Lapsed chip removed in Phase 3 — see ClassesList for rationale. */}
           </h2>
           {cls?.institution_name && (
             <p className="text-sm text-slate-400">{cls.institution_name}</p>
@@ -738,10 +729,17 @@ function InsightsTab({ classId }: { classId: string }) {
   }
   if (!data) return null;
 
-  // Per-branch rollup — compute from per_case using cases.ts branch metadata.
+  // Per-branch rollup — compute from per_method using METHOD_BRANCH.
+  // Why method-based and not case-based: a regression case can contain
+  // a CI question whose method is "ci"; under the previous case-based
+  // attribution that question's accuracy counted toward "regression"
+  // even though it was probing CI knowledge. Method-based attribution
+  // matches the pedagogical intent — a student who misses every CI
+  // question shows weakness in estimation_inference, regardless of
+  // which case the question lived in.
   const branchTotals = new Map<string, { attempts: number; correct: number }>();
-  for (const row of data.per_case) {
-    const branch = CASE_BRANCH[row.case_id];
+  for (const row of data.per_method) {
+    const branch = METHOD_BRANCH[row.method];
     if (!branch) continue;
     const cur = branchTotals.get(branch) || { attempts: 0, correct: 0 };
     cur.attempts += row.attempts;

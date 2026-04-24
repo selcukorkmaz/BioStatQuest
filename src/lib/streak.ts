@@ -4,11 +4,22 @@
 //   • dailyStreak — bumps on ANY activity (case complete, diagnostic, review)
 //   • reviewStreak — bumps only on review sessions (Anki-style "study streak")
 //
-// Both use local-date YYYY-MM-DD keys. Note: Phase 3 of the master plan
-// migrates these to UTC strings to avoid timezone-change double-bumps; for
-// now we preserve the existing behavior so this extraction is a pure
-// no-op refactor. The streak-test suite will cover both the current
-// local-date semantics and the future UTC semantics once that change lands.
+// Streak day keys are YYYY-MM-DD in **UTC** (not local time). Phase 3 of
+// the master plan migrated this from local time because:
+//
+//   1. A user travelling east loses a streak day they earned ("today" in
+//      Pacific becomes "tomorrow" in Tokyo, but their lastActivityDate
+//      still says yesterday-local — the comparison fails).
+//   2. A user travelling west gets an unearned bump (the reverse).
+//   3. Even without travel, daylight-savings transitions silently shift
+//      the day boundary by an hour twice a year.
+//
+// Migration: existing user state has `lastActivityDate` written in their
+// then-current local TZ. After this change those values are compared
+// against UTC. For most users the migration day produces at most one
+// anomalous outcome (a bump that shouldn't happen, or a one-day reset),
+// then converges to correct UTC behavior. We accept that one-time blip
+// rather than ship a timezone-aware backfill that's even more error-prone.
 
 export type StreakState = {
   dailyStreak?: number;
@@ -19,16 +30,15 @@ export type StreakState = {
   lastReviewDate?: string;
 };
 
-/** YYYY-MM-DD in the runtime's local timezone. */
+/** YYYY-MM-DD in **UTC**. Day-key for streak math. */
 export function ymdToday(now: Date = new Date()): string {
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-${String(now.getUTCDate()).padStart(2, "0")}`;
 }
 
-/** YYYY-MM-DD for "yesterday" in the runtime's local timezone. */
+/** YYYY-MM-DD for "yesterday" in **UTC**. */
 export function ymdYesterday(now: Date = new Date()): string {
-  const d = new Date(now);
-  d.setDate(d.getDate() - 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const d = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 }
 
 /**
