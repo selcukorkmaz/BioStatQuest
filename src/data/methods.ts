@@ -838,6 +838,48 @@ const METHODS: Record<string, Method> = {
       "Amrhein, Greenland, McShane (2019), 'Retire statistical significance'"
     ]
   },
+  nonparametric_tests: {
+    title: "Nonparametric Tests (Mann–Whitney, Wilcoxon, Kruskal–Wallis, Friedman)",
+    intuition: "Rank-based alternatives to t-tests and ANOVA when normality fails or the outcome is ordinal. They test whether one group's distribution is shifted relative to another, using ranks rather than raw values, so heavy tails and outliers don't blow up the test.",
+    formula: "Mann–Whitney U: U = R₁ − n₁(n₁+1)/2;   Wilcoxon signed-rank for paired data;   Kruskal–Wallis H ≈ χ²(k−1) for k groups;   Friedman for repeated measures",
+    assumptions: [
+      "Independent observations within and between groups (Friedman: repeated measures).",
+      "Outcomes at least ordinal — ranks must be meaningful.",
+      "For Mann–Whitney as a 'median test', distributions must have the same SHAPE; otherwise it is a stochastic-dominance test, not a median comparison."
+    ],
+    pitfalls: [
+      "'Nonparametric' is not assumption-free — Mann–Whitney with unequal shapes does NOT compare medians.",
+      "Less power than t-test/ANOVA when normality genuinely holds (≈ 95% efficiency for the t-test).",
+      "Reporting only a p-value hides the effect size — pair with a rank-based effect size (probability of superiority, Cliff's delta, Hodges–Lehmann shift).",
+      "Tied ranks need a continuity / tie correction; software defaults vary."
+    ],
+    reading: [
+      "Conover, 'Practical Nonparametric Statistics'",
+      "Hollander, Wolfe & Chicken, 'Nonparametric Statistical Methods'",
+      "R: stats::wilcox.test, stats::kruskal.test, stats::friedman.test; coin for permutation versions"
+    ]
+  },
+  correlation: {
+    title: "Correlation (Pearson, Spearman, Kendall)",
+    intuition: "How tightly do two variables move together? Pearson measures linear association on raw values; Spearman ranks first then computes Pearson on ranks (monotonic, robust to outliers); Kendall's τ counts concordant vs discordant pairs. r = 0 means no LINEAR association, not no association.",
+    formula: "Pearson r = Σ(xᵢ−x̄)(yᵢ−ȳ) / √[Σ(xᵢ−x̄)²·Σ(yᵢ−ȳ)²];   r ∈ [−1, 1]",
+    assumptions: [
+      "Pearson: bivariate normal-ish, linear relationship, no extreme outliers.",
+      "Spearman / Kendall: monotonic relationship; data at least ordinal.",
+      "Independent paired observations."
+    ],
+    pitfalls: [
+      "Correlation ≠ causation — confounders, reverse causation, and selection can all generate strong r.",
+      "Pearson is NOT robust: a single outlier can flip r from −0.4 to +0.4.",
+      "A non-linear relationship (e.g. U-shaped) can have r ≈ 0 even when association is strong — always plot the data.",
+      "Statistical significance of r depends on n; large n makes trivially small r 'significant'. Report r AND its CI, not just the p-value."
+    ],
+    reading: [
+      "Altman, 'Practical Statistics for Medical Research'",
+      "Anscombe (1973), 'Graphs in Statistical Analysis' — the quartet of identical-r datasets",
+      "R: stats::cor + cor.test (method = 'pearson' / 'spearman' / 'kendall')"
+    ]
+  },
   sampling_methods: {
     title: "Sampling Methods (SRS, Stratified, Cluster, Multi-stage)",
     intuition: "How you draw the sample shapes both precision and representativeness. Simple random sampling (SRS) is the baseline. Stratified sampling forces representation of subgroups and usually reduces SE. Cluster sampling is cheaper but units in a cluster are correlated, so SE is larger than SRS. Multi-stage designs nest these to balance cost and precision. Convenience sampling is not a probability design and forfeits unbiased inference.",
@@ -929,13 +971,15 @@ export const METHOD_BRANCH: Record<string, BranchId> = {
   sampling_methods: "probability",
   lln: "probability",
 
-  // Estimation & Inference — CIs, p-values, classical tests
+  // Estimation & Inference — CIs, p-values, classical tests, nonparametric, correlation
   ci: "estimation_inference",
   bootstrap: "estimation_inference",
   t_test: "estimation_inference",
   chi_square: "estimation_inference",
   anova: "estimation_inference",
   hypothesis_testing: "estimation_inference",
+  nonparametric_tests: "estimation_inference",
+  correlation: "estimation_inference",
 
   // Regression — linear, logistic, survival, mixed
   lm: "regression",

@@ -58,3 +58,9 @@ jobs:
         # Only meaningful on PRs (compares to base). On push to main we
         # skip cleanly inside the script.
         run: bash scripts/check-no-new-tsnocheck.sh
+
+      - name: Check no new inline rgba() in style props
+        # Phase 4 design-system guard. New components must use <Chip/>,
+        # <Card/>, etc. or var(--*-tint) — not raw rgba() strings.
+        # Existing offenders are listed in BASELINE inside the script.
+        run: bash scripts/check-no-inline-rgba.sh

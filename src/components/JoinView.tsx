@@ -17,6 +17,7 @@ import { useState } from "react";
 import { acceptInvite, errorOf } from "../lib/classesApi";
 import { SignInCard } from "./AuthButton";
 import { Ico } from "./Icons";
+import { Chip } from "../design";
 
 export function JoinView() {
   // Extract the token once on mount; URL shouldn't change while on this view.
@@ -57,7 +58,7 @@ export function JoinView() {
       <div className="min-h-[70vh] flex items-center justify-center px-6 py-16">
         <div className="card premium-border rounded-2xl p-10 max-w-md w-full text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-5"
-               style={{background:"rgba(16,185,129,0.15)", color:"#10b981"}}>
+               style={{background:"var(--ok-tint)", color:"var(--ok)"}}>
             <Ico name="check" size={28}/>
           </div>
           <h1 className="t-title text-white mb-2">You're in.</h1>
@@ -89,11 +90,10 @@ export function JoinView() {
       <div className="min-h-[70vh] flex items-center justify-center px-6 py-16">
         <div className="max-w-md w-full">
           <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4"
-                 style={{background:"rgba(139,92,246,0.12)", border:"1px solid rgba(139,92,246,0.3)"}}>
-              <span className="tag" style={{color:"#a78bfa"}}>● Class invite</span>
-            </div>
-            <h1 className="t-title text-white mb-2">Sign in to accept</h1>
+            <Chip tone="info" className="mb-4 rounded-full px-3 py-1.5">
+              <span className="tag">● Class invite</span>
+            </Chip>
+            <h1 className="t-title text-white mb-2 mt-1">Sign in to accept</h1>
             <p className="t-body text-slate-400 text-sm">
               You've been invited to a class on BioStat Quest. Sign in with the email your instructor sent the invite to, or with any account — we'll attach this class to whichever identity you use.
             </p>
@@ -113,11 +113,10 @@ export function JoinView() {
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-6 py-16">
       <div className="card rounded-2xl p-8 max-w-md w-full">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-5"
-             style={{background:"rgba(139,92,246,0.12)", border:"1px solid rgba(139,92,246,0.3)"}}>
-          <span className="tag" style={{color:"#a78bfa"}}>● Class invite</span>
-        </div>
-        <h1 className="t-title text-white mb-2">You've been invited to a class.</h1>
+        <Chip tone="info" className="mb-5 rounded-full px-3 py-1.5">
+          <span className="tag">● Class invite</span>
+        </Chip>
+        <h1 className="t-title text-white mb-2 mt-1">You've been invited to a class.</h1>
         <p className="t-body text-slate-400 text-sm mb-6">
           Accepting this invite adds you to the class and shares your case-completion and accuracy data with your instructor for that class only.
         </p>
@@ -167,7 +166,7 @@ function ErrorShell({ title, body }: { title: string; body: string }) {
     <div className="min-h-[70vh] flex items-center justify-center px-6 py-16">
       <div className="card rounded-2xl p-8 max-w-md w-full text-center">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-5"
-             style={{background:"rgba(239,68,68,0.15)", color:"#ef4444"}}>
+             style={{background:"var(--err-tint)", color:"var(--err)"}}>
           <Ico name="cross" size={28}/>
         </div>
         <h1 className="t-title text-white mb-2">{title}</h1>

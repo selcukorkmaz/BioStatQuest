@@ -30,6 +30,7 @@ import { Ico } from "./Icons";
 import { METHODS, METHOD_BRANCH } from "../data/methods";
 import { BRANCHES } from "../data/branches";
 import { fmtNumber, fmtDate, fmtDateMD } from "../lib/format";
+import { Chip } from "../design";
 
 type Sub = { kind: "list" } | { kind: "new" } | { kind: "detail"; classId: string } | { kind: "invite"; classId: string };
 
@@ -135,9 +136,7 @@ function ClassesList({ onOpenClass, onNewClass }: { onOpenClass: (id: string) =>
                     integration is unbuilt), so the chip was always dead UI making
                     a promise the backend can't keep. Restore here when institutional
                     billing ships. */}
-                {c.archived_at && (
-                  <span className="chip" style={{background:"rgba(148,163,184,0.10)", color:"#94a3b8"}}>Archived</span>
-                )}
+                {c.archived_at && <Chip tone="neutral">Archived</Chip>}
               </div>
               <div className="flex items-center gap-4 text-xs text-slate-400 mt-3">
                 {typeof c.member_count === "number" && (
@@ -290,9 +289,7 @@ function ClassDetail({ classId, onInvite, onArchived }: { classId: string; onInv
         <div className="min-w-0">
           <h2 className="t-title text-white mb-1 truncate inline-flex items-center gap-3">
             {cls?.name}
-            {cls?.archived_at && (
-              <span className="chip text-[10px]" style={{background:"rgba(148,163,184,0.10)", color:"#94a3b8"}}>Archived</span>
-            )}
+            {cls?.archived_at && <Chip tone="neutral" size="sm">Archived</Chip>}
             {/* Lapsed chip removed in Phase 3 — see ClassesList for rationale. */}
           </h2>
           {cls?.institution_name && (
@@ -513,7 +510,7 @@ function MemberRow({
               {m.role === "co-instructor" ? "Co-instructor" : m.role === "instructor" ? "Instructor" : "Student"}
             </span>
             {!m.consented && (
-              <span className="chip text-[10px]" title="Student hasn't consented to progress visibility" style={{background:"rgba(251,191,36,0.08)", color:"#fbbf24", borderColor:"rgba(251,191,36,0.25)"}}>No progress visible</span>
+              <Chip tone="warn" size="sm" title="Student hasn't consented to progress visibility">No progress visible</Chip>
             )}
           </div>
           <div className="text-[11px] text-slate-500 mono mt-0.5">
@@ -918,9 +915,7 @@ function MemberMasteryRow({ m, byMember }: { m: InsightsMember; byMember: Array<
           {m.role === "instructor" && (
             <span className="chip text-[9px] bg-cyan-950/50 text-cyan-200 border-cyan-900/60">Instructor</span>
           )}
-          {!m.consented && (
-            <span className="chip text-[9px]" style={{background:"rgba(251,191,36,0.08)", color:"#fbbf24", borderColor:"rgba(251,191,36,0.25)"}}>Not sharing</span>
-          )}
+          {!m.consented && <Chip tone="warn" size="sm">Not sharing</Chip>}
         </div>
       </td>
       <td className="text-right px-3 py-2.5 mono text-slate-300">

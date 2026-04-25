@@ -12,6 +12,29 @@
     --ink-3:   #94a3b8;           /* caption */
     --ink-4:   #64748b;           /* muted */
     --line:    rgba(148,163,184,0.12);
+
+    /* ---------- Phase 4: semantic tokens ----------
+       Replaces the inline `style={{background: "rgba(...)"}}` hardcodes
+       scattered across components. Three triplets per state — fill (a
+       very light tint), text, line — so chips, banners and pills can
+       all share the same palette without re-deriving RGBA values.
+       Mirrored in src/design/tokens.ts as TS constants for type-safe
+       use from React. */
+    --warn:      #fbbf24;
+    --warn-tint: rgba(251,191,36,0.10);
+    --warn-line: rgba(251,191,36,0.30);
+    --ok:        #10b981;
+    --ok-tint:   rgba(16,185,129,0.12);
+    --ok-line:   rgba(16,185,129,0.30);
+    --err:       #ef4444;
+    --err-tint:  rgba(239,68,68,0.10);
+    --err-line:  rgba(239,68,68,0.30);
+    --info:      #c4b5fd;
+    --info-tint: rgba(139,92,246,0.10);
+    --info-line: rgba(139,92,246,0.25);
+    --neutral:   #94a3b8;
+    --neutral-tint: rgba(148,163,184,0.08);
+    --neutral-line: rgba(148,163,184,0.25);
   }
   * { -webkit-tap-highlight-color: transparent; }
   html, body { min-height: 100%; }
