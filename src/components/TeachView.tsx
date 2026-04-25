@@ -285,20 +285,27 @@ function ClassDetail({ classId, onInvite, onArchived }: { classId: string; onInv
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
-        <div className="min-w-0">
-          <h2 className="t-title text-white mb-1 truncate inline-flex items-center gap-3">
-            {cls?.name}
+      <div className="flex items-start justify-between gap-3 flex-wrap mb-5">
+        <div className="min-w-0 flex-1">
+          {/* Title + chip stacked rather than inline-flex'd: truncate works
+              correctly on the h2 alone, and at 360px the chip falls under
+              the title cleanly instead of forcing a text wrap. */}
+          <h2 className="t-title text-white mb-1 truncate">{cls?.name}</h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            {cls?.institution_name && (
+              <p className="text-sm text-slate-400 truncate">{cls.institution_name}</p>
+            )}
             {cls?.archived_at && <Chip tone="neutral" size="sm">Archived</Chip>}
             {/* Lapsed chip removed in Phase 3 — see ClassesList for rationale. */}
-          </h2>
-          {cls?.institution_name && (
-            <p className="text-sm text-slate-400">{cls.institution_name}</p>
-          )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {isWritable && (
-            <button onClick={onInvite} className="btn btn-primary px-5 py-2.5 rounded-xl text-sm">
+            <button
+              onClick={onInvite}
+              className="btn btn-primary px-4 sm:px-5 py-2.5 rounded-xl text-sm"
+              aria-label="Invite a member to this class"
+            >
               + Invite
             </button>
           )}
@@ -315,6 +322,7 @@ function ClassDetail({ classId, onInvite, onArchived }: { classId: string; onInv
           </div>
           <button
             onClick={copyCode}
+            aria-label={copied ? "Class code copied" : `Copy class code ${cls.code}`}
             className="btn btn-ghost px-4 py-2 rounded-lg text-sm inline-flex items-center gap-2"
           >
             {copied ? (
@@ -342,8 +350,8 @@ function ClassDetail({ classId, onInvite, onArchived }: { classId: string; onInv
             <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">
               Members {members && `· ${members.length}`}
             </div>
-            <button onClick={load} className="text-xs text-slate-400 hover:text-white transition">
-              ↻ Refresh
+            <button onClick={load} aria-label="Refresh members list" className="text-xs text-slate-400 hover:text-white transition">
+              <span aria-hidden="true">↻</span> Refresh
             </button>
           </div>
           {members === null && <div className="p-5 text-slate-500 text-sm">Loading…</div>}
@@ -501,8 +509,12 @@ function MemberRow({
   }
 
   return (
-    <div className="px-5 py-3 hover:bg-slate-800/30 transition">
-      <div className="flex items-center gap-4">
+    <div className="px-4 sm:px-5 py-3 hover:bg-slate-800/30 transition">
+      {/* On narrow viewports stats stack below the email row instead of
+          competing with it for horizontal space — the email column was
+          getting crushed on 360px when XP / Cases / Streak ran on the
+          right. At sm+ the original two-column layout is restored. */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="text-sm font-semibold text-white truncate">{m.email || "(email hidden)"}</div>
@@ -517,7 +529,7 @@ function MemberRow({
             Joined {fmtDate(m.joined_at)}
           </div>
         </div>
-        <div className="flex items-center gap-5 text-right shrink-0 text-xs">
+        <div className="flex items-center gap-4 sm:gap-5 text-right shrink-0 text-xs">
           <Stat label="XP" value={fmtNumber(m.xp)} />
           <Stat label="Cases" value={typeof m.cases_completed === "number" ? String(m.cases_completed) : "—"} />
           <Stat label="Streak" value={typeof m.current_streak === "number" ? String(m.current_streak) : "—"} />
@@ -798,8 +810,12 @@ function InsightsTab({ classId }: { classId: string }) {
         ) : (
           <div className="space-y-2">
             {branchBars.map((b) => (
-              <div key={b.id} className="flex items-center gap-3">
-                <div className="w-40 shrink-0 text-sm text-slate-200 truncate">{b.name}</div>
+              // Branch labels and the correct/attempts breakdown both shrink
+              // on narrow viewports — w-40 / w-24 fixed widths used to push
+              // the bar off-screen at 360px. The correct/attempts detail
+              // becomes a tooltip on mobile, percentage stays.
+              <div key={b.id} className="flex items-center gap-2 sm:gap-3">
+                <div className="w-24 sm:w-40 shrink-0 text-xs sm:text-sm text-slate-200 truncate">{b.name}</div>
                 <div className="flex-1 min-w-0 h-2.5 rounded-full bg-slate-800 overflow-hidden relative">
                   {b.pct !== null && (
                     <div
@@ -808,13 +824,14 @@ function InsightsTab({ classId }: { classId: string }) {
                     />
                   )}
                 </div>
-                <div className="w-24 shrink-0 text-right text-xs">
+                <div className="w-14 sm:w-24 shrink-0 text-right text-xs"
+                     title={b.pct !== null ? `${b.correct}/${b.attempts} correct` : undefined}>
                   {b.pct === null ? (
                     <span className="text-slate-600">—</span>
                   ) : (
                     <>
                       <span className="text-slate-100 font-semibold mono">{b.pct}%</span>
-                      <span className="text-slate-500 mono ml-1.5">· {b.correct}/{b.attempts}</span>
+                      <span className="text-slate-500 mono ml-1.5 hidden sm:inline">· {b.correct}/{b.attempts}</span>
                     </>
                   )}
                 </div>
@@ -855,8 +872,8 @@ function InsightsTab({ classId }: { classId: string }) {
           <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">
             Per-student mastery
           </div>
-          <button onClick={load} className="text-xs text-slate-400 hover:text-white transition">
-            ↻ Refresh
+          <button onClick={load} aria-label="Refresh insights" className="text-xs text-slate-400 hover:text-white transition">
+            <span aria-hidden="true">↻</span> Refresh
           </button>
         </div>
         <div className="overflow-x-auto">
@@ -924,11 +941,26 @@ function MemberMasteryRow({ m, byMember }: { m: InsightsMember; byMember: Array<
       <td className={`text-right px-3 py-2.5 mono font-semibold ${accuracyColor}`}>
         {m.consented && m.accuracy_pct !== null ? `${m.accuracy_pct}%` : "—"}
       </td>
+      {/* Direction glyphs (↑ / ↓) carry the meaning so colorblind users
+          and screen-reader users still understand "strongest" vs "weakest"
+          even when the green/amber color coding is invisible. */}
       <td className="px-3 py-2.5 text-xs text-emerald-300/90">
-        {strong ? (METHODS[strong.method]?.title || strong.method) : <span className="text-slate-600">—</span>}
+        {strong ? (
+          <span className="inline-flex items-center gap-1">
+            <span aria-hidden="true">↑</span>
+            <span className="sr-only">Strongest method:</span>
+            {METHODS[strong.method]?.title || strong.method}
+          </span>
+        ) : <span className="text-slate-600">—</span>}
       </td>
       <td className="px-3 py-2.5 text-xs text-amber-300/90">
-        {weak ? (METHODS[weak.method]?.title || weak.method) : <span className="text-slate-600">—</span>}
+        {weak ? (
+          <span className="inline-flex items-center gap-1">
+            <span aria-hidden="true">↓</span>
+            <span className="sr-only">Weakest method:</span>
+            {METHODS[weak.method]?.title || weak.method}
+          </span>
+        ) : <span className="text-slate-600">—</span>}
       </td>
       <td className="text-right px-5 py-2.5 text-xs text-slate-400 mono">
         {m.consented ? lastActiveLabel : "—"}

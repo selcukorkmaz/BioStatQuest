@@ -516,13 +516,23 @@ function TopBar({ state, setState, onReset, onNav, current }) {
         <div className="order-3 w-full md:order-2 md:w-auto hscroll md:overflow-visible -mx-3 sm:-mx-6 md:mx-0 px-3 sm:px-6 md:px-0">
           <div className="flex gap-1 items-center md:flex-wrap">
             {[["home","Home"],["tree","Skill Tree"],["lab","Lab"],["rlab","R Lab"],["badges","Badges"],["board","Leaders"],["stats","Stats"],["glossary","Glossary"]].map(([k,l]) => (
-              <button key={k} onClick={()=>onNav(k)} className={`nav-btn ${current===k?"active":""}`}>
-                <span className="inline-flex items-center justify-center w-[18px] h-[18px] shrink-0">{NAV_ICON[k]}</span>
+              // aria-label + title cover the mobile icon-only state where
+              // the visible label (.hidden md:inline) collapses to nothing.
+              // aria-current marks the active route for screen-reader users.
+              <button
+                key={k}
+                onClick={()=>onNav(k)}
+                aria-label={l}
+                title={l}
+                aria-current={current===k ? "page" : undefined}
+                className={`nav-btn ${current===k?"active":""}`}
+              >
+                <span className="inline-flex items-center justify-center w-[18px] h-[18px] shrink-0" aria-hidden="true">{NAV_ICON[k]}</span>
                 <span className="hidden md:inline">{l}</span>
               </button>
             ))}
             {isInstructorNow && (
-              <button onClick={()=>onNav("teach")} className={`nav-btn ${current==="teach"?"active":""}`} title="Teach — manage classes you instruct">
+              <button onClick={()=>onNav("teach")} className={`nav-btn ${current==="teach"?"active":""}`} aria-label="Teach" title="Teach — manage classes you instruct" aria-current={current==="teach" ? "page" : undefined}>
                 <span className="inline-flex items-center justify-center w-[18px] h-[18px] shrink-0" aria-hidden="true">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="9" cy="8" r="3"/>
@@ -535,7 +545,7 @@ function TopBar({ state, setState, onReset, onNav, current }) {
               </button>
             )}
             {isAdminNow && (
-              <button onClick={()=>onNav("admin")} className={`nav-btn ${current==="admin"?"active":""}`} title="Admin — question reports">
+              <button onClick={()=>onNav("admin")} className={`nav-btn ${current==="admin"?"active":""}`} aria-label="Admin" title="Admin — question reports" aria-current={current==="admin" ? "page" : undefined}>
                 <span className="inline-flex items-center justify-center w-[18px] h-[18px] shrink-0" aria-hidden="true">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"/>
@@ -7687,9 +7697,19 @@ function App() {
 
   return (
     <div className="min-h-screen">
+      {/* Skip-to-content link — invisible until focused. Lets keyboard
+          users bypass the TopBar's nav rather than tabbing through 8+
+          links on every page. Targets #main-content rendered below. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-cyan-500 focus:text-slate-950 focus:font-semibold focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
       {view !== "onboarding" && view !== "diagnostic" && view !== "results" && view !== "join" && (
         <TopBar state={state} setState={setState} onReset={resetProgress} onNav={(v)=>{ if(v==="tree") setInitialBranch(null); setView(v); }} current={view}/>
       )}
+      <main id="main-content" tabIndex={-1} className="outline-none">
       {view === "onboarding" && <OnboardingIntro state={state} setState={setState} onStart={beginDiagnostic} onSkip={skipDiagnostic}/>}
       {view === "diagnostic"  && <DiagnosticPlay onFinish={finishDiagnostic} onExit={() => setView("home")}/>}
       {view === "results"     && <DiagnosticResults profile={state.diagnosticProfile} studyPath={state.studyPath} onStartCase={startCaseSelect} onNav={setView} learnerGoal={state.learnerGoal}/>}
@@ -7731,6 +7751,7 @@ function App() {
       {view === "admin"    && <AdminReports onHome={()=>setView("home")}/>}
       {view === "teach"    && <TeachView onHome={()=>setView("home")}/>}
       {view === "join"     && <JoinView/>}
+      </main>
       {sharePending && (
         <ShareCardModal
           achievement={sharePending}

@@ -60,8 +60,8 @@ export function MyClassesBand({ onOpenTeach }: { onOpenTeach: () => void }) {
             <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">
               Your classes
             </div>
-            <button onClick={load} className="text-[11px] text-slate-500 hover:text-slate-300 transition">
-              ↻ Refresh
+            <button onClick={load} aria-label="Refresh class list" className="text-[11px] text-slate-500 hover:text-slate-300 transition">
+              <span aria-hidden="true">↻</span> Refresh
             </button>
           </div>
           <ul className="space-y-2">
