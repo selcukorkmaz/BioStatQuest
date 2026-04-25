@@ -29,10 +29,7 @@ const FREE_CASES_LIMIT = 20;
 const PRO_PRICE_MONTHLY_USD = 9;
 const PRO_PRICE_YEARLY_USD = 60;
 
-function isCaseLockedForUser(_caseId: string, _userType: string | undefined | null): boolean {
-  // Pro gating disabled — all cases free for now.
-  return false;
-}
+// isCaseLockedForUser moved to src/lib/access.ts. Re-imported below.
 
 // Hook: current subscription state. Returns null while loading. Auto-refreshes
 // on auth change and when the app refocuses (covers the Stripe-return roundtrip).
@@ -1242,88 +1239,10 @@ function DiagnosticResults({ profile, studyPath, onStartCase, onNav, learnerGoal
   );
 }
 
-function SkillTree({ state, onStartCase, initialBranch }) {
-  const [openBranch, setOpenBranch] = useState(initialBranch || null);
-  useEffect(() => { if (initialBranch) setOpenBranch(initialBranch); }, [initialBranch]);
-  const { sub } = useSubscription();
-  const userType = sub?.user_type;
-  return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-4 fade-in">
-      <div>
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-white">Skill Tree</h2>
-        <p className="text-slate-400 text-sm mt-1">8 branches · {CASES.length} cases · {CASES.reduce((s,c)=>s+c.bank.length,0)}+ unique questions. Every replay draws a fresh set.</p>
-      </div>
-      <div className="space-y-3 sm:space-y-4">
-        {Object.entries(BRANCHES).map(([k, b]) => {
-          const cases = CASES.filter(c => c.branch === k);
-          const done = cases.filter(c => state.completed.includes(c.id)).length;
-          const open = openBranch === k;
-          return (
-            <div key={k} className="card rounded-2xl overflow-hidden transition-all">
-              <button onClick={()=>setOpenBranch(open?null:k)}
-                className="w-full text-left p-4 sm:p-5 hover:bg-white/5 transition"
-                style={{ background: `linear-gradient(145deg, ${b.color}30, transparent)` }}>
-                <div className="flex justify-between items-center gap-3">
-                  <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                    <span className="w-9 h-9 sm:w-11 sm:h-11 shrink-0 inline-block" style={{color: b.color}}>
-                      {BRANCH_ICON[k] || <Ico name={b.icon} size={36}/>}
-                    </span>
-                    <div className="min-w-0">
-                      <div className="font-bold text-white text-base sm:text-lg truncate">{b.name}</div>
-                      <div className="text-xs text-slate-300 line-clamp-2">{b.desc}</div>
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-base sm:text-lg font-bold text-white">{done}/{cases.length}</div>
-                    <div className="text-xs text-slate-400">{open?"▲":"▼"}</div>
-                  </div>
-                </div>
-                <div className="bar mt-3"><div style={{width: cases.length?(done/cases.length*100)+"%":"0%"}}></div></div>
-              </button>
-              {open && (
-                <div className="p-4 border-t border-purple-900/20 grid md:grid-cols-2 gap-2">
-                  {cases.map(c => {
-                    const isDone = state.completed.includes(c.id);
-                    const best = state.caseScores[c.id];
-                    const seen = (state.seenQuestions[c.id]||[]).length;
-                    const locked = isCaseLockedForUser(c.id, userType);
-                    return (
-                      <div key={c.id} className={`rounded-xl p-4 border ${locked ? "bg-slate-950/60 border-slate-800 opacity-80" : isDone ? "bg-emerald-900/10 border-emerald-700/40" : "bg-slate-900/40 border-slate-800"}`}>
-                        <div className="flex justify-between items-start gap-3 flex-wrap">
-                          <div className="flex-1 min-w-0">
-                            <div className="font-bold text-white flex items-center gap-2 flex-wrap">
-                              {isDone && <span className="text-emerald-400 inline-flex items-center"><Ico name="check" size={14}/></span>}
-                              <span className={locked ? "text-slate-300" : ""}>{c.title}</span>
-                              {locked && <span className="chip text-[10px] bg-amber-900/40 text-amber-300">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="inline mr-0.5"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-                                Pro
-                              </span>}
-                            </div>
-                            <div className="text-xs text-slate-400 mt-1">
-                              Min: <span style={{color:(DIFFICULTIES[c.diffMin]||{}).color||"#94a3b8"}}>{(DIFFICULTIES[c.diffMin]||{}).name||c.diffMin}</span>
-                              {" · "}{c.bank.length} Q in bank · {c.qPerRun} per run
-                              {best!==undefined && <span className="ml-2 text-amber-400">Best: {best}%</span>}
-                              {seen > 0 && <span className="ml-2 text-slate-500">({seen}/{c.bank.length} seen)</span>}
-                            </div>
-                          </div>
-                          <button
-                            onClick={()=>onStartCase(c.id)}
-                            className={`px-4 py-2 rounded-lg text-sm ${locked ? "btn btn-ghost" : "btn btn-primary"}`}>
-                            {locked ? "Unlock →" : isDone ? "Replay" : "Start"}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+// SkillTree extracted to src/views/SkillTree.tsx (Phase 6) and now
+// lazy-loaded — see the React.lazy() at the bottom of this file. The
+// route render arm uses <Suspense fallback> for the brief network/parse
+// window before the chunk is ready.
 
 function CaseSelect({ caseId, onStart, onBack, state }) {
   const c = CASES.find(x => x.id === caseId);
@@ -5168,29 +5087,15 @@ function Glossary({ state, onStartCase, onOpenBranch, request }) {
 // INTERACTIVE LAB — simulators
 // ============================================================
 
-// --- math helpers ---
-function erf(x) { // Abramowitz & Stegun approximation
-  const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
-  const sign = x<0?-1:1; x = Math.abs(x);
-  const t = 1/(1+p*x);
-  const y = 1 - (((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
-  return sign*y;
-}
-const pnorm = (z) => 0.5*(1+erf(z/Math.SQRT2));
-const dnorm = (x, mu=0, sd=1) => Math.exp(-0.5*((x-mu)/sd)**2)/(sd*Math.sqrt(2*Math.PI));
-function qnorm(p) { // inverse via bisection (good enough)
-  let lo=-8, hi=8;
-  for (let i=0;i<60;i++){ const m=(lo+hi)/2; if (pnorm(m)<p) lo=m; else hi=m; }
-  return (lo+hi)/2;
-}
-function lgamma(x){ // Lanczos
-  const g=7, c=[0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
-  if (x<0.5) return Math.log(Math.PI/Math.sin(Math.PI*x)) - lgamma(1-x);
-  x -= 1; let a=c[0]; for (let i=1;i<g+2;i++) a += c[i]/(x+i);
-  const t = x + g + 0.5;
-  return 0.5*Math.log(2*Math.PI) + (x+0.5)*Math.log(t) - t + Math.log(a);
-}
-const dbeta = (x,a,b) => { if (x<=0||x>=1) return 0; return Math.exp((a-1)*Math.log(x)+(b-1)*Math.log(1-x)+lgamma(a+b)-lgamma(a)-lgamma(b)); };
+// Math helpers — extracted to src/lib/stats.ts for testability and to
+// shrink App.tsx. Same numerical implementations, re-imported here.
+import { erf, pnorm, dnorm, qnorm, lgamma, dbeta } from "./lib/stats";
+import { isCaseLockedForUser } from "./lib/access";
+
+// Phase 6 lazy-loaded views. Each is its own bundle chunk Vite emits
+// at build time; users who never open the route never download the JS.
+// Wrap the route render with <Suspense fallback={…}> below.
+const SkillTreeLazy = React.lazy(() => import("./views/SkillTree"));
 
 // --- small primitives ---
 function Slider({ label, value, min, max, step, onChange, suffix, color="#8b5cf6" }) {
@@ -7718,7 +7623,11 @@ function App() {
       {view === "diagnostic"  && <DiagnosticPlay onFinish={finishDiagnostic} onExit={() => setView("home")}/>}
       {view === "results"     && <DiagnosticResults profile={state.diagnosticProfile} studyPath={state.studyPath} onStartCase={startCaseSelect} onNav={setView} learnerGoal={state.learnerGoal}/>}
       {view === "home"     && <Home state={state} setState={setState} onStartCase={startCaseSelect} onNav={setView} onOpenBranch={(b)=>{setInitialBranch(b); setView("tree");}} onReview={beginReview}/>}
-      {view === "tree"     && <SkillTree state={state} onStartCase={startCaseSelect} initialBranch={initialBranch}/>}
+      {view === "tree"     && (
+        <React.Suspense fallback={<div className="max-w-7xl mx-auto p-6 text-slate-500 text-sm">Loading Skill Tree…</div>}>
+          <SkillTreeLazy state={state} onStartCase={startCaseSelect} initialBranch={initialBranch}/>
+        </React.Suspense>
+      )}
       {view === "lab"      && <Lab onVisit={handleLabSimVisit}/>}
       {view === "rlab"     && (
         <div className="max-w-6xl mx-auto p-4 sm:p-6 fade-in">
