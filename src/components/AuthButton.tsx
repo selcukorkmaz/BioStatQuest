@@ -13,6 +13,7 @@ import { Ico } from "./Icons";
 import { Confetti } from "./Confetti";
 import { SubscriptionPanel } from "./SubscriptionPanel";
 import { levelFromXP } from "../lib/xp";
+import { useFocusTrap } from "../lib/useFocusTrap";
 
 function GoogleButton({ onClick, label }) {
   return (
@@ -652,6 +653,10 @@ export function AuthButton({ state, setState }) {
     }
   }, [user]);
 
+  // Phase 5.7 — focus trap + Esc-to-close on the auth modal.
+  // Active only while `open`; ref attaches to the inner card below.
+  const dialogRef = useFocusTrap<HTMLDivElement>(open, closeModal);
+
   React.useEffect(() => {
     if (!window.BQAuth) return;
     const unsub = window.BQAuth.onAuthChange(u => setUser(u));
@@ -693,7 +698,9 @@ export function AuthButton({ state, setState }) {
           aria-modal="true"
         >
           <div
-            className="premium-border rounded-2xl max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto"
+            ref={dialogRef}
+            tabIndex={-1}
+            className="premium-border rounded-2xl max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto outline-none"
             style={{ background: "linear-gradient(180deg, #0a0f1e 0%, #07091a 100%)" }}
             onClick={e => e.stopPropagation()}
           >

@@ -46,6 +46,7 @@ import { fmtNumber, fmtDate, fmtDateTime, fmtTime } from "./lib/format";
 import { buildStudyPath, recommendedDifficultyFromBand, bandLabel } from "./lib/diagnostic";
 import { useUrlPath } from "./lib/useUrlPath";
 import { viewFromPath, pathFromView, viewHasUrl } from "./lib/viewRoutes";
+import { useFocusTrap } from "./lib/useFocusTrap";
 
 
 // ============================================================
@@ -2785,6 +2786,9 @@ function PaywallModal({ reason, onClose, caseTitle }) {
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState("");
   const signedIn = !!(window.BQAuth && window.BQAuth.getUser && window.BQAuth.getUser());
+  // Phase 5.7 — focus trap + Esc to close. Restores focus to whatever
+  // the user clicked to open this on close.
+  const dialogRef = useFocusTrap<HTMLDivElement>(true, onClose);
 
   async function subscribe() {
     setBusy(true); setErr("");
@@ -2803,12 +2807,12 @@ function PaywallModal({ reason, onClose, caseTitle }) {
   const savings = Math.max(0, monthly * 12 - yearly);
 
   return ReactDOM.createPortal((
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 fade-in" style={{background: "rgba(2,6,23,0.78)"}} role="dialog" aria-modal="true" onClick={onClose}>
-      <div className="card premium-border rounded-2xl max-w-lg w-full p-6 sm:p-8 max-h-[90vh] overflow-y-auto" onClick={(e)=>e.stopPropagation()}>
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 fade-in" style={{background: "rgba(2,6,23,0.78)"}} role="dialog" aria-modal="true" aria-labelledby="paywall-title" onClick={onClose}>
+      <div ref={dialogRef} tabIndex={-1} className="card premium-border rounded-2xl max-w-lg w-full p-6 sm:p-8 max-h-[90vh] overflow-y-auto outline-none" onClick={(e)=>e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="min-w-0">
             <div className="tag text-amber-300 mb-1">Pro — unlock everything</div>
-            <h3 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight leading-tight">
+            <h3 id="paywall-title" className="text-xl sm:text-2xl font-extrabold text-white tracking-tight leading-tight">
               {reason === "locked_case" && caseTitle
                 ? <>This case — <span className="gold-text">{caseTitle}</span> — is part of Pro.</>
                 : "Unlock all 50 cases."}
