@@ -264,6 +264,52 @@ async function submitQuestionReport(opts: {
   return true;
 }
 
+// F2 — Per-attempt telemetry. Fire-and-forget insert into question_attempts.
+// One row per learner submission, used downstream by the adaptive engine
+// (F4), IRT calibration (F2 batch), instructor item analysis (F10), and the
+// misconception ledger (F8). Signed-in users only — guests are skipped to
+// avoid an unauthenticated insert path. Always swallows errors so that a
+// telemetry hiccup never breaks the play loop.
+export type QuestionAttempt = {
+  qid: string;
+  caseId: string;
+  qType: "mcq" | "multi" | "numeric";
+  chosen: number | number[] | string | null;
+  correct: boolean;
+  msToAnswer?: number | null;
+  timedOut?: boolean;
+  hintUsed?: boolean;
+  deepDiveOpened?: boolean;
+  misconceptionTag?: string | null;
+  difficulty?: string | null;
+  runId?: string | null;
+};
+
+async function logQuestionAttempt(a: QuestionAttempt): Promise<void> {
+  try {
+    if (!enabled || !client || !currentUser) return;
+    // Same consent gate as logEvent — telemetry is opt-in.
+    if (!hasAnalyticsConsent()) return;
+    await client.from("question_attempts").insert({
+      user_id: currentUser.id,
+      qid: a.qid,
+      case_id: a.caseId,
+      q_type: a.qType,
+      chosen: a.chosen as unknown,
+      correct: a.correct,
+      ms_to_answer: a.msToAnswer ?? null,
+      timed_out: !!a.timedOut,
+      hint_used: !!a.hintUsed,
+      deep_dive_opened: !!a.deepDiveOpened,
+      misconception_tag: a.misconceptionTag ?? null,
+      difficulty: a.difficulty ?? null,
+      run_id: a.runId ?? null,
+    });
+  } catch {
+    // Never propagate — play loop must not see telemetry errors.
+  }
+}
+
 // Admin allow-list comes from VITE_BQ_ADMIN_EMAILS at build time
 // (comma-separated). Falls back to the original single-admin email so
 // existing deploys keep working before the env var is set. Adding a
@@ -615,6 +661,7 @@ export const BQAuth = {
   mergeLocalIntoRemote,
   fetchLeaderboard,
   submitQuestionReport,
+  logQuestionAttempt,
   isAdmin,
   fetchQuestionReports,
   updateQuestionReport,

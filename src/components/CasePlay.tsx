@@ -107,6 +107,48 @@ function ReportQuestionLink({ qid, caseId }) {
   );
 }
 
+// Distractor-specific feedback panel. When the learner picks a wrong option
+// that has a per-option explanation defined on the question, surface it here
+// — placed *above* the generic `step.explain` so feedback first addresses
+// the specific misconception they fell into. Silent when the answer is
+// correct or no per-option content is authored. (F1 — v2.0 plan.)
+export function DistractorFeedback({ step, correct, current }) {
+  if (correct) return null;
+  if (!step.optionExplanations && !step.misconceptionTag) return null;
+
+  const tagged = (idx) => {
+    const why = step.optionExplanations?.[idx];
+    const tag = step.misconceptionTag?.[idx];
+    if (!why && !tag) return null;
+    const letter = String.fromCharCode(65 + idx);
+    return (
+      <div key={idx} className="mb-3 rounded-lg border border-red-700/40 bg-red-950/30 p-3">
+        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+          <span className="text-[10px] uppercase tracking-widest text-red-300 font-bold mono">Your pick · {letter}</span>
+          {tag && (
+            <span className="chip bg-amber-900/40 text-amber-200 text-[10px] inline-flex items-center gap-1">
+              <Ico name="warning" size={10}/> Common misconception
+            </span>
+          )}
+        </div>
+        {why && <div className="text-sm text-slate-200 leading-relaxed">{why}</div>}
+      </div>
+    );
+  };
+
+  if (step.type === "mcq" && typeof current === "number") {
+    return tagged(current);
+  }
+  if (step.type === "multi" && Array.isArray(current)) {
+    const ans = step.answer;
+    // Show feedback for any option the learner checked that isn't in the answer.
+    const wronglyChecked = current.filter((i) => !ans.includes(i));
+    const items = wronglyChecked.map(tagged).filter(Boolean);
+    return items.length ? <div>{items}</div> : null;
+  }
+  return null;
+}
+
 export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs, onOpenGlossary }) {
   const isReview = caseId === REVIEW_CASE_ID;
   const c = isReview
@@ -126,6 +168,13 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
   // loop and show an act-intro card until the user clicks through. The first
   // question naturally starts Act 1 so this is true on mount.
   const [showActIntro, setShowActIntro] = useState(!!narrative);
+  // F2 telemetry: a stable per-run id groups the attempts of one case run,
+  // and a per-question shown-at timestamp lets us compute ms_to_answer.
+  const [runId] = useState(() => {
+    try { return (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : `r_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,10)}`; }
+    catch { return `r_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,10)}`; }
+  });
+  const [shownAt, setShownAt] = useState(() => Date.now());
 
   const step = questions[stepIdx];
   const isLast = stepIdx === questions.length - 1;
@@ -140,7 +189,7 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
     return ()=>clearTimeout(t);
   }, [timeLeft, showExplain, showActIntro]);
 
-  useEffect(() => { setTimeLeft(diff.time); }, [stepIdx]);
+  useEffect(() => { setTimeLeft(diff.time); setShownAt(Date.now()); }, [stepIdx]);
 
   const checkAnswer = (timedOut=false) => {
     let ok = false;
@@ -160,6 +209,37 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
     setTotalTimeBonus(t => t + bonusFromTime);
     setStreak(ok ? streak+1 : 0);
     setAnswers([...answers, { qid: step.qid, q: step.q, user: current, correct: ok, explain: step.explain, method: step.method, timedOut, timeBonus: bonusFromTime }]);
+
+    // F2 telemetry — fire-and-forget per-attempt log. Captures the picked
+    // distractor's misconception tag (if any) so the misconception ledger
+    // (F8) and instructor item analysis (F10) can read it directly.
+    try {
+      const auth = (window as any).BQAuth;
+      if (auth && typeof auth.logQuestionAttempt === "function") {
+        let tag = null;
+        if (!ok && !timedOut && step.type === "mcq" && typeof current === "number") {
+          tag = step.misconceptionTag?.[current] ?? null;
+        }
+        const chosen = timedOut ? null
+          : step.type === "numeric" ? (current === null ? null : String(current))
+          : current;
+        const ms = timedOut ? null : Math.max(0, Date.now() - shownAt);
+        void auth.logQuestionAttempt({
+          qid: step.qid,
+          caseId: c.id,
+          qType: step.type,
+          chosen,
+          correct: ok,
+          msToAnswer: ms,
+          timedOut: !!timedOut,
+          hintUsed: false,        // F3 will populate this
+          deepDiveOpened: false,  // wire in a later slice when DeepDive exposes a callback
+          misconceptionTag: tag,
+          difficulty,
+          runId,
+        });
+      }
+    } catch { /* telemetry must never break play */ }
   };
 
   const nextStep = () => {
@@ -320,6 +400,7 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
               {answers[answers.length-1]?.timedOut ? (<span className="inline-flex items-center gap-2"><Ico name="alarm-clock" size={16}/> Time's up!</span>) : correct ? (<span className="inline-flex items-center gap-2"><Ico name="check" size={16}/> Correct!</span>) : (<span className="inline-flex items-center gap-2"><Ico name="cross" size={16}/> Not quite.</span>)}
               {correct && totalTimeBonus > 0 && <span className="ml-2 text-amber-400 text-sm">+{answers[answers.length-1]?.timeBonus||0} time bonus</span>}
             </div>
+            <DistractorFeedback step={step} correct={correct} current={current} />
             <div className="text-sm text-slate-200 leading-relaxed">{step.explain}</div>
             {step.method && <DeepDive methodId={step.method} srs={srs} onOpenGlossary={onOpenGlossary}/>}
             <ReportQuestionLink qid={step.qid} caseId={c.id}/>

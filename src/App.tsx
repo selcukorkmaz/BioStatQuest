@@ -292,7 +292,27 @@ function shuffleQuestionOptions(q) {
   } else {
     newAnswer = q.answer;
   }
-  return { ...q, options: newOptions, answer: newAnswer };
+  // Distractor-keyed maps (optionExplanations, misconceptionTag) are stored
+  // by ORIGINAL index; remap them through `perm` so the right text reaches
+  // the right (post-shuffle) option. Without this, after shuffle the wrong
+  // explanation surfaces for the wrong distractor.
+  const remapByOption = (m) => {
+    if (!m) return m;
+    const out = {};
+    for (const k of Object.keys(m)) {
+      const oldIdx = Number(k);
+      const newIdx = perm.indexOf(oldIdx);
+      if (newIdx >= 0) out[newIdx] = m[k];
+    }
+    return out;
+  };
+  return {
+    ...q,
+    options: newOptions,
+    answer: newAnswer,
+    optionExplanations: remapByOption(q.optionExplanations),
+    misconceptionTag: remapByOption(q.misconceptionTag),
+  };
 }
 
 // SM-2-lite spaced repetition update. quality: 1 = wrong, 4 = correct.
@@ -3883,7 +3903,9 @@ function Stats({ state }) {
   );
 }
 
-const GLOSSARY_HASH_PREFIX = "#glossary:";
+// GLOSSARY_HASH_PREFIX moved to src/lib/glossaryHash.ts in Phase 6 round 2
+// so the App's view resolver can parse the hash without pulling in the
+// Glossary view chunk.
 
 // Letters shown in the mobile A–Z ribbon (with "#" for non-alphabetic heads).
 const GM_LETTERS = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","#"];
@@ -4331,17 +4353,8 @@ function compactGlossaryText(value) {
   return normalizeGlossaryText(value).replace(/\s+/g, "");
 }
 
-function glossaryHashForId(id) {
-  return id ? `${GLOSSARY_HASH_PREFIX}${encodeURIComponent(id)}` : "";
-}
-
-function parseGlossaryHash(hash) {
-  const raw = String(hash || "").trim();
-  if (!raw.startsWith(GLOSSARY_HASH_PREFIX)) return null;
-  const id = decodeURIComponent(raw.slice(GLOSSARY_HASH_PREFIX.length));
-  if (!id || !GLOSSARY_BY_ID[id]) return null;
-  return { selectedId: id };
-}
+// glossaryHashForId / parseGlossaryHash moved to src/lib/glossaryHash.ts
+// in Phase 6 round 2.
 
 function levenshteinDistance(a, b) {
   const aa = String(a || "");
@@ -5091,6 +5104,11 @@ function Glossary({ state, onStartCase, onOpenBranch, request }) {
 // shrink App.tsx. Same numerical implementations, re-imported here.
 import { erf, pnorm, dnorm, qnorm, lgamma, dbeta } from "./lib/stats";
 import { isCaseLockedForUser } from "./lib/access";
+import {
+  GLOSSARY_HASH_PREFIX,
+  glossaryHashForId,
+  parseGlossaryHash,
+} from "./lib/glossaryHash";
 
 // Phase 6 lazy-loaded views. Each is its own bundle chunk Vite emits
 // at build time; users who never open the route never download the JS.

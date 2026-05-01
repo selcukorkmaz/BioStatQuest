@@ -121,6 +121,42 @@ describe("Case bank structural validation", () => {
               expect(Object.keys(METHODS)).toContain(q.method);
             });
           }
+
+          if (q.optionExplanations || q.misconceptionTag) {
+            it("only attaches per-option metadata to MCQ/multi questions with valid in-bounds option indices", () => {
+              const opts = (q.options as string[] | undefined) ?? [];
+              expect(["mcq", "multi"]).toContain(q.type);
+              const ans = q.answer as number | number[];
+              const answerSet = new Set(Array.isArray(ans) ? ans : [ans]);
+
+              const validate = (
+                map: Record<string, string> | undefined,
+                label: string,
+              ) => {
+                if (!map) return;
+                for (const k of Object.keys(map)) {
+                  const idx = Number(k);
+                  expect(
+                    Number.isInteger(idx),
+                    `${label} key "${k}" is not an integer`,
+                  ).toBe(true);
+                  expect(idx, `${label} index ${idx} out of bounds`)
+                    .toBeGreaterThanOrEqual(0);
+                  expect(idx, `${label} index ${idx} out of bounds`)
+                    .toBeLessThan(opts.length);
+                  expect(
+                    answerSet.has(idx),
+                    `${label} target ${idx} is the (or a) correct answer — per-option feedback is for distractors only`,
+                  ).toBe(false);
+                  const value = map[k];
+                  expect(typeof value).toBe("string");
+                  expect(value.trim().length).toBeGreaterThan(0);
+                }
+              };
+              validate(q.optionExplanations, "optionExplanations");
+              validate(q.misconceptionTag, "misconceptionTag");
+            });
+          }
         });
       }
     });
