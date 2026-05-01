@@ -139,7 +139,15 @@ const CASES: Case[] = [
       explain:"Only the mode (most frequent category) and proportions (n, %) make sense for nominal data — means and SDs are undefined without a numeric scale.", method:"variable_types" },
     { q: "The coefficient of variation (CV) is:", type:"mcq", standalone:true,
       options:["SD / mean","Mean / SD","Variance × mean","Range / IQR"], answer:0,
-      explain:"CV = SD/mean, useful for comparing variability across scales.", method:"spread_variability" },
+      explain:"CV = SD/mean, useful for comparing variability across scales.", method:"spread_variability",
+      optionExplanations: {
+        1: "Inverted. Mean/SD is sometimes called the signal-to-noise ratio (mostly used in physics/engineering), but it isn't the CV. CV expresses variability AS A FRACTION OF THE MEAN — so SD goes on top.",
+        2: "Multiplying variance by the mean has no standard interpretation. CV uses SD (not variance) so the units divide cleanly: SD and mean share the same units, leaving CV unitless.",
+        3: "Range/IQR is a robust shape descriptor (large values flag heavy tails relative to the box) but it's not the CV. CV specifically scales SD by the mean."
+      },
+      misconceptionTag: {
+        1: "ratio_inverted"
+      } },
     { q: "If 50 patients have mean age 60 and 50 have mean age 70, the combined mean age is:", type:"numeric", standalone:true, answer:65, tol:0.5,
       explain:"Weighted average with equal n's: (60+70)/2 = 65.", method:"central_tendency" },
     { q: "Which is NOT a measure of central tendency?", type:"mcq", standalone:true,
@@ -160,7 +168,16 @@ const CASES: Case[] = [
       explain:"Q1 = 25th percentile. Q2 = median (50th). Q3 = 75th. Together they summarise spread for skewed data where mean ± SD would mislead.", method:"central_tendency" },
     { q: "Adding a constant c to every value in a dataset changes:", type:"mcq", standalone:true,
       options:["SD only","Mean only","Both mean and SD","Neither"], answer:1,
-      explain:"Shifting by a constant changes center (mean) but not spread (SD).", method:"spread_variability" },
+      explain:"Shifting by a constant changes center (mean) but not spread (SD).", method:"spread_variability",
+      optionExplanations: {
+        0: "Reversed. Translating every point shifts where the data live but keeps every pairwise gap intact — and SD is built from those gaps (deviations from the mean). SD is invariant to translation; mean is not.",
+        2: "Half-right intuition (the mean DOES change), but SD doesn't. Spread depends only on how points relate to each other, not their absolute position. Multiplying by a constant would change both.",
+        3: "Mean clearly changes — old mean + c is the new mean. The 'no change' option only makes sense for centred-and-scaled summaries (like z-scores), not raw mean."
+      },
+      misconceptionTag: {
+        0: "translation_changes_spread",
+        2: "translation_thought_to_scale"
+      } },
     { q: "Multiplying every value by 10 changes the SD by factor:", type:"numeric", standalone:true, answer:10, tol:0,
       explain:"SD scales linearly with multiplicative transforms.", method:"spread_variability" },
     { q: "Which is NOT a robust statistic?", type:"mcq", standalone:true,
@@ -280,7 +297,17 @@ const CASES: Case[] = [
       explain:"95/(95+495) ≈ 16%. Why we don't mass-screen rare conditions.", method:"roc_auc" },
     { q: "Sensitivity is defined as:", type:"mcq", standalone:true,
       options:["P(test+ | disease+)","P(disease+ | test+)","P(test− | disease−)","P(disease−|test−)"], answer:0,
-      explain:"Sensitivity = true positive rate = P(test+ | disease+).", method:"roc_auc" },
+      explain:"Sensitivity = true positive rate = P(test+ | disease+).", method:"roc_auc",
+      optionExplanations: {
+        1: "That's PPV, not sensitivity. The conditioning is reversed: sensitivity asks 'given disease, will the test catch it?' — PPV asks 'given a positive test, do they actually have the disease?'. PPV depends on prevalence; sensitivity is a property of the test itself.",
+        2: "That's specificity (true negative rate) — same family but the wrong slot. Sensitivity is about the SICK going positive; specificity is about the WELL going negative.",
+        3: "That's NPV (negative predictive value). Like PPV, it's a post-test conditional probability that depends on prevalence — distinct from the test-property pair (sens/spec)."
+      },
+      misconceptionTag: {
+        1: "sens_swapped_with_ppv",
+        2: "sens_swapped_with_spec",
+        3: "sens_swapped_with_npv"
+      } },
     { q: "Specificity is defined as:", type:"mcq", standalone:true,
       options:["P(test+ | disease+)","P(test− | disease−)","P(disease− | test−)","P(disease+ | test+)"], answer:1,
       explain:"Specificity = true negative rate = P(test− | disease−).", method:"roc_auc" },
@@ -295,7 +322,16 @@ const CASES: Case[] = [
       explain:"Negative Predictive Value: among all patients with a negative test, what fraction truly don't have the disease — formally P(disease− | test−). Unlike specificity (a test property), NPV depends on the prevalence of disease in the population being tested, so NPV in a screening clinic differs from NPV in a symptomatic cohort.", method:"roc_auc" },
     { q: "A highly sensitive test is best used to:", type:"mcq", standalone:true,
       options:["Rule OUT disease with a negative result","Rule IN disease with a positive result","Screen only high-risk individuals","Replace gold standard"], answer:0,
-      explain:"SnNOUT: high sensitivity, negative rules out (few false negatives).", method:"roc_auc" },
+      explain:"SnNOUT: high sensitivity, negative rules out (few false negatives).", method:"roc_auc",
+      optionExplanations: {
+        1: "Rule-IN logic uses high SPECIFICITY (SpPIN), not high sensitivity. A highly sensitive test catches almost all true cases, so a NEGATIVE is trustworthy (few false negatives). A highly SPECIFIC test rarely flags well people, so a POSITIVE is trustworthy.",
+        2: "Targeting high-risk people boosts pre-test probability (and PPV) regardless of which test you use. It's a screening-strategy choice, not a property tied to sensitivity.",
+        3: "No test 'replaces' the gold standard in clinical reasoning — high sensitivity tests confirm absence after a negative; you still need confirmation (often by the gold standard) after a positive."
+      },
+      misconceptionTag: {
+        1: "snnout_spp_in_swapped",
+        3: "test_replacing_gold_standard"
+      } },
     { q: "A highly specific test is best used to:", type:"mcq", standalone:true,
       options:["Rule OUT with negative","Rule IN with positive","Screen all comers","Estimate prevalence"], answer:1,
       explain:"SpPIN: high specificity, positive rules in (few false positives).", method:"roc_auc" },
@@ -413,7 +449,17 @@ const CASES: Case[] = [
         "If repeated, ~95% of such intervals would contain the true mean",
         "The p-value equals 0.05"
       ], answer:2,
-      explain:"Frequentist CI is a property of the PROCEDURE, not this specific interval. Option A is a Bayesian credible-interval statement (parameter treated as random). Option B confuses parameter uncertainty with patient variability.", method:"ci" },
+      explain:"Frequentist CI is a property of the PROCEDURE, not this specific interval. Option A is a Bayesian credible-interval statement (parameter treated as random). Option B confuses parameter uncertainty with patient variability.", method:"ci",
+      optionExplanations: {
+        0: "The most common (and seductive) misinterpretation. In frequentist statistics the true mean is a fixed unknown — it's either in (2,14) or it isn't, with probability 0 or 1. The 95% refers to the long-run behaviour of the METHOD that produced the interval, not to this particular interval. The probability statement you'd expect IS valid, but only under a Bayesian framework (a credible interval, with an explicit prior).",
+        1: "This is a tolerance interval / population-coverage statement, not a CI. The CI describes uncertainty about the MEAN reduction (a parameter), not about how individual patients spread around it. Patient variability is captured by SD, not by SE/CI width.",
+        3: "These are different (and not equivalent) summaries. A 95% CI excluding the null implies p < 0.05 — but the CI's bounds and the exact p-value carry distinct information. p = 0.05 EXACTLY would put one CI bound right at the null."
+      },
+      misconceptionTag: {
+        0: "ci_as_parameter_probability",
+        1: "ci_confused_with_patient_range",
+        3: "ci_confused_with_pvalue"
+      } },
     { q: "From CI (2,14), reject null of zero effect at α=0.05?", type:"mcq",
       scenario:"Same BP-REDUCE trial: mean reduction 8 mmHg, 95% CI (2, 14). α = 0.05. A resident asks whether the result is 'statistically significant'.",
       options:["Yes","No","Cannot tell"], answer:0,
@@ -426,7 +472,16 @@ const CASES: Case[] = [
     { q: "A 95% CI of (0.5, 1.8) for an odds ratio means:", type:"mcq",
       scenario:"A case-control study reports the adjusted odds ratio of ischemic stroke for aspirin use: OR = 0.9, 95% CI (0.5, 1.8).",
       options:["Statistically significant at 0.05","Not significant (CI includes 1)","Sample too small","OR is 0.5"], answer:1,
-      explain:"For ratio measures (OR, RR, HR), the null is 1 — not 0. A CI that spans 1 is compatible with both protection and harm; we fail to reject the null of no association.", method:"ci" },
+      explain:"For ratio measures (OR, RR, HR), the null is 1 — not 0. A CI that spans 1 is compatible with both protection and harm; we fail to reject the null of no association.", method:"ci",
+      optionExplanations: {
+        0: "Classic null-value error: for a RATIO measure (OR/RR/HR), the null of 'no effect' is 1, not 0. The CI here straddles 1, so the result is NOT significant at 0.05. (For a difference measure, the null IS 0 — and that's the rule that's being mis-applied here.)",
+        2: "Sample size affects CI width but you can't diagnose 'too small' from one CI without a target precision. Wide CIs may flag low power, but the question asks what THIS CI MEANS — and it means we can't reject the null.",
+        3: "OR is reported as 0.9 (the point estimate); 0.5 is the lower bound of the interval. Don't read the bound as the estimate — that's a chart-misreading error."
+      },
+      misconceptionTag: {
+        0: "ratio_null_confused_with_difference_null",
+        3: "ci_bound_read_as_estimate"
+      } },
     { q: "SE=2 and mean=10. Approximate 95% CI is:", type:"mcq", standalone:true,
       options:["(8,12)","(6,14)","(9,11)","(0,20)"], answer:1,
       explain:"Mean ± 1.96 × SE ≈ 10 ± 4 = (6,14).", method:"ci" },
@@ -447,7 +502,15 @@ const CASES: Case[] = [
     { q: "If CI is (−3, 5) for a mean difference, we:", type:"mcq",
       scenario:"Comparing post-operative pain scores (0–10 scale) at 24 h between two analgesic regimens, you get a mean difference of 1 point, 95% CI (−3, 5).",
       options:["Reject null","Fail to reject null","Conclude no effect exists","Need to flip the sign"], answer:1,
-      explain:"The CI contains 0, so we fail to reject H₀ at α = 0.05. But note: the CI is wide (−3 to +5) and compatible with a clinically meaningful benefit — this is insufficient evidence, NOT evidence of no effect.", method:"hypothesis_testing" },
+      explain:"The CI contains 0, so we fail to reject H₀ at α = 0.05. But note: the CI is wide (−3 to +5) and compatible with a clinically meaningful benefit — this is insufficient evidence, NOT evidence of no effect.", method:"hypothesis_testing",
+      optionExplanations: {
+        0: "The CI spans 0 (the null for a difference), so we cannot reject the null at α = 0.05. To reject, the entire CI must lie strictly on one side of 0.",
+        2: "Critical pitfall: 'fail to reject' ≠ 'no effect'. The CI runs from −3 to +5 — fully compatible with a clinically meaningful benefit (e.g., 4 points) AND with a meaningful harm. The right reading is INSUFFICIENT EVIDENCE; the trial may simply be underpowered. (Absence of evidence ≠ evidence of absence.)",
+        3: "There's no convention that requires flipping the sign of a CI. Direction here matters clinically (negative = treatment worse, positive = better), not as a statistical cue to flip anything."
+      },
+      misconceptionTag: {
+        2: "fail_to_reject_as_no_effect"
+      } },
     { q: "Profile-likelihood CIs are preferred for:", type:"mcq", standalone:true,
       options:["Normal means","Small sample","Any logistic regression","Only large n"], answer:1,
       explain:"Wald CIs assume a symmetric quadratic log-likelihood (equivalent to normal sampling distribution). Small-sample or skewed likelihoods — common for odds ratios, rate ratios, variance components — break this assumption and Wald CIs undercover. Profile-likelihood CIs use the actual curvature of the likelihood and give reliable coverage when n is small.", method:"ci" },
@@ -463,7 +526,17 @@ const CASES: Case[] = [
     { q: "A CI that barely excludes the null:", type:"mcq",
       scenario:"A cardiology trial's primary endpoint just clears the threshold: HR = 0.83 for MACE, 95% CI (0.69, 0.99), p = 0.043. The press release declares 'significant benefit'.",
       options:["Is strong evidence","Is borderline and should be","Proves the alternative","Shows the effect is large"], answer:1,
-      explain:"When the upper CI bound is near the null (0.99 for an HR), evidence is borderline — warrants replication, sensitivity analyses, and scrutiny of secondary endpoints. Significance is a threshold crossing, not a quality score.", method:"ci" },
+      explain:"When the upper CI bound is near the null (0.99 for an HR), evidence is borderline — warrants replication, sensitivity analyses, and scrutiny of secondary endpoints. Significance is a threshold crossing, not a quality score.", method:"ci",
+      optionExplanations: {
+        0: "Significance is a threshold (a CI excludes the null OR it doesn't), not a quality score. An interval whose upper bound is 0.99 is one trial fluctuation away from straddling 1; future evidence could plausibly nudge it the other way. 'Significant' ≠ 'strong'.",
+        2: "Frequentist tests never PROVE the alternative — they reject the null at some error rate. 'Proof' language is what gets press releases into trouble. Replication and consistency across endpoints are what build a case.",
+        3: "The point estimate (HR = 0.83) is a 17% relative reduction — clinically meaningful, but the CI's upper bound is essentially zero benefit. Effect SIZE is read from the point estimate; significance from the bounds. The two answer different questions and shouldn't be conflated."
+      },
+      misconceptionTag: {
+        0: "significance_treated_as_strength",
+        2: "frequentist_proof_language",
+        3: "size_confused_with_significance"
+      } },
     { q: "For proportions near 0 or 1, Wald CIs can:", type:"mcq", standalone:true,
       options:["Be exact","Undercover true","Be Bayesian","Be symmetric"], answer:1,
       explain:"Use Wilson or Clopper-Pearson for small p or extreme proportions.", method:"ci" },
@@ -481,7 +554,16 @@ const CASES: Case[] = [
   bank: Q("t1", [
     { q: "Two independent groups, continuous outcome, normal, equal variances, n=40/group:", type:"mcq", standalone:true,
       options:["Paired t-test","Student's t-test","Wilcoxon rank-sum","Chi-square"], answer:1,
-      explain:"Classic Student's t-test scenario.", method:"t_test" },
+      explain:"Classic Student's t-test scenario.", method:"t_test",
+      optionExplanations: {
+        0: "Paired tests are for the SAME subjects measured twice (or matched pairs). The question says 'two INDEPENDENT groups' — different people in each arm. Using a paired test on independent samples isn't just inefficient; it requires equal n and pairs the wrong observations, biasing the result.",
+        2: "Wilcoxon rank-sum (Mann-Whitney U) is the non-parametric alternative when normality fails. Here normality holds (stated) and n=40 is plenty for the parametric t-test, which is more powerful. Reach for non-parametrics only when the parametric assumptions are clearly violated.",
+        3: "Chi-square is for categorical/count data. The outcome here is CONTINUOUS — chi-square doesn't apply."
+      },
+      misconceptionTag: {
+        0: "paired_used_on_independent",
+        2: "nonparametric_default_when_parametric_valid"
+      } },
     { q: "Proportion cured in 3 treatment groups:", type:"mcq", standalone:true,
       options:["ANOVA","Kruskal-Wallis","Chi-square test","Paired t-test"], answer:2,
       explain:"Categorical outcome, 3 groups → chi-square (Fisher's exact if sparse).", method:"chi_square" },
@@ -493,7 +575,16 @@ const CASES: Case[] = [
       explain:"Non-parametric ANOVA for ordinal/skewed data.", method:"nonparametric_tests" },
     { q: "Correlation between two continuous variables (normal):", type:"mcq", standalone:true,
       options:["Pearson","Spearman","Kendall","Chi-square"], answer:0,
-      explain:"Pearson for linear relationships with normal data.", method:"correlation" },
+      explain:"Pearson for linear relationships with normal data.", method:"correlation",
+      optionExplanations: {
+        1: "Spearman is the rank-based fallback when normality or LINEARITY fails (it captures monotonic, not strictly linear, relationships). With normal continuous data, Pearson is more efficient (uses the actual values, not just ranks) and directly interpretable as the linear-association coefficient.",
+        2: "Kendall's τ is also rank-based and used in similar contexts as Spearman, especially for small samples or many ties. Same critique: when normality holds, Pearson is the canonical choice.",
+        3: "Chi-square is for the association of CATEGORICAL variables. Both variables here are continuous — chi-square doesn't apply."
+      },
+      misconceptionTag: {
+        1: "rank_correlation_when_parametric_valid",
+        2: "rank_correlation_when_parametric_valid"
+      } },
     { q: "Correlation between ranks / non-normal continuous:", type:"mcq", standalone:true,
       options:["Pearson","Spearman","T-test","Chi-square"], answer:1,
       explain:"Spearman's ρ works on ranks; robust to non-normality & outliers.", method:"correlation" },
@@ -570,7 +661,17 @@ const CASES: Case[] = [
         "If null true, P(data ≥ this extreme) = 4.8%",
         "Drug works 95.2% of the time"
       ], answer:2,
-      explain:"A p-value is P(data ≥ this extreme | H₀ true), NOT P(H₀ true | data). The common misreading inverts the conditional — that would be a Bayesian posterior probability and requires a prior.", method:"hypothesis_testing" },
+      explain:"A p-value is P(data ≥ this extreme | H₀ true), NOT P(H₀ true | data). The common misreading inverts the conditional — that would be a Bayesian posterior probability and requires a prior.", method:"hypothesis_testing",
+      optionExplanations: {
+        0: "The most-cited misinterpretation in biostat. The p-value conditions on the null being true (P(data | H₀)), then asks how surprising the data are; it does NOT tell you the probability the null is true given the data (P(H₀ | data)) — that requires a prior and is a Bayesian posterior.",
+        1: "'Due to chance' is colloquially common but wrong — the p-value is conditional on H₀, not a probability that the result is 'just chance'. If H₀ is false, the result isn't due to chance at all, regardless of p.",
+        3: "Conflates a frequentist tail probability with an efficacy rate. The p-value is silent on how often the drug works in any individual patient; it's a statement about hypothetical replications under the null."
+      },
+      misconceptionTag: {
+        0: "p_value_inverted_conditional",
+        1: "p_as_chance_probability",
+        3: "p_as_efficacy_rate"
+      } },
     { q: "Red flags in a trial reporting p=0.048 with n=80 total — select ALL:", type:"multi",
       scenario:"A small 80-patient trial reports that a herbal supplement improves memory scores, p = 0.048. The paper shows no effect size, no confidence interval, and no adjustment for multiple comparisons.",
       options:[
@@ -583,10 +684,29 @@ const CASES: Case[] = [
     { q: "20 outcomes tested, one significant reported — this is:", type:"mcq",
       scenario:"A registry analysis examined 20 patient-reported outcomes after joint replacement; only 'pain at 6 months' reached p = 0.03, and the authors built the paper around that finding without mentioning the other 19 tests.",
       options:["Fine","P-hacking /","Bonferroni","A CI"], answer:1,
-      explain:"Selective reporting inflates Type I error — under the null, you expect ~1 of 20 tests to be 'significant' by chance alone. Pre-registration and multiplicity correction (Bonferroni, Holm, FDR) prevent this.", method:"multiple_testing" },
+      explain:"Selective reporting inflates Type I error — under the null, you expect ~1 of 20 tests to be 'significant' by chance alone. Pre-registration and multiplicity correction (Bonferroni, Holm, FDR) prevent this.", method:"multiple_testing",
+      optionExplanations: {
+        0: "Not fine. With 20 independent tests and α = 0.05, the chance of at least one false positive under H₀ is 1 − 0.95²⁰ ≈ 64%. Reporting only the 'winning' test without mentioning the other 19 inflates the family-wise error rate dramatically.",
+        2: "Bonferroni is a CORRECTION method (it would deflate α to 0.0025 here, killing the 'significance'), not a description of what was done. The misconduct is selective reporting; Bonferroni is one tool to fix it.",
+        3: "A confidence interval is unrelated to the misconduct described. The problem isn't representation of one finding; it's hiding the existence of 19 others."
+      },
+      misconceptionTag: {
+        0: "selective_reporting_acceptable",
+        2: "correction_confused_with_misconduct"
+      } },
     { q: "Failing to reject H0 means:", type:"mcq", standalone:true,
       options:["H0 is true","Evidence insufficient","Effect is zero","Power is 100%"], answer:1,
-      explain:"Failing to reject H₀ means your data didn't provide sufficient evidence AGAINST it — NOT that H₀ is true. The effect could be real but your study was underpowered or sampled imprecisely. Always inspect the CI: a wide CI compatible with meaningful effects is very different from a tight CI centered near zero. 'Absence of evidence is not evidence of absence' is the one-liner.", method:"hypothesis_testing" },
+      explain:"Failing to reject H₀ means your data didn't provide sufficient evidence AGAINST it — NOT that H₀ is true. The effect could be real but your study was underpowered or sampled imprecisely. Always inspect the CI: a wide CI compatible with meaningful effects is very different from a tight CI centered near zero. 'Absence of evidence is not evidence of absence' is the one-liner.", method:"hypothesis_testing",
+      optionExplanations: {
+        0: "Frequentist tests never accept H₀ as TRUE; they only fail to reject it. Treating 'p > 0.05' as proof of no effect is the most-cited error in clinical literature — and it's especially common in small or underpowered studies where the test simply lacked sensitivity.",
+        2: "Same trap. The data are silent on whether the effect is exactly zero; they're consistent with a range of effects (read the CI). To CONCLUDE no clinically meaningful effect exists, design an EQUIVALENCE or non-inferiority test with a pre-specified margin.",
+        3: "Power describes the probability of correctly rejecting H₀ when it's false — under the alternative. A non-rejection result tells you nothing about your power; it could be 80% or 8%. Power is computed PROSPECTIVELY from design, not read off a non-significant p."
+      },
+      misconceptionTag: {
+        0: "fail_to_reject_as_h0_true",
+        2: "fail_to_reject_as_no_effect",
+        3: "power_inferred_from_pvalue"
+      } },
     { q: "α = 0.05 controls:", type:"mcq", standalone:true,
       options:["Type II error","Type I error","Power","Prevalence"], answer:1,
       explain:"α is the max acceptable false-positive probability under H0.", method:"hypothesis_testing" },
@@ -599,10 +719,28 @@ const CASES: Case[] = [
     { q: "P=0.001 vs p=0.04 — which implies a larger effect?", type:"mcq",
       scenario:"Trial A reports a statin's effect on LDL reduction with p = 0.001. Trial B reports the same drug's effect on HDL change with p = 0.04. A colleague concludes from the p-values alone that the LDL effect is larger.",
       options:["P=0.001","P=0.04","Cannot tell","Same"], answer:2,
-      explain:"P-values combine effect size AND sample size AND variability — so a smaller p may just reflect a larger trial, not a bigger effect. Without the effect sizes and CIs, you cannot rank the magnitude of the two effects.", method:"hypothesis_testing" },
+      explain:"P-values combine effect size AND sample size AND variability — so a smaller p may just reflect a larger trial, not a bigger effect. Without the effect sizes and CIs, you cannot rank the magnitude of the two effects.", method:"hypothesis_testing",
+      optionExplanations: {
+        0: "The classic 'smaller p = bigger effect' trap. A p-value depends on effect size, sample size, AND variability simultaneously. Trial A's p = 0.001 might reflect a tiny LDL effect measured in 50,000 patients; trial B's p = 0.04 a large HDL effect in 200. The p-values, alone, cannot rank the effect magnitudes.",
+        1: "Same fallacy in reverse. Larger p means weaker statistical evidence against the null — not a smaller effect. Effect SIZE is read from the point estimate (e.g., the actual mg/dL change); the p-value is a measure of evidence against H₀, not magnitude.",
+        3: "Two p-values being different doesn't make the effects equal. Whether A's and B's effects are similar requires comparing their POINT ESTIMATES and CIs, not their p-values."
+      },
+      misconceptionTag: {
+        0: "smaller_p_as_larger_effect",
+        1: "larger_p_as_smaller_effect"
+      } },
     { q: "Statistical vs clinical significance:", type:"mcq", standalone:true,
       options:["Identical","Stat sig guarantees clinical importance","Stat sig can be tiny in effect size","P=0.01 means 'very clinical'"], answer:2,
-      explain:"A 0.1% difference can be 'statistically significant' with n=10 million but clinically irrelevant.", method:"hypothesis_testing" },
+      explain:"A 0.1% difference can be 'statistically significant' with n=10 million but clinically irrelevant.", method:"hypothesis_testing",
+      optionExplanations: {
+        0: "These are different concepts. Statistical significance asks 'is the effect distinguishable from noise?'; clinical significance asks 'is the effect large enough to matter to a patient?'. A huge trial can detect a 0.5 mmHg BP reduction (significant, irrelevant); a tiny trial can miss a 20 mmHg one (not significant, very relevant).",
+        1: "The most dangerous misconception in clinical literature: assuming p < 0.05 = 'meaningful'. Mega-trials routinely achieve significance for effects too small to matter. The minimal clinically important difference (MCID) is set BY clinicians, separately from statistical thresholds.",
+        3: "The smaller the p-value, the stronger the statistical evidence against H₀ — but it tells you nothing about whether the effect is clinically actionable. p doesn't quantify clinical magnitude."
+      },
+      misconceptionTag: {
+        1: "statistical_significance_as_clinical_importance",
+        3: "small_p_as_clinical_significance"
+      } },
     { q: "P-hacking is minimized by:", type:"mcq", standalone:true,
       options:["Larger α","Pre-registration &","Removing outliers","Running many tests"], answer:1,
       explain:"Pre-registration locks in hypotheses and analyses before data are seen.", method:"multiple_testing" },
