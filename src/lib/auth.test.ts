@@ -98,6 +98,25 @@ describe("BQAuth.fetchMyMisconceptions (F8 ledger API)", () => {
   });
 });
 
+describe("BQAuth.fetchMyMisconceptionHistory (F8 Pro per-tag drill-down)", () => {
+  it("is exported on BQAuth", () => {
+    expect(typeof BQAuth.fetchMyMisconceptionHistory).toBe("function");
+  });
+
+  it("returns an empty array when Supabase is not configured", async () => {
+    await expect(BQAuth.fetchMyMisconceptionHistory("any_tag")).resolves.toEqual([]);
+  });
+
+  it("returns an empty array when called with empty tag", async () => {
+    await expect(BQAuth.fetchMyMisconceptionHistory("")).resolves.toEqual([]);
+  });
+
+  it("never throws — drill-down expand must degrade silently", async () => {
+    await expect(BQAuth.fetchMyMisconceptionHistory("any_tag", 50)).resolves.toBeDefined();
+    await expect(BQAuth.fetchMyMisconceptionHistory("any_tag", 9999)).resolves.toBeDefined();
+  });
+});
+
 describe("BQAuth admin telemetry APIs (S — admin dashboard)", () => {
   it("exports adminFetchTopMisconceptions and adminFetchQuestionStats", () => {
     expect(typeof BQAuth.adminFetchTopMisconceptions).toBe("function");

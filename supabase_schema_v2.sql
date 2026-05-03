@@ -254,6 +254,43 @@ grant execute on function public.admin_question_stats(int, int) to authenticated
 
 
 -- ============================================================
+-- F8 Pro — per-tag drill-down history
+-- ============================================================
+-- Pro learners on the My Misconceptions view expand a tag to see when
+-- and where they fell for it. Returns recent attempts (default last 50)
+-- for the calling user filtered to a specific misconception_tag, with
+-- enough context to render a useful timeline (which case, which qid,
+-- what they picked, when, how long it took). RLS-style: the function
+-- is SECURITY DEFINER but filters on auth.uid() so a user can only see
+-- their own history.
+create or replace function public.my_misconception_history(p_tag text, p_limit int default 50)
+returns table (
+  qid           text,
+  case_id       text,
+  q_type        text,
+  chosen        jsonb,
+  ms_to_answer  integer,
+  difficulty    text,
+  created_at    timestamptz
+)
+language sql
+security definer
+set search_path = public
+as $$
+  select qa.qid, qa.case_id, qa.q_type, qa.chosen, qa.ms_to_answer,
+         qa.difficulty, qa.created_at
+    from public.question_attempts qa
+   where qa.user_id = auth.uid()
+     and qa.misconception_tag = p_tag
+   order by qa.created_at desc
+   limit greatest(1, least(coalesce(p_limit, 50), 200))
+$$;
+
+revoke all on function public.my_misconception_history(text, int) from public;
+grant execute on function public.my_misconception_history(text, int) to authenticated;
+
+
+-- ============================================================
 -- F15 — AI TUTOR CHAT LOG
 -- ============================================================
 -- One row per AI tutor turn. Drives three things:

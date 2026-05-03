@@ -294,6 +294,38 @@ export type QuestionAttempt = {
 // RPC errors. Never throws — telemetry-adjacent code must not break play.
 export type MisconceptionLedger = Record<string, { count: number; lastSeen: string }>;
 
+// F8 Pro — per-tag drill-down. Returns recent attempts where the picked
+// distractor matched a specific misconception tag. Used by the Pro
+// expandable history under each ledger card. Empty for guests / failures.
+export type MisconceptionAttempt = {
+  qid: string;
+  caseId: string;
+  qType: "mcq" | "multi" | "numeric";
+  chosen: unknown;             // jsonb — number / number[] / string
+  msToAnswer: number | null;
+  difficulty: string | null;
+  createdAt: string;
+};
+
+async function fetchMyMisconceptionHistory(tag: string, limit = 50): Promise<MisconceptionAttempt[]> {
+  if (!enabled || !client || !currentUser || !tag) return [];
+  try {
+    const { data, error } = await client.rpc("my_misconception_history", { p_tag: tag, p_limit: limit });
+    if (error || !Array.isArray(data)) return [];
+    return (data as any[]).map((row) => ({
+      qid:         String(row.qid ?? ""),
+      caseId:      String(row.case_id ?? ""),
+      qType:       row.q_type as any,
+      chosen:      row.chosen,
+      msToAnswer:  row.ms_to_answer == null ? null : Number(row.ms_to_answer),
+      difficulty:  row.difficulty ?? null,
+      createdAt:   row.created_at ?? "",
+    }));
+  } catch {
+    return [];
+  }
+}
+
 async function fetchMyMisconceptions(): Promise<MisconceptionLedger> {
   if (!enabled || !client || !currentUser) return {};
   try {
@@ -733,6 +765,7 @@ export const BQAuth = {
   submitQuestionReport,
   logQuestionAttempt,
   fetchMyMisconceptions,
+  fetchMyMisconceptionHistory,
   adminFetchTopMisconceptions,
   adminFetchQuestionStats,
   isAdmin,
