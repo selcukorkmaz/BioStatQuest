@@ -11,6 +11,12 @@
 import * as React from "react";
 import { useEffect, useState } from "react";
 import { billing } from "../lib/billing";
+import { CASES } from "../data/cases";
+import { freeCaseCount, FREE_CASES_PER_BRANCH } from "../lib/access";
+
+const TOTAL_CASES = CASES.length;
+const FREE_CATALOG_LABEL = `First ${freeCaseCount()} cases (${FREE_CASES_PER_BRANCH} per branch)`;
+const PRO_CATALOG_LABEL = `All ${TOTAL_CASES}+ cases + day-one access`;
 
 const PILLARS = [
   {
@@ -45,9 +51,9 @@ const PILLARS = [
   },
   {
     title: "Catalog",
-    free: "First 20 cases",
-    pro:  "All 50+ cases + day-one access",
-    body: "New cases ship at the Pro tier first; free tier rotates in the foundational arc.",
+    free: FREE_CATALOG_LABEL,
+    pro:  PRO_CATALOG_LABEL,
+    body: "Free tier covers the foundational arc of every branch. Pro unlocks the deeper / more advanced cases plus day-one access to new content.",
   },
 ];
 
