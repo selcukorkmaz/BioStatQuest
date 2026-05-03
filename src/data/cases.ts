@@ -791,10 +791,30 @@ const CASES: Case[] = [
         "60% variance explained",
         "SBP is 0.6 × age"
       ], answer:1,
-      explain:"Slope = expected change in Y per 1-unit change in X.", method:"lm" },
+      explain:"Slope = expected change in Y per 1-unit change in X.", method:"lm",
+      optionExplanations: {
+        0: "Direction reversed — and units swapped. The slope of Y on X tells you how much Y changes per 1-unit change in X. Here Y = SBP, X = Age. So 0.6 reads as 'SBP changes by 0.6 per year of age', not the inverse.",
+        2: "0.6 is a regression coefficient (slope), not a proportion of variance explained — that's R² (which is reported separately as 0.32 here). The coefficient and R² answer different questions: 'how much does Y change?' vs 'how much variation does this predictor capture?'.",
+        3: "Misses the intercept. The full model is SBP = 90 + 0.6·Age, NOT SBP = 0.6·Age. At age 0 the predicted SBP is 90, not 0 — though that prediction is an extrapolation outside the fitted age range and shouldn't be taken seriously."
+      },
+      misconceptionTag: {
+        0: "slope_direction_reversed",
+        2: "slope_confused_with_r_squared",
+        3: "intercept_dropped"
+      } },
     { q: "R² of 0.32 means:", type:"mcq", standalone:true,
       options:["32% variance explained by age","Age causes 32% of hypertension","Correlation is 0.32","32% correct predictions"], answer:0,
-      explain:"R² is variance explained; not a causal quantity.", method:"lm" },
+      explain:"R² is variance explained; not a causal quantity.", method:"lm",
+      optionExplanations: {
+        1: "R² is a measure of association/fit, NOT causation. Even with R² = 0.95, you couldn't conclude age CAUSES anything — the relationship might be confounded, reversed, or coincidental. Causation requires study design (RCT, IV, natural experiment), not regression diagnostics.",
+        2: "Almost — but R² = correlation² for simple linear regression. Here R² = 0.32, so |r| = √0.32 ≈ 0.57 (the sign matches the slope sign). Skipping the square root underestimates the actual correlation.",
+        3: "R² doesn't measure classification accuracy. It's the fraction of Y-variance the model accounts for, not the fraction of predictions that fall within some tolerance. (For a binary/classification model you'd report accuracy, AUC, calibration — different metrics.)"
+      },
+      misconceptionTag: {
+        1: "association_treated_as_causation",
+        2: "r_squared_confused_with_correlation",
+        3: "r_squared_as_accuracy"
+      } },
     { q: "Residuals-vs-fitted plot checks for:", type:"mcq", standalone:true,
       options:["Normality of X","Linearity & homoscedasticity","Independence of X","Correlation"], answer:1,
       explain:"Visual check for non-linearity and non-constant variance.", method:"regression_diagnostics" },
@@ -806,7 +826,16 @@ const CASES: Case[] = [
       explain:"Plug into ŷ = β₀ + β₁·x: 90 + 0.6·50 = 120. Interpret the intercept as predicted SBP at age 0 (extrapolation warning).", method:"lm" },
     { q: "Adding an irrelevant predictor to a regression tends to:", type:"mcq", standalone:true,
       options:["Always raise R²","Always lower R²","Leave R² unchanged","Make R² negative"], answer:0,
-      explain:"R² never decreases with added predictors. Use adjusted R² to penalize complexity.", method:"lm" },
+      explain:"R² never decreases with added predictors. Use adjusted R² to penalize complexity.", method:"lm",
+      optionExplanations: {
+        1: "Counter-intuitive but wrong: R² is monotonic in model complexity. A new predictor can only fit MORE variance (or zero in the worst case), never less. That's why R² alone is a terrible model-selection criterion — it always favors the more complex model.",
+        2: "An irrelevant predictor still soaks up some sample variation by chance, lifting R² slightly. The effect is tiny but never zero — exactly the property that makes adjusted R² (which penalizes added predictors) more honest for comparison.",
+        3: "Standard R² is bounded in [0, 1] for OLS — it can't go negative. (Pseudo-R² for non-linear models or out-of-sample R² CAN go negative when the model fits worse than the mean — different statistic, different bounds.)"
+      },
+      misconceptionTag: {
+        1: "r_squared_thought_monotonic_in_relevance",
+        3: "r_squared_bounds_misremembered"
+      } },
     { q: "A standardized (β) coefficient is useful for:", type:"mcq", standalone:true,
       options:["Comparing predictors on","Computing p-values","Normalizing Y","Checking outliers"], answer:0,
       explain:"Standardization (SD units) enables comparison of relative predictor strength.", method:"spread_variability" },
@@ -881,14 +910,33 @@ const CASES: Case[] = [
     { q: "OR = 0.5 means:", type:"mcq",
       scenario:"An observational study of vaccinated vs unvaccinated adults reports an adjusted odds ratio for severe influenza = 0.5. A local news anchor says 'the vaccine halves your risk'.",
       options:["50% risk","Half the odds","Double the odds","Log-odds of −0.5"], answer:1,
-      explain:"OR = 0.5 means odds in the vaccinated are HALF the odds in unvaccinated — which only approximates 'half the risk' when the outcome is rare. For common outcomes, OR exaggerates the risk ratio. The anchor conflated odds with risk. Also note: log(OR) for OR=0.5 is log(0.5) ≈ −0.69, not −0.5 — the log-odds scale is how regression coefficients are reported, and mixing OR with log-OR is a very common mistake.", method:"logistic" },
+      explain:"OR = 0.5 means odds in the vaccinated are HALF the odds in unvaccinated — which only approximates 'half the risk' when the outcome is rare. For common outcomes, OR exaggerates the risk ratio. The anchor conflated odds with risk. Also note: log(OR) for OR=0.5 is log(0.5) ≈ −0.69, not −0.5 — the log-odds scale is how regression coefficients are reported, and mixing OR with log-OR is a very common mistake.", method:"logistic",
+      optionExplanations: {
+        0: "The exact mistake the anchor made — confusing odds with risk. OR = 0.5 says ODDS are halved, not RISK. Approximation 'OR ≈ RR' holds only when the outcome is rare (<~10%). For common outcomes, this conflation systematically OVERSTATES protective effects (or harms when OR > 1).",
+        2: "Direction reversed. OR < 1 → fewer odds in the exposed → protective effect. OR > 1 → more odds → risk factor. 0.5 is below 1, so it's protective; 'double the odds' would be OR = 2.",
+        3: "Scale mismatch. The log-odds (regression coefficient β) for OR = 0.5 is log(0.5) ≈ −0.69, not −0.5. Don't mistake the OR itself for its log; β is what regression reports, OR = exp(β) is the back-transformed quantity for clinical interpretation."
+      },
+      misconceptionTag: {
+        0: "odds_confused_with_risk",
+        2: "or_direction_reversed",
+        3: "or_confused_with_log_or"
+      } },
     { q: "Logistic regression uses which link function?", type:"mcq", standalone:true,
       options:["Identity","Log","Logit","Probit-only"], answer:2,
       explain:"The logit maps (0,1) probability to (−∞,∞) log-odds, so a linear model on log-odds never produces invalid probabilities.", method:"logistic" },
     { q: "An OR can approximate a risk ratio when:", type:"mcq",
       scenario:"A case-control study of bladder cancer (background prevalence ~2%) reports OR = 2.1 for heavy coffee consumption. A reader wants to quote this as 'coffee doubles your risk of bladder cancer'.",
       options:["Outcome is rare (<~10%)","Outcome is common","Sample is small","Predictors are continuous"], answer:0,
-      explain:"The rare-outcome assumption: when the outcome is uncommon (<~10%), OR ≈ RR. At 2% prevalence, 'doubles the risk' is a fair approximation. If bladder cancer were 40% prevalent, OR = 2.1 would substantially overstate the actual RR.", method:"logistic" },
+      explain:"The rare-outcome assumption: when the outcome is uncommon (<~10%), OR ≈ RR. At 2% prevalence, 'doubles the risk' is a fair approximation. If bladder cancer were 40% prevalent, OR = 2.1 would substantially overstate the actual RR.", method:"logistic",
+      optionExplanations: {
+        1: "Reversed. The OR overstates the RR (in direction of the effect) as the outcome becomes more common. With a 50% outcome, OR = 2 corresponds to RR ≈ 1.33, not 2 — a substantial overstatement. The approximation only works for RARE outcomes (≲ 10% baseline risk).",
+        2: "Sample size doesn't change the math relating OR to RR — it changes the precision of each. OR ≈ RR is a property of the underlying outcome prevalence, not the sample.",
+        3: "Predictor type (continuous vs categorical) is unrelated to whether OR approximates RR. The approximation depends on outcome prevalence, regardless of how the exposure variable is measured."
+      },
+      misconceptionTag: {
+        1: "or_rr_approximation_reversed",
+        2: "sample_size_confused_with_prevalence_effect"
+      } },
     { q: "Hosmer-Lemeshow test assesses:", type:"mcq", standalone:true,
       options:["Normality","Calibration / goodness-of-fit","Multicollinearity","Power"], answer:1,
       explain:"HL test compares observed vs predicted in deciles of risk.", method:"regression_diagnostics" },
@@ -1024,23 +1072,61 @@ const CASES: Case[] = [
   bank: Q("d2", [
     { q: "Smoking here is a:", type:"mcq", standalone:true,
       options:["Mediator","Confounder","Collider","Effect modifier"], answer:1,
-      explain:"Associated with both exposure (coffee) and outcome (CHD), not on causal path.", method:"mediation" },
+      explain:"Associated with both exposure (coffee) and outcome (CHD), not on causal path.", method:"mediation",
+      optionExplanations: {
+        0: "A mediator lies ON the causal path: Coffee → Smoking → CHD. That would mean drinking coffee CAUSES people to smoke, which then causes CHD. Implausible — and adjusting for a mediator would block (not unbias) the coffee effect, the opposite of what we want.",
+        2: "A collider is a COMMON EFFECT of two variables: Coffee → C ← CHD. Smoking comes BEFORE both coffee drinking and heart disease in the causal story; it's not a downstream effect. Adjusting for a collider OPENS spurious paths — wrong tool here.",
+        3: "Effect modification (statistical interaction) is when the coffee→CHD effect DIFFERS across smoker/non-smoker strata. That's a separate question (the size or sign of the effect varies). The question asks what role smoking plays, not whether it modifies the effect."
+      },
+      misconceptionTag: {
+        0: "confounder_mistaken_for_mediator",
+        2: "confounder_mistaken_for_collider",
+        3: "confounding_confused_with_modification"
+      } },
     { q: "Adjust for smoking by:", type:"mcq", standalone:true,
       options:["Ignoring smoking in the analysis","Stratification or regression adjustment","Dropping all smokers from the data","Flipping the coffee exposure variable"], answer:1,
       explain:"Adjustment handles confounders without losing data.", method:"confounding" },
     { q: "Design that best handles UNMEASURED confounding:", type:"mcq", standalone:true,
       options:["Larger cohort","Case-control","Randomized trial","Cross-sectional"], answer:2,
-      explain:"Randomization balances both measured and unmeasured confounders on average.", method:"study_design" },
+      explain:"Randomization balances both measured and unmeasured confounders on average.", method:"study_design",
+      optionExplanations: {
+        0: "Bigger n improves PRECISION (narrower CIs), not bias. If a confounder is unmeasured, no amount of data fixes it — every additional patient adds the same systematic distortion. The classic 'big data ≠ unbiased data' lesson.",
+        1: "Case-control is OBSERVATIONAL — exposure isn't randomly assigned, so unmeasured confounders sit in the estimate. Case-control is efficient for rare outcomes; not a fix for unmeasured confounding.",
+        3: "Cross-sectional has the WORST handle on confounding — and on temporality (you don't even know which came first). It's a snapshot, not a causal-inference tool."
+      },
+      misconceptionTag: {
+        0: "more_data_assumed_to_fix_bias",
+        1: "case_control_assumed_causal",
+        3: "cross_sectional_assumed_causal"
+      } },
     { q: "A mediator is:", type:"mcq", standalone:true,
       options:["On the causal path between","Independent of exposure","A type of bias","Always measured poorly"], answer:0,
       explain:"Exposure → Mediator → Outcome. Adjusting can block causal effects!", method:"mediation" },
     { q: "Adjusting for a mediator tends to:", type:"mcq", standalone:true,
       options:["Increase the bias-free estimate","Block / attenuate the total causal effect","Have no effect on the estimate","Boost the resulting p-value"], answer:1,
-      explain:"Mediator adjustment produces 'direct' effect, losing indirect effect.", method:"mediation" },
+      explain:"Mediator adjustment produces 'direct' effect, losing indirect effect.", method:"mediation",
+      optionExplanations: {
+        0: "Adjusting MORE doesn't always reduce bias — it depends on whether the variable is a confounder (adjustment helps) or a mediator (adjustment harms). For a mediator, adjustment removes part of the very effect you're trying to estimate, biasing toward the null.",
+        2: "If a variable lies on the causal pathway, controlling for it must change the estimate (it removes the indirect contribution). 'No effect' is what would happen if the variable were unrelated — not the case here by definition.",
+        3: "P-value behaviour is incidental — what matters causally is what the COEFFICIENT estimates. Adjusting for a mediator changes the estimand from total effect to (controlled) direct effect; the p-value then tests the wrong null. Worry about identification before significance."
+      },
+      misconceptionTag: {
+        0: "more_adjustment_assumed_better",
+        2: "adjustment_assumed_neutral_for_mediator"
+      } },
     { q: "Collider bias occurs when you:", type:"mcq",
       scenario:"You study COVID severity and baseline comorbidity in a hospital-only sample. Both severe COVID AND comorbidity independently cause hospital admission. You adjust for 'hospitalized' and find a surprising inverse association.",
       options:["Adjust for a confounder","Adjust for a common effect","Randomize","Use stratification"], answer:1,
-      explain:"'Hospitalized' is a common EFFECT of both COVID severity and comorbidity — a collider. Conditioning on a collider (here, by sampling only hospitalized patients) opens a non-causal path between the two and can create spurious negative associations. Adjusting for a collider ADDS bias rather than removing it.", method:"confounding" },
+      explain:"'Hospitalized' is a common EFFECT of both COVID severity and comorbidity — a collider. Conditioning on a collider (here, by sampling only hospitalized patients) opens a non-causal path between the two and can create spurious negative associations. Adjusting for a collider ADDS bias rather than removing it.", method:"confounding",
+      optionExplanations: {
+        0: "Adjusting for a confounder REMOVES bias — that's the right move. Collider bias is the OPPOSITE: a variable that's a common downstream EFFECT of two others. Adjusting for a confounder vs a collider has opposite consequences, and which is which depends on the causal graph, not the variable's name.",
+        2: "Randomization PREVENTS confounding (and many forms of selection bias) by design — it doesn't introduce collider bias. Collider bias is an analytical/sampling problem, not a randomization problem.",
+        3: "Stratification on a confounder is a valid adjustment strategy, parallel to regression. Stratifying on a COLLIDER would introduce the same bias as adjusting for it. The error isn't the technique (stratify vs regress), it's the variable choice."
+      },
+      misconceptionTag: {
+        0: "collider_treated_as_confounder",
+        2: "randomization_assumed_to_create_collider_bias"
+      } },
     { q: "Recall bias is a form of:", type:"mcq", standalone:true,
       options:["Confounding by indication","Information / measurement bias","Selection bias at sampling","Regression to the mean effect"], answer:1,
       explain:"Differential recall between cases & controls distorts exposure classification.", method:"bias" },
@@ -1062,7 +1148,16 @@ const CASES: Case[] = [
       explain:"Without clear temporality, outcome could cause exposure.", method:"study_design" },
     { q: "Propensity score matching aims to:", type:"mcq", standalone:true,
       options:["Fix measurement error","Balance measured confounders","Fix reverse causation","Replace randomization"], answer:1,
-      explain:"PS matches on propensity (probability of exposure) to mimic randomization for MEASURED variables.", method:"psm" },
+      explain:"PS matches on propensity (probability of exposure) to mimic randomization for MEASURED variables.", method:"psm",
+      optionExplanations: {
+        0: "PSM addresses CONFOUNDING (imbalance in baseline characteristics between exposure groups), not measurement error. Mismeasured variables stay mismeasured after PSM — the technique can't fix what wasn't recorded correctly.",
+        2: "Reverse causation (outcome influencing exposure assessment, or temporality being unclear) is a study-DESIGN problem, not a data-balancing problem. PSM can't tell time direction; that's what longitudinal designs are for.",
+        3: "PSM does NOT replace randomization — it MIMICS randomization for the MEASURED variables only. Unmeasured confounders remain unbalanced. RCT > PSM whenever feasible; PSM is a second-best when randomization isn't possible."
+      },
+      misconceptionTag: {
+        2: "psm_assumed_to_fix_temporality",
+        3: "psm_treated_as_randomization_replacement"
+      } },
     { q: "Instrumental variable analysis is used for:", type:"mcq", standalone:true,
       options:["Random noise","Handling unmeasured confounding","Normalizing residuals","Computing odds ratios"], answer:1,
       explain:"IV leverages a variable related to exposure but independent of outcome (except via exposure).", method:"iv" },
