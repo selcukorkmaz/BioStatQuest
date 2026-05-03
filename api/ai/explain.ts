@@ -33,7 +33,7 @@ import { supabaseAdmin } from "../_lib/supabaseAdmin.js";
 // alongside the rest of the app (vitest is scoped to src/).
 import { buildSystemPrompt } from "../../src/lib/aiPrompt.js";
 
-const AI_GATEWAY_URL   = "https://gateway.ai.vercel.com/v1/chat/completions";
+const AI_GATEWAY_URL   = "https://ai-gateway.vercel.sh/v1/chat/completions";
 const DEFAULT_MODEL    = "anthropic/claude-haiku-4-5";
 const FREE_WEEKLY_DEFAULT = 5;
 const MAX_USER_MESSAGE_CHARS = 500;
