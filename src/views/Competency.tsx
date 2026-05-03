@@ -33,7 +33,7 @@ export function Competency({ state, onExit }) {
   const overview = useMemo(() => overviewFromSrs(state?.srs || {}), [state?.srs]);
   const [mode, setMode] = useState<"screen" | "statement">("screen");
   const [user, setUser] = useState(() => (typeof window !== "undefined" ? window.BQAuth?.getUser?.() ?? null : null));
-  const [isPro, setIsPro] = useState(false);
+  const [isPro, setIsPro] = useState(() => effectivelyPro(undefined));
 
   useEffect(() => {
     let alive = true;

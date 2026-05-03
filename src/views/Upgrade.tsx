@@ -64,7 +64,7 @@ export function Upgrade({ onExit }) {
   const [signedIn, setSignedIn] = useState(
     () => !!(typeof window !== "undefined" && window.BQAuth?.getUser?.()),
   );
-  const [isPro, setIsPro] = useState(false);
+  const [isPro, setIsPro] = useState(() => effectivelyPro(undefined));
 
   useEffect(() => {
     let alive = true;

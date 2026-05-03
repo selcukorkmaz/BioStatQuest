@@ -125,7 +125,7 @@ function AskTutor({ step, current, caseId }) {
   const [err, setErr] = useState("");
   const [quotaHit, setQuotaHit] = useState(false);
   const [quotaInfo, setQuotaInfo] = useState(null); // { used, limit, remaining }
-  const [isPro, setIsPro] = useState(false);
+  const [isPro, setIsPro] = useState(() => effectivelyPro(undefined));
 
   const signedIn = !!(window as any).BQAuth?.getUser?.();
 
@@ -476,7 +476,7 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
   const [misconceptionCounts, setMisconceptionCounts] = useState({});
   // F3 — Pro flag drives hint-layer gating + per-question "hint used" flag
   // for telemetry. Reset on each new question.
-  const [isPro, setIsPro] = useState(false);
+  const [isPro, setIsPro] = useState(() => effectivelyPro(undefined));
   const [hintUsedThisQ, setHintUsedThisQ] = useState(false);
   useEffect(() => {
     let alive = true;

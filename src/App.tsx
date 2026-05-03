@@ -471,7 +471,7 @@ function TopBar({ state, setState, onReset, onNav, current }) {
 
   // Pro tier visibility — hide the "Upgrade" nav button for users who
   // already have Pro (or institutional) so the chrome stays clean.
-  const [isProNow, setIsProNow] = React.useState(false);
+  const [isProNow, setIsProNow] = React.useState(() => effectivelyPro(undefined));
   React.useEffect(() => {
     let cancelled = false;
     const check = async () => {

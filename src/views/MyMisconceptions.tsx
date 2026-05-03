@@ -50,7 +50,7 @@ export function MyMisconceptions({ onExit, onOpenGlossary = null }) {
   const [signedIn, setSignedIn] = useState(
     () => !!(typeof window !== "undefined" && window.BQAuth?.getUser?.()),
   );
-  const [isPro, setIsPro] = useState(false);
+  const [isPro, setIsPro] = useState(() => effectivelyPro(undefined));
 
   // Per-tag drill-down state (Pro). { tag: { loading, history, error } }.
   const [drilldowns, setDrilldowns] = useState({});

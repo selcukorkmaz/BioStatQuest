@@ -57,7 +57,7 @@ export function Exam({ onExit }) {
   const [endsAt, setEndsAt] = useState(0);
   const [now, setNow] = useState(Date.now());
   const [answers, setAnswers] = useState([]); // ExamAnswer[]
-  const [isPro, setIsPro] = useState(false);
+  const [isPro, setIsPro] = useState(() => effectivelyPro(undefined));
   // Server-side exam count (last 30d). Loaded on mount + refreshed after
   // a successful start. Drives the free-tier quota gate; localStorage
   // path remains as guest fallback (see getExamQuota in lib/exam.ts).
