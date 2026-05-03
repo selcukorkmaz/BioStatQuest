@@ -42,6 +42,7 @@ import { GLOSSARY, GLOSSARY_BY_ID, GLOSSARY_KIND_META, normalizeGlossaryText } f
 import { MyMisconceptions } from "./views/MyMisconceptions";
 import { Exam } from "./views/Exam";
 import { Competency } from "./views/Competency";
+import { Upgrade } from "./views/Upgrade";
 import { fmtNumber, fmtDate, fmtDateTime, fmtTime } from "./lib/format";
 import { buildStudyPath, recommendedDifficultyFromBand, bandLabel } from "./lib/diagnostic";
 import { useUrlPath } from "./lib/useUrlPath";
@@ -462,6 +463,25 @@ function TopBar({ state, setState, onReset, onNav, current }) {
     }
     return () => { cancelled = true; };
   }, []);
+
+  // Pro tier visibility — hide the "Upgrade" nav button for users who
+  // already have Pro (or institutional) so the chrome stays clean.
+  const [isProNow, setIsProNow] = React.useState(false);
+  React.useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const s = await window.BQAuth?.fetchSubscription?.();
+        if (!cancelled) setIsProNow(s?.user_type === "pro" || s?.user_type === "institutional");
+      } catch { /* leave as false */ }
+    };
+    check();
+    if (window.BQAuth?.onAuthChange) {
+      const off = window.BQAuth.onAuthChange(check);
+      return () => { cancelled = true; off?.(); };
+    }
+    return () => { cancelled = true; };
+  }, []);
   return (
     <div className="sticky top-0 z-40 backdrop-blur-xl bg-slate-950/70 border-b border-purple-900/30">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 flex-wrap">
@@ -552,6 +572,19 @@ function TopBar({ state, setState, onReset, onNav, current }) {
                 <span className="hidden md:inline">{l}</span>
               </button>
             ))}
+            {!isProNow && (
+              <button onClick={()=>onNav("upgrade")} className={`nav-btn ${current==="upgrade"?"active":""}`} aria-label="Upgrade" title="Upgrade — see what Pro unlocks" aria-current={current==="upgrade" ? "page" : undefined}>
+                <span className="inline-flex items-center justify-center w-[18px] h-[18px] shrink-0 text-amber-300" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                    {/* upward arrow into a star — "level up" metaphor */}
+                    <path d="M12 4 L 12 14"/>
+                    <path d="M8 8 L 12 4 L 16 8"/>
+                    <path d="M5 18 L 12 14 L 19 18 L 17 21 L 12 19 L 7 21 z" fill="currentColor" stroke="none" opacity="0.85"/>
+                  </svg>
+                </span>
+                <span className="hidden md:inline text-amber-200">Upgrade</span>
+              </button>
+            )}
             {isInstructorNow && (
               <button onClick={()=>onNav("teach")} className={`nav-btn ${current==="teach"?"active":""}`} aria-label="Teach" title="Teach — manage classes you instruct" aria-current={current==="teach" ? "page" : undefined}>
                 <span className="inline-flex items-center justify-center w-[18px] h-[18px] shrink-0" aria-hidden="true">
@@ -7824,6 +7857,7 @@ function App() {
       {view === "misconceptions" && <MyMisconceptions onExit={()=>setView("home")} onOpenGlossary={openGlossary}/>}
       {view === "exam"           && <Exam onExit={()=>setView("home")}/>}
       {view === "competency"     && <Competency state={state} onExit={()=>setView("home")}/>}
+      {view === "upgrade"        && <Upgrade onExit={()=>setView("home")}/>}
       </main>
       {sharePending && (
         <ShareCardModal
