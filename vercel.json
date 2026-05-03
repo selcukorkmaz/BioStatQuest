@@ -18,7 +18,11 @@
     { "source": "/stats", "destination": "/biostat-quest" },
     { "source": "/glossary", "destination": "/biostat-quest" },
     { "source": "/admin", "destination": "/biostat-quest" },
-    { "source": "/teach", "destination": "/biostat-quest" }
+    { "source": "/teach", "destination": "/biostat-quest" },
+    { "source": "/exam", "destination": "/biostat-quest" },
+    { "source": "/competency", "destination": "/biostat-quest" },
+    { "source": "/misconceptions", "destination": "/biostat-quest" },
+    { "source": "/upgrade", "destination": "/biostat-quest" }
   ],
   "headers": [
     {
