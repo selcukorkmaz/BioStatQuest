@@ -1366,20 +1366,58 @@ const CASES: Case[] = [
         "Given data & prior, 95% posterior probability",
         "P-value is 0.05"
       ], answer:2,
-      explain:"A Bayesian credible interval is a DIRECT probability statement about the parameter: given the prior and the observed data, there's a 95% probability the true response rate lies in (24%, 58%). That's the statement frequentist CIs are often mistaken for.", method:"bayes" },
+      explain:"A Bayesian credible interval is a DIRECT probability statement about the parameter: given the prior and the observed data, there's a 95% probability the true response rate lies in (24%, 58%). That's the statement frequentist CIs are often mistaken for.", method:"bayes",
+      optionExplanations: {
+        0: "That describes a tolerance / population-coverage interval — about where future SAMPLES land, not about the parameter. Credible intervals quantify uncertainty about the unknown PARAMETER, conditional on the prior and the observed data.",
+        1: "That's the FREQUENTIST CI definition (a property of the procedure under repeated sampling). The whole point of a Bayesian credible interval is that it gives the direct parameter-probability statement frequentist CIs explicitly do not.",
+        3: "Mixing two different summaries. P-value comes from a hypothesis test; a credible interval is an estimation summary. The two answer different questions and aren't equivalent."
+      },
+      misconceptionTag: {
+        0: "credible_interval_as_sample_range",
+        1: "credible_confused_with_frequentist_ci",
+        3: "credible_confused_with_pvalue"
+      } },
     { q: "A 'flat prior' represents:", type:"mcq", standalone:true,
       options:["Strong belief","Weak / non-informative belief","Certainty","Zero probability"], answer:1,
-      explain:"Flat/uniform prior: relatively uninformative (scale-dependent).", method:"bayes" },
+      explain:"Flat/uniform prior: relatively uninformative (scale-dependent).", method:"bayes",
+      optionExplanations: {
+        0: "Reversed. A flat prior says 'I don't know — every value seems equally plausible'. Strong belief looks like a TIGHT distribution centered somewhere specific. Flat is the absence of strong belief.",
+        2: "Certainty would be a degenerate prior — a delta function on one value. Flat is the OPPOSITE: maximum spread within a range.",
+        3: "Zero probability would say a parameter value is impossible. Flat priors put EQUAL (small but non-zero) probability across the support; nothing is excluded."
+      },
+      misconceptionTag: {
+        0: "flat_prior_misread_as_strong",
+        2: "flat_prior_misread_as_certainty"
+      } },
     { q: "Posterior ∝ prior × ?", type:"mcq", standalone:true,
       options:["Mean","Likelihood","Variance","P-value"], answer:1,
       explain:"Bayes' rule: posterior ∝ prior × likelihood.", method:"bayes" },
     { q: "A Bayes factor of 10 means:", type:"mcq", standalone:true,
       options:["Prior dominates","Data are 10× more","H0 is true","Power is 10%"], answer:1,
-      explain:"BF = P(data|H1)/P(data|H0).", method:"bayes" },
+      explain:"BF = P(data|H1)/P(data|H0).", method:"bayes",
+      optionExplanations: {
+        0: "Bayes factor measures the relative likelihood of the DATA under two hypotheses — it's a property of the data + models, not a comment on whether prior or likelihood dominates the posterior. Prior dominance shows up as the posterior staying close to the prior; that's a separate check.",
+        2: "Bayes factors quantify EVIDENCE for/against H0; they don't pronounce H0 true or false. BF = 10 says 'data are 10× more likely under H1 than H0' — strong but not decisive evidence; combine with prior odds for posterior odds.",
+        3: "Power and Bayes factor are different concepts. Power lives in the frequentist hypothesis-testing framework; Bayes factor is a likelihood ratio for evidence accumulation. Confusing them flattens the distinction between two paradigms."
+      },
+      misconceptionTag: {
+        0: "bf_confused_with_prior_dominance",
+        2: "bf_treated_as_h0_verdict",
+        3: "bf_confused_with_power"
+      } },
     { q: "With a very informative prior and little data, posterior is:", type:"mcq",
       scenario:"You're analyzing a rare-disease trial of just 8 patients. You specify a skeptical prior centered near 'no effect' that reflects substantial prior class-effect evidence.",
       options:["Dominated by likelihood","Dominated by prior","Always uniform","Undefined"], answer:1,
-      explain:"Posterior ∝ prior × likelihood. When the likelihood is weak (n = 8) and the prior is tight, the prior dominates — the posterior looks much like the prior. This is a feature, not a bug: it prevents tiny samples from producing wild posterior claims.", method:"bayes" },
+      explain:"Posterior ∝ prior × likelihood. When the likelihood is weak (n = 8) and the prior is tight, the prior dominates — the posterior looks much like the prior. This is a feature, not a bug: it prevents tiny samples from producing wild posterior claims.", method:"bayes",
+      optionExplanations: {
+        0: "Reversed. The likelihood dominates the OPPOSITE setup: lots of data + weak/flat prior. Here n = 8 is tiny → likelihood is broad; a tight informative prior overrides it. The posterior tracks the prior closely.",
+        2: "A uniform posterior would only result from a uniform prior + a flat likelihood, neither of which is the case here. The posterior shape inherits from both prior and likelihood; both inform.",
+        3: "Posteriors are mathematically defined whenever the prior and likelihood are valid distributions. 'Undefined' is reserved for improper-prior + non-integrable-likelihood pathologies, not the typical small-n / tight-prior case."
+      },
+      misconceptionTag: {
+        0: "prior_likelihood_dominance_reversed",
+        2: "posterior_assumed_uniform_when_inputs_arent"
+      } },
     { q: "Conjugate prior for a binomial proportion:", type:"mcq", standalone:true,
       options:["Normal","Beta","Gamma","Exponential"], answer:1,
       explain:"Beta is conjugate for binomial; posterior remains Beta.", method:"bayes" },
@@ -1394,7 +1432,17 @@ const CASES: Case[] = [
       explain:"Cycles through conditional distributions that are easy to sample.", method:"bayes" },
     { q: "Bayesian vs frequentist view of the parameter:", type:"mcq", standalone:true,
       options:["Bayesian: a fixed unknown constant","Bayesian: random with distribution","Frequentist: random with distribution","Both treat the parameter as random"], answer:1,
-      explain:"Bayesian treats parameters as random; frequentists treat them as fixed.", method:"bayes" },
+      explain:"Bayesian treats parameters as random; frequentists treat them as fixed.", method:"bayes",
+      optionExplanations: {
+        0: "Reversed. The FREQUENTIST view holds the parameter as a fixed unknown constant; the data are the random objects. The Bayesian view treats the parameter as a random variable with a probability distribution that gets updated by data.",
+        2: "Reversed in a different way. Frequentists treat the parameter as fixed; data (and therefore estimators) are random. This is exactly why frequentist CIs talk about the PROCEDURE's coverage, not about probability of the parameter.",
+        3: "If both treated the parameter the same way, the two paradigms wouldn't differ at the conceptual level. The split on parameter ontology is the headline difference."
+      },
+      misconceptionTag: {
+        0: "bayesian_frequentist_swap",
+        2: "frequentist_parameter_as_random",
+        3: "paradigms_assumed_identical"
+      } },
     { q: "Highest posterior density (HPD) intervals differ from equal-tailed CIs when:", type:"mcq", standalone:true,
       options:["Posterior is symmetric","Posterior is skewed","Prior is flat","n is very large"], answer:1,
       explain:"For skewed posteriors, HPD is shorter and doesn't have equal tail probabilities.", method:"bayes" },
@@ -1542,10 +1590,29 @@ const CASES: Case[] = [
   bank: Q("e2", [
     { q: "Bootstrap resamples are drawn:", type:"mcq", standalone:true,
       options:["Without replacement, smaller size","With replacement, same size as original","From the population","From the null distribution"], answer:1,
-      explain:"Classical bootstrap: with replacement, size n from the observed sample.", method:"bootstrap" },
+      explain:"Classical bootstrap: with replacement, size n from the observed sample.", method:"bootstrap",
+      optionExplanations: {
+        0: "Without replacement at smaller size is sub-sampling, not bootstrap. The bootstrap's defining trick is sampling WITH replacement at the SAME size as the original — that's how it mimics 'what would another sample look like?'.",
+        2: "We don't have access to the population — that's why we resample. The bootstrap's brilliance is that the empirical sample distribution serves as a STAND-IN for the population distribution.",
+        3: "Sampling under the null is what permutation tests do (shuffle labels to break the tested association). The bootstrap resamples WITH replacement to estimate the sampling distribution of a statistic — different goal."
+      },
+      misconceptionTag: {
+        0: "bootstrap_confused_with_subsampling",
+        2: "bootstrap_assumed_population_access",
+        3: "bootstrap_confused_with_permutation"
+      } },
     { q: "The bootstrap is especially useful when:", type:"mcq", standalone:true,
       options:["Closed-form SE is simple","Closed-form SE is unavailable","n is always 1","Data are normal"], answer:1,
-      explain:"Bootstrap shines for complex statistics (medians, ratios, non-linear).", method:"bootstrap" },
+      explain:"Bootstrap shines for complex statistics (medians, ratios, non-linear).", method:"bootstrap",
+      optionExplanations: {
+        0: "When closed-form SE is simple (e.g., mean of a normal sample), use it — simpler, faster, exact under the assumptions. The bootstrap pays off where the analytical formula DOESN'T exist or makes implausible assumptions.",
+        2: "Bootstrap requires a sample to resample from — n must be reasonably large for the empirical distribution to approximate the true one. n = 1 gives degenerate resamples and meaningless SE.",
+        3: "If data are normal, closed-form formulas (mean ± 1.96 × SE/√n) work beautifully — no need for bootstrap. Bootstrap shines for SKEWED data, complex statistics, and situations where normality fails."
+      },
+      misconceptionTag: {
+        0: "bootstrap_used_when_closedform_works",
+        3: "bootstrap_assumed_only_for_normal"
+      } },
     { q: "Percentile bootstrap 95% CI uses:", type:"mcq", standalone:true,
       options:["Mean plus/minus 1.96 × SE","2.5th and 97.5th percentiles of samples","First and third sample quartiles","Standard normal quantiles only"], answer:1,
       explain:"Take the 2.5% and 97.5% quantiles of the bootstrap distribution.", method:"bootstrap" },
@@ -1554,7 +1621,17 @@ const CASES: Case[] = [
       explain:"BCa corrects for both bias and skewness in the bootstrap distribution.", method:"bootstrap" },
     { q: "Bootstrap SE is estimated by:", type:"mcq", standalone:true,
       options:["Mean of bootstrap statistics","SD of bootstrap statistics","Sample variance","Range of bootstrap statistics"], answer:1,
-      explain:"SE ≈ SD of the bootstrap replicates of the statistic.", method:"bootstrap" },
+      explain:"SE ≈ SD of the bootstrap replicates of the statistic.", method:"bootstrap",
+      optionExplanations: {
+        0: "Mean of bootstrap statistics is the bootstrap POINT estimate (used to detect bias against the original sample statistic). SE captures spread, not center — different summary.",
+        2: "Sample variance applies to the original observations, not to bootstrap statistics. Conflating data variance with estimator variance is a common slip; bootstrap directly targets the latter.",
+        3: "Range is sensitive to outliers (especially with thousands of resamples). SD is the standard summary of replicate-statistic spread; quantiles of replicates give CIs."
+      },
+      misconceptionTag: {
+        0: "se_confused_with_point_estimate",
+        2: "estimator_variance_confused_with_data_variance",
+        3: "range_used_for_se"
+      } },
     { q: "Typical number of bootstrap resamples for CIs:", type:"mcq", standalone:true,
       options:["10","100","1,000–10,000","1 million always"], answer:2,
       explain:"≥1000 for SEs, ≥10,000 for stable quantile-based CIs.", method:"bootstrap" },
@@ -3158,13 +3235,32 @@ NOTE: n is number in *each* group`,
       explain:"Test-retest is stability across repeated administrations.", method:"measurement_validity" },
     { q: "Cronbach's α measures:", type:"mcq", standalone:true,
       options:["Agreement between different raters","Internal consistency across items","Construct validity of a scale","Test-retest measurement stability"], answer:1,
-      explain:"α summarises how inter-correlated items are within a unidimensional scale.", method:"measurement_validity" },
+      explain:"α summarises how inter-correlated items are within a unidimensional scale.", method:"measurement_validity",
+      optionExplanations: {
+        0: "Inter-RATER agreement is what kappa (categorical) or ICC (continuous) measures. Cronbach's α is about how the SCALE'S ITEMS hang together, not about how raters agree.",
+        2: "Construct validity is whether the scale measures what it's supposed to (assessed via convergent/divergent correlations with related scales). α can be high for a coherent-but-WRONG scale; reliability ≠ validity.",
+        3: "Test-retest is consistency over TIME (same scale, same person, days apart). Cronbach's α is consistency across ITEMS within ONE administration. Different reliability flavours."
+      },
+      misconceptionTag: {
+        0: "alpha_confused_with_rater_agreement",
+        2: "reliability_confused_with_validity",
+        3: "alpha_confused_with_test_retest"
+      } },
     { q: "A Cronbach's α of 0.95 for a 4-item scale suggests:", type:"mcq", standalone:true,
       options:["Perfect scale","Possible item redundancy","Weak construct","Unreliable scale"], answer:1,
       explain:"Very high α can indicate redundancy — adjacent items measuring the same thing.", method:"measurement_validity" },
     { q: "Construct validity is usually assessed by:", type:"mcq", standalone:true,
       options:["Agreement across repeated measurements by the same rater","Expected convergent/divergent correlations with related scales","True positive rate against a gold standard","Standard error of individual scale items"], answer:1,
-      explain:"Construct validity relies on patterns of correlations predicted by theory.", method:"measurement_validity" },
+      explain:"Construct validity relies on patterns of correlations predicted by theory.", method:"measurement_validity",
+      optionExplanations: {
+        0: "That's intra-rater RELIABILITY, not validity. Reliability tells you the measurement is consistent; validity tells you it measures the RIGHT thing. A scale can be perfectly reliable (always returns 7) and completely invalid.",
+        2: "True positive rate vs a gold standard is CRITERION (or concurrent) validity — you have an external benchmark. Construct validity applies when there's NO gold standard and you triangulate via theoretical correlations (convergent: should correlate with related scales; divergent: should NOT correlate with unrelated scales).",
+        3: "SE of individual items is a precision/reliability statistic, not a validity claim. Validity is about what the construct REPRESENTS, not how precisely each item is measured."
+      },
+      misconceptionTag: {
+        2: "construct_confused_with_criterion_validity",
+        0: "validity_confused_with_reliability"
+      } },
     { q: "Content validity is about:", type:"mcq", standalone:true,
       options:["Overall statistical model fit","Whether items cover the domain","Test-retest reliability scores","Area under the ROC curve"], answer:1,
       explain:"Content validity is a conceptual/judgement check on domain coverage.", method:"measurement_validity" },
