@@ -79,12 +79,27 @@ const CURATED: Record<string, Hint> = {
   },
 };
 
-// Auto-fallback Layer 1: a sentence that simply names the method. Better
-// than nothing for the long tail of methods we haven't curated.
+// Auto-fallback Layer 1: pull from the method's intuition string (which
+// is required for every method by methods.test.ts) so every question gets
+// a substantive orienting hint, not just a placeholder. The intuition is
+// usually 1–3 sentences — perfect Layer 1 length. Trim aggressively to
+// the first sentence/clause to keep Layer 1 short and orientation-only;
+// deeper structural detail is the job of curated Layer 2.
 function fallbackLayer1(methodId: string): string | undefined {
   const m = (METHODS as any)[methodId];
-  if (!m?.title) return undefined;
-  return `Recall the core idea of ${m.title.toLowerCase()}.`;
+  const intuition = (m?.intuition || "").trim();
+  if (!intuition) {
+    // Last-resort: just name the method. Should rarely fire.
+    if (!m?.title) return undefined;
+    return `Recall the core idea of ${m.title.toLowerCase()}.`;
+  }
+  // Keep the first sentence (or first ~200 chars) — Layer 1 is a nudge,
+  // not a lecture. Curated Layer 1 entries already follow this shape.
+  const firstSentence = intuition.split(/(?<=[.?!])\s/)[0];
+  const trimmed = firstSentence.length > 240
+    ? intuition.slice(0, 220).replace(/\s+\S*$/, "") + "…"
+    : firstSentence;
+  return trimmed;
 }
 
 export function getHint(methodId: string | null | undefined): Hint {
