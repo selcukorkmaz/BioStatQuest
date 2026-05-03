@@ -33,8 +33,15 @@ import { supabaseAdmin } from "../_lib/supabaseAdmin.js";
 // alongside the rest of the app (vitest is scoped to src/).
 import { buildSystemPrompt } from "../../src/lib/aiPrompt.js";
 
-const AI_GATEWAY_URL   = "https://ai-gateway.vercel.sh/v1/chat/completions";
-const DEFAULT_MODEL    = "anthropic/claude-haiku-4-5";
+// Default to Groq's OpenAI-compatible endpoint — genuinely free tier (no
+// card required, ~14k req/day on Llama 3.3 70B). Honest trade-off vs.
+// Claude Haiku: somewhat lower correctness on edge biostat cases, but
+// fast (1-2s), free, and good enough for early validation. Switch to
+// Vercel AI Gateway / Anthropic later by overriding AI_GATEWAY_URL +
+// AI_GATEWAY_MODEL env vars; the OpenAI-compatible request shape is
+// identical.
+const AI_GATEWAY_URL   = process.env.AI_GATEWAY_URL   || "https://api.groq.com/openai/v1/chat/completions";
+const DEFAULT_MODEL    = "llama-3.3-70b-versatile";
 const FREE_WEEKLY_DEFAULT = 5;
 const MAX_USER_MESSAGE_CHARS = 500;
 const MAX_OUTPUT_TOKENS = 500;
