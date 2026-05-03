@@ -102,6 +102,22 @@ const NAV_ICON = {
       <path d="M6.5 8h3M6.5 11h3M14.5 8h3M14.5 11h3"/>
     </svg>
   ),
+  // Competency — medal with ribbon, conveys "earned credential / mastery levels"
+  competency: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8 3 L 11 11 M 16 3 L 13 11 M 7 3 h 10"/>
+      <circle cx="12" cy="15.5" r="5"/>
+      <path d="M9.7 15.3 L 11.3 17 L 14.3 13.5"/>
+    </svg>
+  ),
+  // Exam — clipboard with a checkmark, conveys "timed assessment / proctored sit"
+  exam: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="5" y="4.5" width="14" height="16" rx="1.6"/>
+      <path d="M9 3.2h6v3.5H9z"/>
+      <path d="M8.5 13 L 11 15.4 L 15.5 10.6"/>
+    </svg>
+  ),
   // Misconceptions — magnifier with an exclamation inside the lens.
   // "Spot the trap" metaphor: the tool that catches recurring wrong-answer
   // patterns and surfaces them so the learner can see + fix them.

@@ -40,6 +40,8 @@ import { DIAGNOSTIC } from "./data/diagnostic";
 import { getNarrative, getNarrativeQids, getActForQid } from "./data/caseNarratives";
 import { GLOSSARY, GLOSSARY_BY_ID, GLOSSARY_KIND_META, normalizeGlossaryText } from "./data/glossary";
 import { MyMisconceptions } from "./views/MyMisconceptions";
+import { Exam } from "./views/Exam";
+import { Competency } from "./views/Competency";
 import { fmtNumber, fmtDate, fmtDateTime, fmtTime } from "./lib/format";
 import { buildStudyPath, recommendedDifficultyFromBand, bandLabel } from "./lib/diagnostic";
 import { useUrlPath } from "./lib/useUrlPath";
@@ -534,7 +536,7 @@ function TopBar({ state, setState, onReset, onNav, current }) {
         {/* Nav: horizontally scrollable on mobile, wraps on desktop */}
         <div className="order-3 w-full md:order-2 md:w-auto hscroll md:overflow-visible -mx-3 sm:-mx-6 md:mx-0 px-3 sm:px-6 md:px-0">
           <div className="flex gap-1 items-center md:flex-wrap">
-            {[["home","Home"],["tree","Skill Tree"],["lab","Lab"],["rlab","R Lab"],["badges","Badges"],["board","Leaders"],["stats","Stats"],["glossary","Glossary"],["misconceptions","Misconceptions"]].map(([k,l]) => (
+            {[["home","Home"],["tree","Skill Tree"],["lab","Lab"],["rlab","R Lab"],["exam","Exam"],["competency","Competency"],["badges","Badges"],["board","Leaders"],["stats","Stats"],["glossary","Glossary"],["misconceptions","Misconceptions"]].map(([k,l]) => (
               // aria-label + title cover the mobile icon-only state where
               // the visible label (.hidden md:inline) collapses to nothing.
               // aria-current marks the active route for screen-reader users.
@@ -7820,6 +7822,8 @@ function App() {
       {view === "teach"    && <TeachView onHome={()=>setView("home")}/>}
       {view === "join"     && <JoinView/>}
       {view === "misconceptions" && <MyMisconceptions onExit={()=>setView("home")} onOpenGlossary={openGlossary}/>}
+      {view === "exam"           && <Exam onExit={()=>setView("home")}/>}
+      {view === "competency"     && <Competency state={state} onExit={()=>setView("home")}/>}
       </main>
       {sharePending && (
         <ShareCardModal

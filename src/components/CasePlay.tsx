@@ -13,6 +13,7 @@ import { DIFFICULTIES, REVIEW_CASE_ID } from "../lib/difficulty";
 import { fmtDate } from "../lib/format";
 import { METHODS } from "../data/methods";
 import { createClient } from "@supabase/supabase-js";
+import { getHint } from "../lib/methodHints";
 import { Ico } from "./Icons";
 import { DeepDive } from "./DeepDive";
 
@@ -29,6 +30,86 @@ async function getSupabaseAccessToken(): Promise<string | null> {
     const { data } = await c.auth.getSession();
     return data.session?.access_token ?? null;
   } catch { return null; }
+}
+
+// F3 — HintPanel: pre-reveal layered hint affordance scoped to the
+// question's `method`. Layer 1 (orienting) is free; layers 2 and 3
+// (structural / partial walkthrough) are Pro-only and degrade to a
+// soft upgrade prompt for free users. Calling `onHintRevealed()` once
+// per question lets the parent flag hint_used=true on telemetry.
+function HintPanel({ method, isPro, onHintRevealed }) {
+  const hint = React.useMemo(() => getHint(method), [method]);
+  const [shown, setShown] = useState(0);   // 0 = none, 1/2/3 = layers shown
+  const [pinged, setPinged] = useState(false);
+
+  useEffect(() => {
+    setShown(0); setPinged(false);
+  }, [method]);
+
+  if (!hint.layer1) return null;
+
+  function reveal(layer) {
+    if (layer === 1 || isPro || (hint as any)[`layer${layer}`] === undefined) {
+      // Free Layer 1 (always allowed) or Pro user (any layer) — reveal.
+      setShown(Math.max(shown, layer));
+      if (!pinged) { setPinged(true); onHintRevealed?.(); }
+    }
+  }
+
+  return (
+    <div className="mt-4 rounded-xl border border-slate-700/60 bg-slate-900/40 p-3">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold inline-flex items-center gap-1.5">
+          <Ico name="orb" size={11}/> Hint
+        </div>
+        <div className="text-[10px] text-slate-600 mono">layered · pro unlocks deeper layers</div>
+      </div>
+
+      {shown === 0 ? (
+        <button
+          onClick={() => reveal(1)}
+          className="btn btn-ghost px-3 py-1.5 rounded-lg text-xs">
+          Show first hint →
+        </button>
+      ) : (
+        <div className="space-y-2 text-sm text-slate-200">
+          {shown >= 1 && hint.layer1 && (
+            <div className="leading-relaxed">
+              <span className="text-[10px] uppercase tracking-widest text-cyan-300 mr-2">L1</span>
+              {hint.layer1}
+            </div>
+          )}
+          {shown >= 2 && hint.layer2 && (
+            <div className="leading-relaxed">
+              <span className="text-[10px] uppercase tracking-widest text-purple-300 mr-2">L2</span>
+              {hint.layer2}
+            </div>
+          )}
+          {shown >= 3 && hint.layer3 && (
+            <div className="leading-relaxed">
+              <span className="text-[10px] uppercase tracking-widest text-amber-300 mr-2">L3</span>
+              {hint.layer3}
+            </div>
+          )}
+
+          {/* Next-layer affordance — gated by Pro for layers 2 and 3 */}
+          {shown < 3 && (hint as any)[`layer${shown + 1}`] && (
+            isPro ? (
+              <button
+                onClick={() => reveal((shown + 1) as any)}
+                className="btn btn-ghost px-3 py-1.5 rounded-lg text-xs mt-2">
+                Show layer {shown + 1} →
+              </button>
+            ) : (
+              <div className="mt-2 text-[11px] text-slate-500 italic">
+                Layer {shown + 1} (and beyond) is a Pro feature — structural and partial-walkthrough hints.
+              </div>
+            )
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // F15 — AskTutor: scoped, single-turn AI explainer that opens a modal
@@ -335,6 +416,10 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
   // "× N times" repeat chip in DistractorFeedback. Empty map for guests or
   // fetch failures; the UI degrades silently (no chip) without it.
   const [misconceptionCounts, setMisconceptionCounts] = useState({});
+  // F3 — Pro flag drives hint-layer gating + per-question "hint used" flag
+  // for telemetry. Reset on each new question.
+  const [isPro, setIsPro] = useState(false);
+  const [hintUsedThisQ, setHintUsedThisQ] = useState(false);
   useEffect(() => {
     let alive = true;
     const auth = (window as any).BQAuth;
@@ -343,8 +428,14 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
         .then((m) => { if (alive) setMisconceptionCounts(m || {}); })
         .catch(() => {});
     }
+    if (auth?.fetchSubscription) {
+      auth.fetchSubscription()
+        .then((s) => { if (alive) setIsPro(s?.user_type === "pro" || s?.user_type === "institutional"); })
+        .catch(() => {});
+    }
     return () => { alive = false; };
   }, []);
+  useEffect(() => { setHintUsedThisQ(false); }, [stepIdx]);
 
   const step = questions[stepIdx];
   const isLast = stepIdx === questions.length - 1;
@@ -402,7 +493,7 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
           correct: ok,
           msToAnswer: ms,
           timedOut: !!timedOut,
-          hintUsed: false,        // F3 will populate this
+          hintUsed: hintUsedThisQ,
           deepDiveOpened: false,  // wire in a later slice when DeepDive exposes a callback
           misconceptionTag: tag,
           difficulty,
@@ -563,6 +654,13 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
           </div>
         )}
         {renderInput()}
+
+        {!showExplain && step.method && (
+          <HintPanel
+            method={step.method}
+            isPro={isPro}
+            onHintRevealed={() => setHintUsedThisQ(true)}/>
+        )}
 
         {showExplain && (
           <div className={`mt-6 p-5 rounded-xl border-l-4 bounce-in ${correct?"bg-emerald-900/20 border-emerald-500":"bg-red-900/20 border-red-500"}`}>
