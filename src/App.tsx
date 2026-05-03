@@ -620,18 +620,16 @@ const SECONDARY_NAV: Array<[string, string]> = [
 
 function NavBar({ current, onNav, isInstructorNow, isAdminNow }) {
   const [moreOpen, setMoreOpen] = React.useState(false);
-  const moreRef = React.useRef<HTMLDivElement | null>(null);
 
-  // Click-outside + ESC to close the More dropdown.
+  // ESC to close the More dropdown. Click-outside is handled by a
+  // transparent fixed-position backdrop rendered alongside the menu —
+  // robust to event-timing edge cases that bit the mousedown-listener
+  // approach (the open click could re-trigger close on some browsers).
   React.useEffect(() => {
     if (!moreOpen) return;
-    const onClick = (e: MouseEvent) => {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
-    };
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMoreOpen(false); };
-    document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
-    return () => { document.removeEventListener("mousedown", onClick); document.removeEventListener("keydown", onKey); };
+    return () => document.removeEventListener("keydown", onKey);
   }, [moreOpen]);
 
   const inSecondary = SECONDARY_NAV.some(([k]) => k === current);
@@ -652,14 +650,15 @@ function NavBar({ current, onNav, isInstructorNow, isAdminNow }) {
           </button>
         ))}
         {/* More ▾ dropdown — secondary nav items live here */}
-        <div className="relative" ref={moreRef}>
+        <div className="relative">
           <button
-            onClick={()=>setMoreOpen(o=>!o)}
+            type="button"
+            onClick={(e)=>{ e.stopPropagation(); setMoreOpen(o=>!o); }}
             aria-haspopup="menu"
             aria-expanded={moreOpen}
             aria-label="More"
             title="More"
-            className={`nav-btn ${inSecondary ? "active" : ""}`}>
+            className={`nav-btn ${inSecondary || moreOpen ? "active" : ""}`}>
             <span className="inline-flex items-center justify-center w-[18px] h-[18px] shrink-0" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="6" cy="12" r="1.4" fill="currentColor"/>
@@ -671,19 +670,28 @@ function NavBar({ current, onNav, isInstructorNow, isAdminNow }) {
             {inSecondary && <span className="hidden md:inline w-1.5 h-1.5 rounded-full bg-purple-400" aria-hidden="true"/>}
           </button>
           {moreOpen && (
-            <div role="menu" className="absolute right-0 sm:left-0 sm:right-auto top-full mt-1 z-50 min-w-[200px] rounded-xl border border-slate-700 bg-slate-900/95 backdrop-blur shadow-2xl overflow-hidden">
-              {SECONDARY_NAV.map(([k, l]) => (
-                <button
-                  key={k}
-                  role="menuitem"
-                  onClick={()=>{ setMoreOpen(false); onNav(k); }}
-                  aria-current={current===k ? "page" : undefined}
-                  className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 transition ${current===k ? "bg-purple-900/40 text-white" : "text-slate-200 hover:bg-slate-800"}`}>
-                  <span className="inline-flex items-center justify-center w-[16px] h-[16px] shrink-0 text-slate-400" aria-hidden="true">{NAV_ICON[k]}</span>
-                  {l}
-                </button>
-              ))}
-            </div>
+            <>
+              {/* Transparent backdrop — captures any click outside the menu
+                  and closes it. Robust regardless of event-timing quirks. */}
+              <div
+                onClick={()=>setMoreOpen(false)}
+                className="fixed inset-0 z-40"
+                aria-hidden="true"/>
+              <div role="menu" className="absolute left-0 top-full mt-1 z-50 min-w-[200px] rounded-xl border border-slate-700 bg-slate-900 shadow-2xl overflow-hidden">
+                {SECONDARY_NAV.map(([k, l]) => (
+                  <button
+                    key={k}
+                    type="button"
+                    role="menuitem"
+                    onClick={()=>{ setMoreOpen(false); onNav(k); }}
+                    aria-current={current===k ? "page" : undefined}
+                    className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 transition ${current===k ? "bg-purple-900/40 text-white" : "text-slate-200 hover:bg-slate-800"}`}>
+                    <span className="inline-flex items-center justify-center w-[16px] h-[16px] shrink-0 text-slate-400" aria-hidden="true">{NAV_ICON[k]}</span>
+                    {l}
+                  </button>
+                ))}
+              </div>
+            </>
           )}
         </div>
         {isInstructorNow && (
