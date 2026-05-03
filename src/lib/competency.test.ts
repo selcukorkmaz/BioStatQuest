@@ -23,42 +23,47 @@ describe("competency — tierFromMastery", () => {
     expect(tierFromMastery({ total: 10, attempted: 1, reviewed: 0, mastered: 0 })).toBe("familiar");
   });
 
-  it("requires 30% attempted AND ≥1 reviewed for 'practiced'", () => {
-    // 10 questions, 3 attempted, 1 reviewed → practiced
-    expect(tierFromMastery({ total: 10, attempted: 3, reviewed: 1, mastered: 0 })).toBe("practiced");
-    // Same attempts but no reviews → still familiar
-    expect(tierFromMastery({ total: 10, attempted: 3, reviewed: 0, mastered: 0 })).toBe("familiar");
-    // Below 30% attempted → familiar even with reviewed (must clear both gates)
-    expect(tierFromMastery({ total: 10, attempted: 2, reviewed: 1, mastered: 0 })).toBe("familiar");
+  it("requires 2 attempts AND ≥1 reviewed for 'practiced'", () => {
+    // 10 questions, 2 attempted, 1 reviewed → practiced
+    expect(tierFromMastery({ total: 10, attempted: 2, reviewed: 1, mastered: 0 })).toBe("practiced");
+    // 1 attempt + 1 reviewed → only familiar (need ≥2 attempts)
+    expect(tierFromMastery({ total: 10, attempted: 1, reviewed: 1, mastered: 0 })).toBe("familiar");
+    // 5 attempts but 0 reviewed → still familiar (need at least 1 review)
+    expect(tierFromMastery({ total: 10, attempted: 5, reviewed: 0, mastered: 0 })).toBe("familiar");
   });
 
-  it("requires 50% reviewed AND ≥1 mastered for 'proficient'", () => {
-    expect(tierFromMastery({ total: 10, attempted: 6, reviewed: 5, mastered: 1 })).toBe("proficient");
-    // 50% reviewed without any mastered → only practiced
-    expect(tierFromMastery({ total: 10, attempted: 6, reviewed: 5, mastered: 0 })).toBe("practiced");
-    // Mastered=1 without enough reviewed → still practiced
-    expect(tierFromMastery({ total: 10, attempted: 4, reviewed: 4, mastered: 1 })).toBe("practiced");
+  it("requires 30% reviewed AND ≥1 mastered for 'proficient'", () => {
+    // 10 q, 3 reviewed (30%), 1 mastered → proficient
+    expect(tierFromMastery({ total: 10, attempted: 6, reviewed: 3, mastered: 1 })).toBe("proficient");
+    // 30% reviewed without any mastered → practiced
+    expect(tierFromMastery({ total: 10, attempted: 5, reviewed: 3, mastered: 0 })).toBe("practiced");
+    // Mastered=1 without enough reviewed (only 2 of 10 = 20%) → still practiced
+    expect(tierFromMastery({ total: 10, attempted: 4, reviewed: 2, mastered: 1 })).toBe("practiced");
   });
 
-  it("requires 60% mastered for 'mastered'", () => {
-    // 10 q, 6 mastered → mastered
-    expect(tierFromMastery({ total: 10, attempted: 10, reviewed: 10, mastered: 6 })).toBe("mastered");
-    // 5/10 mastered (50%) → not yet mastered → proficient
-    expect(tierFromMastery({ total: 10, attempted: 10, reviewed: 10, mastered: 5 })).toBe("proficient");
+  it("requires 50% mastered for 'mastered'", () => {
+    // 10 q, 5 mastered → mastered
+    expect(tierFromMastery({ total: 10, attempted: 10, reviewed: 10, mastered: 5 })).toBe("mastered");
+    // 4/10 mastered (40%) → not yet mastered → proficient
+    expect(tierFromMastery({ total: 10, attempted: 10, reviewed: 10, mastered: 4 })).toBe("proficient");
   });
 
   it("handles tiny methods (1 question) without becoming unreachable", () => {
-    // For total=1, ceil(1*0.6)=1, ceil(1*0.5)=1, ceil(1*0.3)=1 — minimum 1.
+    // For total=1, ceil(1*0.5)=1, ceil(1*0.3)=1 — minimum 1.
+    // 1 mastered → mastered
     expect(tierFromMastery({ total: 1, attempted: 1, reviewed: 1, mastered: 1 })).toBe("mastered");
-    expect(tierFromMastery({ total: 1, attempted: 1, reviewed: 1, mastered: 0 })).toBe("practiced");
+    // 1 reviewed, 0 mastered → at most familiar (need 2 attempts for practiced)
+    expect(tierFromMastery({ total: 1, attempted: 1, reviewed: 1, mastered: 0 })).toBe("familiar");
+    // 1 attempted, 0 reviewed → familiar
     expect(tierFromMastery({ total: 1, attempted: 1, reviewed: 0, mastered: 0 })).toBe("familiar");
   });
 
-  it("handles the rounding edge at 30/50/60 percent", () => {
-    // total=7, ceil(7*0.3)=3, ceil(7*0.5)=4, ceil(7*0.6)=5
-    expect(tierFromMastery({ total: 7, attempted: 3, reviewed: 1, mastered: 0 })).toBe("practiced");
-    expect(tierFromMastery({ total: 7, attempted: 4, reviewed: 4, mastered: 1 })).toBe("proficient");
-    expect(tierFromMastery({ total: 7, attempted: 7, reviewed: 7, mastered: 5 })).toBe("mastered");
+  it("handles the rounding edge at 30/50 percent", () => {
+    // total=7, ceil(7*0.3)=3 reviewed for proficient, ceil(7*0.5)=4 mastered for mastered
+    expect(tierFromMastery({ total: 7, attempted: 4, reviewed: 3, mastered: 1 })).toBe("proficient");
+    expect(tierFromMastery({ total: 7, attempted: 7, reviewed: 7, mastered: 4 })).toBe("mastered");
+    // 2 reviewed in 7 (under 30%) + 1 mastered → still practiced
+    expect(tierFromMastery({ total: 7, attempted: 5, reviewed: 2, mastered: 1 })).toBe("practiced");
   });
 });
 

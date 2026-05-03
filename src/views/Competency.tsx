@@ -160,6 +160,30 @@ function StatementPage({ overview, user, onBack }) {
     .map((b) => ({ ...b, methods: b.methods.filter((m) => m.tier !== "untouched") }))
     .filter((b) => b.methods.length > 0);
 
+  // Empty-state guard — a Statement listing nothing is worse than no
+  // Statement. Send the user back with a clear "do this first" message
+  // before they print a blank page.
+  const totalEngaged = branchesWithProgress.reduce((s, b) => s + b.methods.length, 0);
+  if (totalEngaged === 0) {
+    return (
+      <div className="max-w-2xl mx-auto p-6 sm:p-10 fade-in">
+        <div className="card rounded-2xl p-8 text-center">
+          <h2 className="t-title mb-3">Not enough activity yet</h2>
+          <p className="t-body text-slate-400 mb-4 leading-relaxed">
+            A Statement of Competency only lists methods you've actually engaged with — no
+            "Untouched" entries on a public-facing document. To populate it:
+          </p>
+          <ul className="text-sm text-slate-300 text-left max-w-md mx-auto mb-6 space-y-1.5">
+            <li>• Work through a few cases (any branch).</li>
+            <li>• On each reveal, use the <span className="mono text-slate-200">Good</span> / <span className="mono text-slate-200">Easy</span> grade buttons — that's what populates spaced-repetition data.</li>
+            <li>• Come back here once you've graded ≥2 questions across the methods you'd like the Statement to mention.</li>
+          </ul>
+          <button onClick={onBack} className="btn btn-primary px-5 py-2 rounded-lg">← Back to competency map</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <style>{`
