@@ -18,6 +18,7 @@ import {
   TIER_ORDER,
   type Tier,
 } from "../lib/competency";
+import { effectivelyPro } from "../lib/launchFlags";
 
 function tierBadge(tier: Tier) {
   const meta = TIER_META[tier];
@@ -40,7 +41,7 @@ export function Competency({ state, onExit }) {
     setUser(auth?.getUser?.() ?? null);
     if (auth?.fetchSubscription) {
       auth.fetchSubscription().then((s) => {
-        if (alive) setIsPro(s?.user_type === "pro" || s?.user_type === "institutional");
+        if (alive) setIsPro(effectivelyPro(s?.user_type));
       }).catch(() => {});
     }
     const off = auth?.onAuthChange?.(() => setUser(auth.getUser?.() ?? null));

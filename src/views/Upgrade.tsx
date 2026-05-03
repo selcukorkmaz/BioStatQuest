@@ -11,6 +11,7 @@
 import * as React from "react";
 import { useEffect, useState } from "react";
 import { billing } from "../lib/billing";
+import { effectivelyPro, OPEN_BETA_PRO } from "../lib/launchFlags";
 import { CASES } from "../data/cases";
 import { freeCaseCount, FREE_CASES_PER_BRANCH } from "../lib/access";
 
@@ -71,7 +72,7 @@ export function Upgrade({ onExit }) {
     setSignedIn(!!auth?.getUser?.());
     if (auth?.fetchSubscription) {
       auth.fetchSubscription().then((s) => {
-        if (alive) setIsPro(s?.user_type === "pro" || s?.user_type === "institutional");
+        if (alive) setIsPro(effectivelyPro(s?.user_type));
       }).catch(() => {});
     }
     const off = auth?.onAuthChange?.(() => setSignedIn(!!auth.getUser?.()));
@@ -100,11 +101,31 @@ export function Upgrade({ onExit }) {
         <button onClick={onExit} className="btn btn-ghost px-3 py-2 rounded-lg text-sm">← Back</button>
       </div>
 
-      {isPro && (
+      {OPEN_BETA_PRO && !isPro && (
+        <div className="card rounded-2xl p-5 mb-5 border border-emerald-700/40 bg-emerald-950/20">
+          <h3 className="text-base font-semibold text-emerald-200 mb-1">🎉 Open beta — all Pro features are free for signed-in users</h3>
+          <p className="t-body text-slate-300 text-sm leading-relaxed">
+            Paid plans are launching shortly while our payment processor finishes activation review.
+            During this window every Pro pillar (AI tutor, exam, hints, statement, full ledger, full catalog) is open to you at no cost.
+            We'll email you when paid plans go live — early-beta users get a launch discount.
+          </p>
+        </div>
+      )}
+
+      {isPro && !OPEN_BETA_PRO && (
         <div className="card rounded-2xl p-6 mb-5 border border-amber-700/40 bg-amber-950/20">
           <h3 className="text-base font-semibold text-amber-200 mb-1">You're already on Pro.</h3>
           <p className="t-body text-slate-300 text-sm">
             All pillars are unlocked. Manage billing from your account panel.
+          </p>
+        </div>
+      )}
+
+      {isPro && OPEN_BETA_PRO && (
+        <div className="card rounded-2xl p-6 mb-5 border border-amber-700/40 bg-amber-950/20">
+          <h3 className="text-base font-semibold text-amber-200 mb-1">Pro active — open-beta window</h3>
+          <p className="t-body text-slate-300 text-sm">
+            All pillars unlocked. Paid plans launching shortly; we'll email when they go live.
           </p>
         </div>
       )}

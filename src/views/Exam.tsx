@@ -26,6 +26,7 @@ import {
   type ExamQuestion,
   type ExamAnswer,
 } from "../lib/exam";
+import { effectivelyPro } from "../lib/launchFlags";
 
 const DEFAULT_N = 20;
 const DEFAULT_TIME_MIN = 30;
@@ -68,7 +69,7 @@ export function Exam({ onExit }) {
     const auth = (window as any).BQAuth;
     if (auth?.fetchSubscription) {
       auth.fetchSubscription().then((s) => {
-        if (alive) setIsPro(s?.user_type === "pro" || s?.user_type === "institutional");
+        if (alive) setIsPro(effectivelyPro(s?.user_type));
       }).catch(() => {});
     }
     if (auth?.fetchMyExamCount30d) {

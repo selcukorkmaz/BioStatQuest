@@ -13,6 +13,7 @@
 // regression appears we can revisit.
 
 import { CASES } from "../data/cases";
+import { effectivelyPro } from "./launchFlags";
 
 export const FREE_CASES_PER_BRANCH = 3;
 
@@ -34,9 +35,9 @@ export function isCaseLockedForUser(
   caseId: string,
   userType: string | undefined | null,
 ): boolean {
-  // Pro / institutional → everything unlocked.
-  if (userType === "pro" || userType === "institutional") return false;
-  // Free / undefined → only the per-branch free quota is open.
+  // Pro / institutional / open-beta → everything unlocked.
+  if (effectivelyPro(userType)) return false;
+  // Free → only the per-branch free quota is open.
   return !FREE_CASE_IDS.has(caseId);
 }
 

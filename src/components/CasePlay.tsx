@@ -14,6 +14,7 @@ import { fmtDate } from "../lib/format";
 import { METHODS } from "../data/methods";
 import { createClient } from "@supabase/supabase-js";
 import { getHint } from "../lib/methodHints";
+import { effectivelyPro } from "../lib/launchFlags";
 import { Ico } from "./Icons";
 import { DeepDive } from "./DeepDive";
 
@@ -136,7 +137,7 @@ function AskTutor({ step, current, caseId }) {
     const auth = (window as any).BQAuth;
     if (auth?.fetchSubscription) {
       auth.fetchSubscription().then((s) => {
-        if (alive) setIsPro(s?.user_type === "pro" || s?.user_type === "institutional");
+        if (alive) setIsPro(effectivelyPro(s?.user_type));
       }).catch(() => {});
     }
     return () => { alive = false; };

@@ -89,7 +89,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .select("user_type")
     .eq("user_id", user.id)
     .maybeSingle();
-  const isPro = progress?.user_type === "pro" || progress?.user_type === "institutional";
+  // Open-beta override: when OPEN_BETA_PRO=true (env var), every signed-in
+  // user is treated as Pro for quota purposes during the launch window
+  // before the payment processor is live. Flip the env var to disable.
+  const openBeta = (process.env.OPEN_BETA_PRO || "").toLowerCase() === "true";
+  const isPro = openBeta
+    || progress?.user_type === "pro"
+    || progress?.user_type === "institutional";
 
   // Free-tier quota state — exposed on every response (success or 429)
   // so the client can render "X left this week" without an extra round

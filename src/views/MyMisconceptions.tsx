@@ -16,6 +16,7 @@
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { getMisconceptionMeta } from "../lib/misconceptions";
+import { effectivelyPro } from "../lib/launchFlags";
 
 // Free tier sees only the top N tags. Pro removes the cap and unlocks the
 // per-tag drill-down. Threshold is generous enough to be useful but tight
@@ -67,14 +68,14 @@ export function MyMisconceptions({ onExit, onOpenGlossary = null }) {
       .catch((e) => { if (alive) { setErr((e && e.message) || "Could not load."); setCounts({}); } });
     if (auth.fetchSubscription) {
       auth.fetchSubscription().then((s) => {
-        if (alive) setIsPro(s?.user_type === "pro" || s?.user_type === "institutional");
+        if (alive) setIsPro(effectivelyPro(s?.user_type));
       }).catch(() => {});
     }
     const off = auth.onAuthChange?.(() => {
       setSignedIn(!!auth.getUser?.());
       auth.fetchMyMisconceptions().then((m) => { if (alive) setCounts(m || {}); }).catch(() => {});
       auth.fetchSubscription?.().then((s) => {
-        if (alive) setIsPro(s?.user_type === "pro" || s?.user_type === "institutional");
+        if (alive) setIsPro(effectivelyPro(s?.user_type));
       }).catch(() => {});
     });
     return () => { alive = false; if (typeof off === "function") off(); };

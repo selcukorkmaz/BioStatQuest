@@ -19,6 +19,7 @@ import { levelFromXP, xpForLevel } from "./lib/xp";
 import { DIFFICULTIES, REVIEW_CASE_ID } from "./lib/difficulty";
 import { getMethodMastery } from "./lib/mastery";
 import { adaptiveOrder } from "./lib/adaptive";
+import { effectivelyPro, OPEN_BETA_PRO } from "./lib/launchFlags";
 
 // ============================================================
 // BILLING / GATING (Phase 3a — consumer Pro tier)
@@ -476,7 +477,7 @@ function TopBar({ state, setState, onReset, onNav, current }) {
     const check = async () => {
       try {
         const s = await window.BQAuth?.fetchSubscription?.();
-        if (!cancelled) setIsProNow(s?.user_type === "pro" || s?.user_type === "institutional");
+        if (!cancelled) setIsProNow(effectivelyPro(s?.user_type));
       } catch { /* leave as false */ }
     };
     check();
@@ -595,6 +596,24 @@ function TopBar({ state, setState, onReset, onNav, current }) {
           <AuthButton state={state} setState={setState} />
           <button onClick={onReset} className="text-xs text-slate-600 hover:text-red-400 transition hidden sm:inline">Reset</button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Slim launch banner shown beneath the TopBar while open-beta mode is on.
+// Visible to everyone (signed-in or guest); the message owns expectations
+// during the window before paid plans go live. Disappears the moment
+// VITE_OPEN_BETA_PRO is unset/false in env.
+function OpenBetaBanner() {
+  if (!OPEN_BETA_PRO) return null;
+  return (
+    <div className="bg-gradient-to-r from-emerald-900/50 via-emerald-800/40 to-emerald-900/50 border-b border-emerald-700/40">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-1.5 text-xs text-emerald-100 flex items-center justify-center gap-2 text-center flex-wrap">
+        <span className="font-semibold">🎉 Open beta</span>
+        <span className="text-emerald-200/80">—</span>
+        <span>All Pro features are free for signed-in users while paid plans launch.</span>
+        <a href="/upgrade" className="underline hover:text-white whitespace-nowrap">See what's included →</a>
       </div>
     </div>
   );
@@ -7919,7 +7938,10 @@ function App() {
         Skip to main content
       </a>
       {view !== "onboarding" && view !== "diagnostic" && view !== "results" && view !== "join" && (
-        <TopBar state={state} setState={setState} onReset={resetProgress} onNav={(v)=>{ if(v==="tree") setInitialBranch(null); setView(v); }} current={view}/>
+        <>
+          <TopBar state={state} setState={setState} onReset={resetProgress} onNav={(v)=>{ if(v==="tree") setInitialBranch(null); setView(v); }} current={view}/>
+          <OpenBetaBanner/>
+        </>
       )}
       <main id="main-content" tabIndex={-1} className="outline-none">
       {view === "onboarding" && <OnboardingIntro state={state} setState={setState} onStart={beginDiagnostic} onSkip={skipDiagnostic}/>}
