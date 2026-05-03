@@ -142,8 +142,9 @@ function AskTutor({ step, current, caseId }) {
     return () => { alive = false; };
   }, []);
 
-  async function ask() {
-    if (!msg.trim()) return;
+  async function ask(overrideMessage?: string) {
+    const message = (overrideMessage ?? msg).trim();
+    if (!message) return;
     setBusy(true); setErr(""); setReply(""); setQuotaHit(false);
     try {
       const token = await getSupabaseAccessToken();
@@ -161,7 +162,7 @@ function AskTutor({ step, current, caseId }) {
           pickedIndex:  current,
           baseExplain:  step.explain,
           methodTitle,
-          userMessage:  msg.trim().slice(0, 500),
+          userMessage:  message.slice(0, 500),
         }),
       });
       const j = await r.json().catch(() => ({}));
@@ -241,16 +242,43 @@ function AskTutor({ step, current, caseId }) {
                 )}
 
                 {reply && (
-                  <div className="mt-4 p-3 rounded-lg bg-cyan-950/30 border border-cyan-700/40">
-                    <div className="text-[10px] uppercase tracking-widest text-cyan-300 font-bold mb-1">Tutor</div>
-                    <div className="text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">{reply}</div>
-                  </div>
+                  <>
+                    <div className="mt-4 p-3 rounded-lg bg-cyan-950/30 border border-cyan-700/40">
+                      <div className="text-[10px] uppercase tracking-widest text-cyan-300 font-bold mb-1">Tutor</div>
+                      <div className="text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">{reply}</div>
+                    </div>
+                    {/* Templated quick re-asks. Each one fires a fresh single-shot
+                        request (consumes 1 quota unit) — no multi-turn context,
+                        no jailbreak surface. The system prompt already has the
+                        question + canonical explanation, so the AI re-explains
+                        the same item with the requested angle. */}
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        onClick={() => ask("Same question — explain at an intern (junior level): short sentences, fewer technical terms, plain language.")}
+                        disabled={busy}
+                        className="btn btn-ghost px-2.5 py-1 rounded-md text-[11px] disabled:opacity-40">
+                        Explain simpler
+                      </button>
+                      <button
+                        onClick={() => ask("Same question — give one concrete clinical or research example that illustrates this exact concept in 2–3 sentences.")}
+                        disabled={busy}
+                        className="btn btn-ghost px-2.5 py-1 rounded-md text-[11px] disabled:opacity-40">
+                        Give an example
+                      </button>
+                      <button
+                        onClick={() => ask("Same question — show the relevant formula(s) and explain what each symbol means. Keep it tight.")}
+                        disabled={busy}
+                        className="btn btn-ghost px-2.5 py-1 rounded-md text-[11px] disabled:opacity-40">
+                        Show the formula
+                      </button>
+                    </div>
+                  </>
                 )}
 
                 <div className="flex gap-2 mt-4">
                   <button onClick={()=>setOpen(false)} className="btn btn-ghost px-4 py-2 rounded-lg text-sm flex-1">Close</button>
                   <button
-                    onClick={ask}
+                    onClick={() => ask()}
                     disabled={busy || !msg.trim()}
                     className="btn btn-primary px-4 py-2 rounded-lg text-sm flex-1 disabled:opacity-40">
                     {busy ? "Asking…" : reply ? "Ask again" : "Ask"}
