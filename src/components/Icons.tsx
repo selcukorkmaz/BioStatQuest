@@ -603,6 +603,7 @@ const ICON_MARKUP: Record<string, string> = {
   tree:            `<path d="M12 3 L 6 13 h 3 l -3 5 h 12 l -3 -5 h 3 z"/><path d="M11 18 v 3 h 2 v -3"/>`,
   globe:           `<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12 h 18"/>`,
   orb:             `<circle cx="12" cy="13" r="7"/><path d="M9 10.5 a 3 3 0 0 1 3 -3"/><path d="M18 4 l 0.6 1.6 L 20 6 l -1.4 0.6 L 18 8 l -0.6 -1.4 L 16 6 l 1.4 -0.4 z" fill="currentColor" stroke="none"/>`,
+  sparkles:        `<path d="M11 3 L 12.7 8.3 L 18 10 L 12.7 11.7 L 11 17 L 9.3 11.7 L 4 10 L 9.3 8.3 z" fill="currentColor" stroke="none"/><path d="M18 14 L 18.9 16.1 L 21 17 L 18.9 17.9 L 18 20 L 17.1 17.9 L 15 17 L 17.1 16.1 z" fill="currentColor" stroke="none"/>`,
   shield:          `<path d="M12 3 L 4 6 v 6 c 0 4.5 3.5 8 8 9 4.5 -1 8 -4.5 8 -9 V 6 z"/><path d="M9 12 l 2 2 l 4 -4"/>`,
   swords:          `<path d="M3 4 L 13 14 L 11 16 L 4 9 z"/><path d="M3 4 h 2 L 13 14"/><path d="M21 4 L 11 14 L 13 16 L 20 9 z"/><path d="M21 4 h -2 L 11 14"/><path d="M7 17 L 10 20 M 17 17 L 14 20"/>`,
   magnifier:       `<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15 L 20 20"/>`,

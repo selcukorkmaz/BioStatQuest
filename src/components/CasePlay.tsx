@@ -190,20 +190,28 @@ function AskTutor({ step, current, caseId }) {
 
   return (
     <>
-      <div className="mt-3">
+      <div className="mt-3 flex items-center gap-2 flex-wrap">
         <button
           onClick={() => { setOpen(true); setMsg(""); setReply(""); setErr(""); setQuotaHit(false); }}
-          className="btn btn-ghost px-3 py-1.5 rounded-lg text-xs inline-flex items-center gap-1.5"
+          className="px-3.5 py-2 rounded-lg text-xs inline-flex items-center gap-2 font-semibold transition border bg-amber-950/30 border-amber-700/40 text-amber-100 hover:bg-amber-900/40 hover:border-amber-600/60"
           title={signedIn ? "Ask a one-question AI tutor (free tier limited)" : "Sign in to use the AI tutor"}>
-          <Ico name="orb" size={12}/> Ask the AI tutor
+          <span className="text-amber-300"><Ico name="sparkles" size={14}/></span>
+          Ask the AI tutor
         </button>
+        {signedIn && (
+          isPro
+            ? <span className="chip text-[10px] bg-amber-900/30 text-amber-200 border border-amber-700/30">Unlimited</span>
+            : (quotaInfo && quotaInfo.remaining != null
+                ? <span className="chip text-[10px] bg-slate-800 text-slate-300 border border-slate-700">{quotaInfo.remaining}/{quotaInfo.limit} left this week</span>
+                : <span className="chip text-[10px] bg-slate-800 text-slate-400 border border-slate-700">Free · 5/week</span>)
+        )}
       </div>
 
       {open && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{background: "rgba(2,6,23,0.7)"}}>
           <div className="card premium-border rounded-2xl max-w-lg w-full p-6" onClick={e=>e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-white inline-flex items-center gap-2"><Ico name="orb" size={16}/> AI tutor</h3>
+              <h3 className="text-lg font-bold text-white inline-flex items-center gap-2"><span className="text-amber-300"><Ico name="sparkles" size={18}/></span> AI tutor</h3>
               <button onClick={()=>setOpen(false)} className="text-slate-400 hover:text-white inline-flex items-center"><Ico name="close" size={16}/></button>
             </div>
 
