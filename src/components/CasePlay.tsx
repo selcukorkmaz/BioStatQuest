@@ -123,8 +123,24 @@ function AskTutor({ step, current, caseId }) {
   const [reply, setReply] = useState("");
   const [err, setErr] = useState("");
   const [quotaHit, setQuotaHit] = useState(false);
+  const [quotaInfo, setQuotaInfo] = useState(null); // { used, limit, remaining }
+  const [isPro, setIsPro] = useState(false);
 
   const signedIn = !!(window as any).BQAuth?.getUser?.();
+
+  // Pull subscription tier on mount so the quota line knows whether to
+  // show "X/5 left" (free) or hide the line entirely (Pro). Failures
+  // degrade silently — quota is enforced server-side anyway.
+  useEffect(() => {
+    let alive = true;
+    const auth = (window as any).BQAuth;
+    if (auth?.fetchSubscription) {
+      auth.fetchSubscription().then((s) => {
+        if (alive) setIsPro(s?.user_type === "pro" || s?.user_type === "institutional");
+      }).catch(() => {});
+    }
+    return () => { alive = false; };
+  }, []);
 
   async function ask() {
     if (!msg.trim()) return;
@@ -151,11 +167,17 @@ function AskTutor({ step, current, caseId }) {
       const j = await r.json().catch(() => ({}));
       if (r.status === 429) {
         setQuotaHit(true);
+        setQuotaInfo({ used: j?.quota ?? null, limit: j?.quota ?? null, remaining: 0 });
         setErr(j?.error || "Weekly quota reached.");
       } else if (!r.ok) {
         setErr(j?.error || `Request failed (${r.status})`);
       } else {
         setReply(String(j.reply || "").trim() || "(no reply)");
+        // Server includes quota state on success now, so trust it.
+        // Pro users get nulls → keep quotaInfo null and the line stays hidden.
+        if (j?.remaining != null && j?.quota != null) {
+          setQuotaInfo({ used: j.used ?? null, limit: j.quota, remaining: j.remaining });
+        }
       }
     } catch (e: any) {
       setErr(e?.message || "Could not reach the tutor.");
@@ -192,6 +214,11 @@ function AskTutor({ step, current, caseId }) {
               <>
                 <p className="text-xs text-slate-400 mb-2 leading-relaxed">
                   Scoped to <span className="mono text-slate-300">{step.qid}</span>. Off-topic questions will be declined.
+                  {!isPro && quotaInfo && (
+                    <span className="block mt-1 text-amber-300/90">
+                      Free tier: {quotaInfo.remaining ?? 0}/{quotaInfo.limit} questions left this week.
+                    </span>
+                  )}
                 </p>
                 <textarea
                   value={msg}
@@ -207,7 +234,7 @@ function AskTutor({ step, current, caseId }) {
                     {err}
                     {quotaHit && (
                       <span className="ml-1 text-slate-400">
-                        Pro tier removes the limit.
+                        Pro removes the limit. <a href="/upgrade" className="underline text-amber-300 hover:text-amber-200">See Pro →</a>
                       </span>
                     )}
                   </div>

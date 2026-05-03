@@ -91,6 +91,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .maybeSingle();
   const isPro = progress?.user_type === "pro" || progress?.user_type === "institutional";
 
+  // Free-tier quota state — exposed on every response (success or 429)
+  // so the client can render "X left this week" without an extra round
+  // trip. Pro users get the quota fields as null.
+  let quotaUsed: number | null = null;
+  let quotaLimit: number | null = null;
+  let quotaRemaining: number | null = null;
+
   if (!isPro) {
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { count, error: countErr } = await admin
@@ -101,10 +108,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .gte("created_at", since);
     if (!countErr) {
       const limit = Number(process.env.AI_FREE_WEEKLY_QUOTA) || FREE_WEEKLY_DEFAULT;
-      if ((count ?? 0) >= limit) {
+      const used = count ?? 0;
+      quotaUsed = used;
+      quotaLimit = limit;
+      quotaRemaining = Math.max(0, limit - used);
+      if (used >= limit) {
         return res.status(429).json({
           error: "Weekly AI tutor quota reached",
           quota: limit,
+          used,
           remaining: 0,
           upgrade: true,
         });
@@ -174,5 +186,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     status: "ok",
   });
 
-  return res.status(200).json({ reply: aiReply, model, tokens_in: tokensIn, tokens_out: tokensOut });
+  // We just inserted a successful row, so decrement the snapshot we
+  // computed before the call. Pro users get nulls (no limit to surface).
+  if (quotaRemaining !== null) {
+    quotaRemaining = Math.max(0, quotaRemaining - 1);
+    if (quotaUsed !== null) quotaUsed = quotaUsed + 1;
+  }
+
+  return res.status(200).json({
+    reply: aiReply,
+    model,
+    tokens_in: tokensIn,
+    tokens_out: tokensOut,
+    quota: quotaLimit,
+    used: quotaUsed,
+    remaining: quotaRemaining,
+  });
 }
