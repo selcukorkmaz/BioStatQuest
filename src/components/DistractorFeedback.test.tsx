@@ -130,4 +130,53 @@ describe("DistractorFeedback (F1 — distractor-aware misconception feedback)", 
     // (missed correct), there are no per-option distractor messages to surface.
     expect(container.firstChild).toBeNull();
   });
+
+  // F8 — repeat-offender chip. The chip surfaces only when the picked
+  // distractor's misconception tag has been matched ≥ REPEAT_THRESHOLD times
+  // (currently 3) in the learner's recent history.
+  describe("repeat-offender chip (F8 ledger)", () => {
+    it("does not render when count is below threshold", () => {
+      const counts = { ordered_integers_treated_as_continuous: { count: 2, lastSeen: "2026-05-01" } };
+      render(<DistractorFeedback step={mcqQuestion} correct={false} current={0} misconceptionCounts={counts} />);
+      expect(screen.queryByText(/× 2 times/)).toBeNull();
+      // Generic "Common misconception" badge still shows (count threshold doesn't gate it)
+      expect(screen.getByText("Common misconception")).toBeTruthy();
+    });
+
+    it("renders '× N times' chip when count is at the threshold", () => {
+      const counts = { ordered_integers_treated_as_continuous: { count: 3, lastSeen: "2026-05-01" } };
+      render(<DistractorFeedback step={mcqQuestion} correct={false} current={0} misconceptionCounts={counts} />);
+      expect(screen.getByText(/× 3 times/)).toBeTruthy();
+    });
+
+    it("renders the chip with the actual count when above threshold", () => {
+      const counts = { ordered_integers_treated_as_continuous: { count: 7, lastSeen: "2026-05-01" } };
+      render(<DistractorFeedback step={mcqQuestion} correct={false} current={0} misconceptionCounts={counts} />);
+      expect(screen.getByText(/× 7 times/)).toBeTruthy();
+    });
+
+    it("does not render the chip when the picked option has no tag", () => {
+      // Option 2 has only an explanation, no misconceptionTag.
+      const counts = { center_summary_misidentified: { count: 99, lastSeen: "2026-05-01" } };
+      render(<DistractorFeedback step={mcqQuestion} correct={false} current={2} misconceptionCounts={counts} />);
+      // Explanation renders but no count chip and no badge
+      expect(screen.getByText(/categories ARE ordered/)).toBeTruthy();
+      expect(screen.queryByText(/times/)).toBeNull();
+      expect(screen.queryByText("Common misconception")).toBeNull();
+    });
+
+    it("does not render the chip when counts map is missing the tag", () => {
+      const counts = { unrelated_tag: { count: 42, lastSeen: "2026-05-01" } };
+      render(<DistractorFeedback step={mcqQuestion} correct={false} current={0} misconceptionCounts={counts} />);
+      expect(screen.queryByText(/times/)).toBeNull();
+    });
+
+    it("works without misconceptionCounts prop (backward-compatible)", () => {
+      // Older callers — no chip ever appears, but explanation/badge render fine.
+      render(<DistractorFeedback step={mcqQuestion} correct={false} current={0} />);
+      expect(screen.getByText(/Numbers on the scale/)).toBeTruthy();
+      expect(screen.getByText("Common misconception")).toBeTruthy();
+      expect(screen.queryByText(/times/)).toBeNull();
+    });
+  });
 });

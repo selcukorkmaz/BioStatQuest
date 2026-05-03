@@ -11,8 +11,151 @@ import { getNarrative, getActForQid } from "../data/caseNarratives";
 import { gradeCard as srsGradeCard } from "../lib/srs";
 import { DIFFICULTIES, REVIEW_CASE_ID } from "../lib/difficulty";
 import { fmtDate } from "../lib/format";
+import { METHODS } from "../data/methods";
+import { createClient } from "@supabase/supabase-js";
 import { Ico } from "./Icons";
 import { DeepDive } from "./DeepDive";
+
+// Reaches into the active Supabase session for the access token. We can't
+// pull from BQAuth (it doesn't expose getSession), so build a transient
+// client just to read the cached session — same pattern as billing.ts.
+async function getSupabaseAccessToken(): Promise<string | null> {
+  try {
+    const w = window as any;
+    const url = (import.meta as any).env?.VITE_SUPABASE_URL || w.__SUPABASE_URL || "";
+    const key = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || w.__SUPABASE_ANON_KEY || "";
+    if (!url || !key) return null;
+    const c = createClient(url, key);
+    const { data } = await c.auth.getSession();
+    return data.session?.access_token ?? null;
+  } catch { return null; }
+}
+
+// F15 — AskTutor: scoped, single-turn AI explainer that opens a modal
+// from the reveal panel. POSTs the bounded question context to
+// /api/ai/explain and renders the reply. Disabled for guests; the
+// server enforces quota for free-tier users.
+function AskTutor({ step, current, caseId }) {
+  const [open, setOpen] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [reply, setReply] = useState("");
+  const [err, setErr] = useState("");
+  const [quotaHit, setQuotaHit] = useState(false);
+
+  const signedIn = !!(window as any).BQAuth?.getUser?.();
+
+  async function ask() {
+    if (!msg.trim()) return;
+    setBusy(true); setErr(""); setReply(""); setQuotaHit(false);
+    try {
+      const token = await getSupabaseAccessToken();
+      if (!token) throw new Error("Please sign in first.");
+      const methodTitle = step.method ? (METHODS as any)[step.method]?.title : undefined;
+      const r = await fetch("/api/ai/explain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          qid:          step.qid,
+          caseId,
+          stem:         step.q,
+          options:      step.options,
+          correctIndex: step.answer,
+          pickedIndex:  current,
+          baseExplain:  step.explain,
+          methodTitle,
+          userMessage:  msg.trim().slice(0, 500),
+        }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (r.status === 429) {
+        setQuotaHit(true);
+        setErr(j?.error || "Weekly quota reached.");
+      } else if (!r.ok) {
+        setErr(j?.error || `Request failed (${r.status})`);
+      } else {
+        setReply(String(j.reply || "").trim() || "(no reply)");
+      }
+    } catch (e: any) {
+      setErr(e?.message || "Could not reach the tutor.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="mt-3">
+        <button
+          onClick={() => { setOpen(true); setMsg(""); setReply(""); setErr(""); setQuotaHit(false); }}
+          className="btn btn-ghost px-3 py-1.5 rounded-lg text-xs inline-flex items-center gap-1.5"
+          title={signedIn ? "Ask a one-question AI tutor (free tier limited)" : "Sign in to use the tutor"}>
+          <Ico name="orb" size={12}/> Ask the tutor
+        </button>
+      </div>
+
+      {open && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{background: "rgba(2,6,23,0.7)"}}>
+          <div className="card premium-border rounded-2xl max-w-lg w-full p-6" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white inline-flex items-center gap-2"><Ico name="orb" size={16}/> Ask the tutor</h3>
+              <button onClick={()=>setOpen(false)} className="text-slate-400 hover:text-white inline-flex items-center"><Ico name="close" size={16}/></button>
+            </div>
+
+            {!signedIn ? (
+              <div className="text-sm text-slate-300">
+                <p className="mb-3">Sign in to use the AI tutor. Free accounts get 5 questions per week; Pro is unlimited.</p>
+                <button onClick={()=>setOpen(false)} className="btn btn-ghost px-5 py-2 rounded-lg text-sm">Close</button>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-slate-400 mb-2 leading-relaxed">
+                  Scoped to <span className="mono text-slate-300">{step.qid}</span>. Off-topic questions will be declined.
+                </p>
+                <textarea
+                  value={msg}
+                  onChange={e => setMsg(e.target.value.slice(0, 500))}
+                  rows={3}
+                  placeholder="e.g. why is the CI not a probability about the parameter?"
+                  className="w-full p-3 rounded-lg bg-slate-950/60 border border-slate-700 text-slate-100 text-sm placeholder-slate-500"
+                  disabled={busy}/>
+                <div className="text-[10px] text-slate-500 mono text-right mt-1">{msg.length}/500</div>
+
+                {err && (
+                  <div className={`text-xs mt-2 ${quotaHit ? "text-amber-300" : "text-red-400"}`}>
+                    {err}
+                    {quotaHit && (
+                      <span className="ml-1 text-slate-400">
+                        Pro tier removes the limit.
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {reply && (
+                  <div className="mt-4 p-3 rounded-lg bg-cyan-950/30 border border-cyan-700/40">
+                    <div className="text-[10px] uppercase tracking-widest text-cyan-300 font-bold mb-1">Tutor</div>
+                    <div className="text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">{reply}</div>
+                  </div>
+                )}
+
+                <div className="flex gap-2 mt-4">
+                  <button onClick={()=>setOpen(false)} className="btn btn-ghost px-4 py-2 rounded-lg text-sm flex-1">Close</button>
+                  <button
+                    onClick={ask}
+                    disabled={busy || !msg.trim()}
+                    className="btn btn-primary px-4 py-2 rounded-lg text-sm flex-1 disabled:opacity-40">
+                    {busy ? "Asking…" : reply ? "Ask again" : "Ask"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
 
 // Small, unobtrusive "Report an issue" link shown after an answer is revealed.
 // Opens a modal where signed-in users can flag a question (wrong answer key,
@@ -112,7 +255,14 @@ function ReportQuestionLink({ qid, caseId }) {
 // — placed *above* the generic `step.explain` so feedback first addresses
 // the specific misconception they fell into. Silent when the answer is
 // correct or no per-option content is authored. (F1 — v2.0 plan.)
-export function DistractorFeedback({ step, correct, current }) {
+//
+// `misconceptionCounts` (F8) is an optional tag→count map of how many times
+// the learner has matched each misconception in the last 60 days. When the
+// chosen distractor's tag appears with count ≥ REPEAT_THRESHOLD, we surface
+// a "× N times" repeat-offender chip alongside the generic badge.
+const REPEAT_THRESHOLD = 3;
+
+export function DistractorFeedback({ step, correct, current, misconceptionCounts = {} }) {
   if (correct) return null;
   if (!step.optionExplanations && !step.misconceptionTag) return null;
 
@@ -121,6 +271,7 @@ export function DistractorFeedback({ step, correct, current }) {
     const tag = step.misconceptionTag?.[idx];
     if (!why && !tag) return null;
     const letter = String.fromCharCode(65 + idx);
+    const repeatCount = (tag && misconceptionCounts?.[tag]?.count) || 0;
     return (
       <div key={idx} className="mb-3 rounded-lg border border-red-700/40 bg-red-950/30 p-3">
         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
@@ -128,6 +279,11 @@ export function DistractorFeedback({ step, correct, current }) {
           {tag && (
             <span className="chip bg-amber-900/40 text-amber-200 text-[10px] inline-flex items-center gap-1">
               <Ico name="warning" size={10}/> Common misconception
+            </span>
+          )}
+          {tag && repeatCount >= REPEAT_THRESHOLD && (
+            <span className="chip bg-rose-900/50 text-rose-200 text-[10px] inline-flex items-center gap-1" title="How many times you've matched this misconception in the last 60 days">
+              <Ico name="refresh" size={10}/> × {repeatCount} times
             </span>
           )}
         </div>
@@ -175,6 +331,20 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
     catch { return `r_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,10)}`; }
   });
   const [shownAt, setShownAt] = useState(() => Date.now());
+  // F8 — per-learner misconception counts loaded once on mount. Drives the
+  // "× N times" repeat chip in DistractorFeedback. Empty map for guests or
+  // fetch failures; the UI degrades silently (no chip) without it.
+  const [misconceptionCounts, setMisconceptionCounts] = useState({});
+  useEffect(() => {
+    let alive = true;
+    const auth = (window as any).BQAuth;
+    if (auth?.fetchMyMisconceptions) {
+      auth.fetchMyMisconceptions()
+        .then((m) => { if (alive) setMisconceptionCounts(m || {}); })
+        .catch(() => {});
+    }
+    return () => { alive = false; };
+  }, []);
 
   const step = questions[stepIdx];
   const isLast = stepIdx === questions.length - 1;
@@ -400,9 +570,10 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
               {answers[answers.length-1]?.timedOut ? (<span className="inline-flex items-center gap-2"><Ico name="alarm-clock" size={16}/> Time's up!</span>) : correct ? (<span className="inline-flex items-center gap-2"><Ico name="check" size={16}/> Correct!</span>) : (<span className="inline-flex items-center gap-2"><Ico name="cross" size={16}/> Not quite.</span>)}
               {correct && totalTimeBonus > 0 && <span className="ml-2 text-amber-400 text-sm">+{answers[answers.length-1]?.timeBonus||0} time bonus</span>}
             </div>
-            <DistractorFeedback step={step} correct={correct} current={current} />
+            <DistractorFeedback step={step} correct={correct} current={current} misconceptionCounts={misconceptionCounts} />
             <div className="text-sm text-slate-200 leading-relaxed">{step.explain}</div>
             {step.method && <DeepDive methodId={step.method} srs={srs} onOpenGlossary={onOpenGlossary}/>}
+            <AskTutor step={step} current={current} caseId={c.id}/>
             <ReportQuestionLink qid={step.qid} caseId={c.id}/>
           </div>
         )}

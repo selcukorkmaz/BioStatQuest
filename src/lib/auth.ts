@@ -285,6 +285,34 @@ export type QuestionAttempt = {
   runId?: string | null;
 };
 
+// F8 — Per-learner misconception counts (last 60 days). Calls the RPC
+// `public.my_misconception_counts()` via Supabase. Returns a tag→{count,
+// lastSeen} map suitable for direct lookup in the play loop, e.g.
+//   const c = counts['ci_as_parameter_probability']?.count ?? 0;
+//
+// Returns {} for guests, when the client isn't configured, or when the
+// RPC errors. Never throws — telemetry-adjacent code must not break play.
+export type MisconceptionLedger = Record<string, { count: number; lastSeen: string }>;
+
+async function fetchMyMisconceptions(): Promise<MisconceptionLedger> {
+  if (!enabled || !client || !currentUser) return {};
+  try {
+    const { data, error } = await client.rpc("my_misconception_counts");
+    if (error || !Array.isArray(data)) return {};
+    const out: MisconceptionLedger = {};
+    for (const row of data as any[]) {
+      if (!row?.tag) continue;
+      out[row.tag] = {
+        count: Number(row.cnt) || 0,
+        lastSeen: row.last_seen ?? "",
+      };
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 async function logQuestionAttempt(a: QuestionAttempt): Promise<void> {
   try {
     if (!enabled || !client || !currentUser) return;
@@ -549,6 +577,46 @@ async function _srsMasteryByMethod(): Promise<Record<string, { stability: number
   return out;
 }
 
+// S — Admin telemetry views over question_attempts. Both call SECURITY
+// DEFINER RPCs that enforce the admin email check server-side; the
+// client-side isAdmin() gate is a UX guard, not the security boundary.
+export type TopMisconceptionRow = { tag: string; cnt: number; lastSeen: string };
+export type QuestionStatRow = {
+  qid: string;
+  caseId: string;
+  n: number;
+  accuracy: number;        // 0..1
+  topDistractor: string | null;
+  topDistractorPct: number | null;
+};
+
+async function adminFetchTopMisconceptions(days = 30): Promise<TopMisconceptionRow[]> {
+  if (!enabled || !client) return [];
+  if (!isAdmin()) throw new Error("Admin only");
+  const { data, error } = await client.rpc("admin_top_misconceptions", { p_days: days });
+  if (error) throw error;
+  return (Array.isArray(data) ? data : []).map((row: any) => ({
+    tag: row.tag,
+    cnt: Number(row.cnt) || 0,
+    lastSeen: row.last_seen ?? "",
+  }));
+}
+
+async function adminFetchQuestionStats(days = 30, minN = 5): Promise<QuestionStatRow[]> {
+  if (!enabled || !client) return [];
+  if (!isAdmin()) throw new Error("Admin only");
+  const { data, error } = await client.rpc("admin_question_stats", { p_days: days, p_min_n: minN });
+  if (error) throw error;
+  return (Array.isArray(data) ? data : []).map((row: any) => ({
+    qid: row.qid,
+    caseId: row.case_id,
+    n: Number(row.n) || 0,
+    accuracy: Number(row.accuracy) || 0,
+    topDistractor: row.top_distractor ?? null,
+    topDistractorPct: row.top_distractor_pct == null ? null : Number(row.top_distractor_pct),
+  }));
+}
+
 async function fetchAllUsers() {
   if (!enabled || !client) return null;
   if (!isAdmin()) throw new Error("Admin only");
@@ -609,17 +677,18 @@ async function updateQuestionReport(
 // ============================================================
 type Subscription = {
   user_type: "free" | "pro" | "institutional";
-  status: string | null;           // 'active' | 'trialing' | 'past_due' | ...
+  status: string | null;            // 'active' | 'trialing' | 'past_due' | ...
   priceId: string | null;
-  currentPeriodEnd: string | null; // ISO date
+  currentPeriodEnd: string | null;  // ISO date
   customerId: string | null;
+  provider: "stripe" | "lemonsqueezy" | null;  // null = no active sub
 };
 
 async function fetchSubscription(): Promise<Subscription | null> {
   if (!enabled || !client || !currentUser) return null;
   const { data, error } = await client
     .from("user_progress")
-    .select("user_type, stripe_subscription_status, stripe_price_id, stripe_current_period_end, stripe_customer_id")
+    .select("user_type, stripe_subscription_status, stripe_price_id, stripe_current_period_end, stripe_customer_id, billing_provider")
     .eq("user_id", currentUser.id)
     .maybeSingle();
   if (error || !data) return null;
@@ -629,6 +698,7 @@ async function fetchSubscription(): Promise<Subscription | null> {
     priceId: (data as any).stripe_price_id ?? null,
     currentPeriodEnd: (data as any).stripe_current_period_end ?? null,
     customerId: (data as any).stripe_customer_id ?? null,
+    provider: (data as any).billing_provider ?? null,
   };
 }
 
@@ -662,6 +732,9 @@ export const BQAuth = {
   fetchLeaderboard,
   submitQuestionReport,
   logQuestionAttempt,
+  fetchMyMisconceptions,
+  adminFetchTopMisconceptions,
+  adminFetchQuestionStats,
   isAdmin,
   fetchQuestionReports,
   updateQuestionReport,

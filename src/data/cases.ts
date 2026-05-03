@@ -1204,20 +1204,66 @@ const CASES: Case[] = [
       explain:"α/m = 0.05/20000 = 2.5e-6.", method:"multiple_testing" },
     { q: "Controls FDR (expected proportion of false discoveries):", type:"mcq", standalone:true,
       options:["Bonferroni","Holm","Benjamini-Hochberg","Tukey HSD"], answer:2,
-      explain:"BH controls FDR, typically less conservative than Bonferroni.", method:"multiple_testing" },
+      explain:"BH controls FDR, typically less conservative than Bonferroni.", method:"multiple_testing",
+      optionExplanations: {
+        0: "Bonferroni controls FWER (probability of ≥1 false positive), not FDR. They're different error metrics: FWER is binary (any false positive at all?), FDR is a proportion (what fraction of MY discoveries are wrong?). Bonferroni is much harsher because it protects against the strictest definition of error.",
+        1: "Holm's step-down also controls FWER (uniformly more powerfully than Bonferroni) — but still FWER, not FDR. The FDR/FWER split matters: with 20,000 tests, controlling FWER at 0.05 lets through almost nothing; controlling FDR at 0.05 lets through most true effects.",
+        3: "Tukey HSD is for all-pairs ANOVA post-hoc comparisons (k×k group pairs), not for the thousands-of-tests setting where FDR shines. Wrong tool, wrong scale."
+      },
+      misconceptionTag: {
+        0: "fwer_confused_with_fdr",
+        1: "fwer_confused_with_fdr",
+        3: "tukey_used_at_genomic_scale"
+      } },
     { q: "Family-wise error rate (FWER) is:", type:"mcq", standalone:true,
       options:["Probability of at least 1 false","Proportion of tests performed overall","Mean p-value across tests","Statistical power of the family"], answer:0,
-      explain:"FWER = P(at least one Type I error across the family).", method:"multiple_testing" },
+      explain:"FWER = P(at least one Type I error across the family).", method:"multiple_testing",
+      optionExplanations: {
+        1: "That's just 100% (you performed all the tests you performed) and isn't an error rate at all. FWER is the PROBABILITY of at least one false positive across the family, computed under the global null.",
+        2: "Mean p-value is unrelated. FWER is about the joint behaviour of REJECTIONS, not about the central tendency of p-values. Under H₀ alone, p-values are uniform → mean ≈ 0.5; that tells you nothing about error rates.",
+        3: "Power and FWER live on opposite sides of the testing equation: power = P(reject | H₁ true), FWER = P(at least one reject | H₀ true everywhere). They're complementary, not synonyms."
+      },
+      misconceptionTag: {
+        2: "fwer_confused_with_mean_p",
+        3: "fwer_confused_with_power"
+      } },
     { q: "Holm's step-down procedure is:", type:"mcq", standalone:true,
       options:["More conservative than Bonferroni","More powerful than Bonferroni","Identical to Bonferroni","Only for 2 tests"], answer:1,
-      explain:"Holm is uniformly more powerful and still controls FWER.", method:"multiple_testing" },
+      explain:"Holm is uniformly more powerful and still controls FWER.", method:"multiple_testing",
+      optionExplanations: {
+        0: "Reversed. Holm's step-down is UNIFORMLY MORE POWERFUL than Bonferroni — it never rejects fewer tests and often rejects more, while still controlling FWER at the same α. Bonferroni is the strictest of the FWER family; Holm is a strict improvement.",
+        2: "Holm and Bonferroni give the same threshold for the smallest p-value (α/m), but Holm relaxes for subsequent ones (α/(m−1), α/(m−2), …). They diverge as you walk down the sorted p-values; identical only on the first comparison.",
+        3: "Holm works for any number of tests m ≥ 1. The 'step-down' refers to walking through the m sorted p-values, not the count itself."
+      },
+      misconceptionTag: {
+        0: "holm_assumed_more_conservative",
+        2: "holm_confused_with_bonferroni"
+      } },
     { q: "Tukey HSD is used for:", type:"mcq",
       scenario:"After a one-way ANOVA comparing four post-op analgesic regimens (n = 30 per arm) shows a significant overall difference in pain scores, you want to know WHICH specific pairs of regimens differ.",
       options:["Multiple binary outcome tests","All-pairs comparisons after ANOVA","Correlation between two variables","Survival time comparisons"], answer:1,
-      explain:"Tukey's honestly significant difference controls the family-wise error rate across all C(4,2) = 6 pairwise mean comparisons after a significant ANOVA. Running 6 unadjusted t-tests would inflate Type I error.", method:"anova" },
+      explain:"Tukey's honestly significant difference controls the family-wise error rate across all C(4,2) = 6 pairwise mean comparisons after a significant ANOVA. Running 6 unadjusted t-tests would inflate Type I error.", method:"anova",
+      optionExplanations: {
+        0: "Tukey HSD compares MEAN differences across multiple groups (continuous outcome with multiple levels). For multiple BINARY outcome comparisons you'd use logistic regression / chi-square / Bonferroni-adjusted proportion tests.",
+        2: "Correlation answers a different question (do two continuous variables move together?). Tukey is a follow-up to ANOVA — comparing GROUP MEANS, not measuring association.",
+        3: "Survival times across groups are compared with the log-rank test (or Cox PH for adjusted comparisons), not Tukey HSD. Tukey is parametric and assumes normal residuals; survival data are skewed and censored, making it the wrong tool."
+      },
+      misconceptionTag: {
+        0: "tukey_used_for_binary",
+        3: "tukey_used_on_survival"
+      } },
     { q: "If 1000 true positives exist in 20,000 tests, BH at q=0.05 will flag approx:", type:"mcq", standalone:true,
       options:["Always 0","Many true discoveries","All 20,000","No discoveries"], answer:1,
-      explain:"BH targets ≤ q% false among discoveries, maintaining power.", method:"roc_auc" },
+      explain:"BH targets ≤ q% false among discoveries, maintaining power.", method:"roc_auc",
+      optionExplanations: {
+        0: "That would describe Bonferroni at α/m = 2.5×10⁻⁶, where almost no test clears the bar even when there are 1000 true effects. BH is a different beast: it's calibrated to keep the FALSE-DISCOVERY proportion at ≤ q, not to suppress all flags.",
+        2: "BH at q=0.05 doesn't flag everything. It walks down the sorted p-values and finds the largest k for which p₍ₖ₎ ≤ k/m × q — flagging only those k. With 1000 true effects that's typically a few hundred to a thousand discoveries, not all 20,000.",
+        3: "'No discoveries' is the Bonferroni risk in this regime, not BH. The whole point of FDR-based methods is to recover power when there ARE many true positives — BH delivers most of them at the cost of a small expected false-discovery proportion."
+      },
+      misconceptionTag: {
+        0: "bh_treated_as_bonferroni",
+        3: "bh_assumed_powerless_at_scale"
+      } },
     { q: "Permutation testing for multiplicity:", type:"mcq", standalone:true,
       options:["Assumes normally distributed outcomes","Uses empirical null calibration","Fixes the sample size a priori","Relies on Bayesian prior distributions"], answer:1,
       explain:"Permutation builds an empirical null and adjusts for correlated tests.", method:"bayes" },
@@ -1389,13 +1435,31 @@ const CASES: Case[] = [
       explain:"Rough guide: 0.5 useless; 0.7–0.8 acceptable; 0.8–0.9 excellent; >0.9 outstanding.", method:"roc_auc" },
     { q: "Moving the threshold DOWN (more patients called positive) generally:", type:"mcq", standalone:true,
       options:["Increases sensitivity","Decreases sensitivity","Increases both","Decreases both"], answer:0,
-      explain:"Lower threshold → catch more cases (↑sens) but more false positives (↓spec).", method:"roc_auc" },
+      explain:"Lower threshold → catch more cases (↑sens) but more false positives (↓spec).", method:"roc_auc",
+      optionExplanations: {
+        1: "Direction reversed. A LOWER threshold means MORE people clear the bar and get labelled positive — including more true cases. So sensitivity rises (and specificity falls). Visually: walking up-and-left along the ROC curve.",
+        2: "Sensitivity and specificity TRADE OFF — they don't move together as you slide the threshold (the ROC curve has negative slope on a sens vs 1-spec plot). The only way to raise both is a BETTER test (a different curve), not a different operating point on the same curve.",
+        3: "Same trade-off issue. You can't lose both: lowering the threshold relaxes the criterion, so you catch more of everyone — including more true cases. Sensitivity necessarily rises, not falls."
+      },
+      misconceptionTag: {
+        1: "threshold_direction_reversed",
+        2: "sens_spec_assumed_to_co_move"
+      } },
     { q: "Youden's J index equals:", type:"mcq", standalone:true,
       options:["Sens + Spec","Sens + Spec − 1","Sens × Spec","Sens / Spec"], answer:1,
       explain:"J = Sens + Spec − 1. Threshold maximizing J balances the two.", method:"roc_auc" },
     { q: "A test with LR+ = 1 is:", type:"mcq", standalone:true,
       options:["Very informative","Useless (no change in odds)","Perfect","Conservative"], answer:1,
-      explain:"LR+=1 means post-test odds equal pre-test odds → no information.", method:"roc_auc" },
+      explain:"LR+=1 means post-test odds equal pre-test odds → no information.", method:"roc_auc",
+      optionExplanations: {
+        0: "Reversed. Informative tests have LR+ > 5 (or LR− < 0.2) — meaning a positive result moves your odds substantially up (or a negative moves them down). LR+ = 1 means the post-test odds = pre-test odds: zero information added.",
+        2: "A perfect test has LR+ = ∞ (or LR− = 0). LR+ = 1 sits at the OPPOSITE end of the spectrum — coin-flip on the odds scale.",
+        3: "'Conservative' isn't a property of a likelihood ratio. The LR characterizes information content; it doesn't bias toward false positives or negatives the way a 'conservative' threshold would."
+      },
+      misconceptionTag: {
+        0: "lr_one_assumed_informative",
+        2: "lr_one_confused_with_perfect"
+      } },
     { q: "LR− of 0.1 suggests a negative result:", type:"mcq", standalone:true,
       options:["Rules disease in","Strongly rules disease OUT","Has no effect","Requires larger n"], answer:1,
       explain:"LR− < 0.1 markedly lowers post-test probability of disease.", method:"roc_auc" },
@@ -1408,7 +1472,16 @@ const CASES: Case[] = [
     { q: "Calibration of a risk model refers to:", type:"mcq",
       scenario:"Your 10-year cardiovascular risk calculator discriminates well (AUC 0.82), but a reviewer notes that among patients the model predicts to be at 10% risk, only 3% actually have events within 10 years.",
       options:["Discrimination ability","Agreement between predicted","Threshold choice","Sample size"], answer:1,
-      explain:"Calibration is the agreement between predicted probabilities and observed event rates. A model can discriminate well (rank high-risk above low-risk patients) and still be miscalibrated (systematically over- or underestimate absolute risk). Both should be checked; calibration plots + Brier score quantify this.", method:"roc_auc" },
+      explain:"Calibration is the agreement between predicted probabilities and observed event rates. A model can discriminate well (rank high-risk above low-risk patients) and still be miscalibrated (systematically over- or underestimate absolute risk). Both should be checked; calibration plots + Brier score quantify this.", method:"roc_auc",
+      optionExplanations: {
+        0: "That's discrimination, not calibration. Discrimination (AUC, c-statistic) asks 'can the model rank cases above non-cases?'. Calibration asks the absolute question: 'when the model says 10% risk, do 10% really have events?'. Here AUC = 0.82 (good discrimination) coexists with poor calibration — the SCENARIO illustrates this exact split.",
+        2: "Threshold choice depends on the calibration AND on clinical costs of false positives/negatives — but isn't itself calibration. Calibration is a property of the predicted probabilities, regardless of any decision threshold.",
+        3: "Sample size affects how precisely you can estimate calibration (and discrimination), but it isn't the calibration itself. A huge sample can confirm a model is poorly calibrated (or well calibrated)."
+      },
+      misconceptionTag: {
+        0: "calibration_confused_with_discrimination",
+        2: "calibration_confused_with_threshold"
+      } },
     { q: "Discrimination and calibration are:", type:"mcq", standalone:true,
       options:["Identical","Distinct properties","Mutually exclusive","Only for RCTs"], answer:1,
       explain:"A well-discriminating model can still be poorly calibrated (systematically off) — check both.", method:"roc_auc" },
@@ -1426,13 +1499,31 @@ const CASES: Case[] = [
     { q: "If prevalence is very low, most useful initial metric is:", type:"mcq",
       scenario:"A screening test for a cancer with 0.1% prevalence in 50–60-year-olds is being proposed as a national population-level program. Every false positive triggers an invasive biopsy with non-trivial complication risk.",
       options:["NPV","PPV","Sensitivity","Specificity"], answer:3,
-      explain:"When prevalence is 0.1%, even a 'good' 99% specificity yields ~1,000 false positives per million screened — each triggering unnecessary biopsies. High specificity is critical to keep PPV tolerable. A test for rare disease must be VERY specific; sensitivity matters less because the denominator is tiny.", method:"roc_auc" },
+      explain:"When prevalence is 0.1%, even a 'good' 99% specificity yields ~1,000 false positives per million screened — each triggering unnecessary biopsies. High specificity is critical to keep PPV tolerable. A test for rare disease must be VERY specific; sensitivity matters less because the denominator is tiny.", method:"roc_auc",
+      optionExplanations: {
+        0: "NPV is HIGH almost trivially when prevalence is low (most people don't have the disease, most negatives are correct), so it doesn't discriminate good from bad screening tests at this prevalence.",
+        1: "PPV is the metric you ULTIMATELY care about — but PPV depends on prevalence and test properties together, and is what HIGH SPECIFICITY produces. The question asks which test PROPERTY to optimize for; PPV is a downstream consequence, not a knob you tune at design time.",
+        2: "Sensitivity catches more cases — but at 0.1% prevalence, even perfect 100% sensitivity adds only ~1 case per 1,000 screened. The bigger problem is FALSE positives among the 99.9% disease-free majority; only specificity controls that."
+      },
+      misconceptionTag: {
+        0: "npv_overweighted_at_low_prevalence",
+        2: "sensitivity_prioritized_at_low_prevalence"
+      } },
     { q: "A biomarker AUC = 0.50 means:", type:"mcq", standalone:true,
       options:["Equivalent to random guessing","Perfect discrimination","Needs higher threshold","Undefined"], answer:0,
       explain:"AUC of 0.5 = no better than a coin flip.", method:"roc_auc" },
     { q: "Optimal threshold depends on:", type:"mcq", standalone:true,
       options:["ROC curve only","Costs of false positives","Prevalence alone","Sample size alone"], answer:1,
-      explain:"Clinical context (screening vs confirmatory) dictates where to operate on the ROC.", method:"roc_auc" },
+      explain:"Clinical context (screening vs confirmatory) dictates where to operate on the ROC.", method:"roc_auc",
+      optionExplanations: {
+        0: "The ROC curve shows the PROPERTIES of the test across thresholds — but it's silent on which threshold is right. Choosing a threshold requires the COSTS of false positives vs false negatives (clinical/economic), the local PREVALENCE, and the action triggered.",
+        2: "Prevalence is one input — it shifts PPV/NPV — but optimization also needs the COST of each error. A high-prevalence setting with a benign confirmatory test has very different optimal thresholds from a low-prevalence setting with an invasive workup.",
+        3: "Sample size affects how PRECISELY you can estimate test performance. The optimal operating point is a clinical-decision question, not a precision question."
+      },
+      misconceptionTag: {
+        0: "threshold_chosen_from_roc_alone",
+        2: "threshold_chosen_from_prevalence_alone"
+      } },
     // ---- Reporting guidelines (TRIPOD + STARD) ----
     { q: "TRIPOD guidelines apply to:", type:"mcq", standalone:true,
       options:["Reporting RCT results","Developing and validating multivariable prediction models","Reporting meta-analyses","Reporting diagnostic-accuracy studies"], answer:1,
@@ -2955,16 +3046,44 @@ NOTE: n is number in *each* group`,
       explain:"People who opt in tend to be healthier — spurious 'benefit' of screening.", method:"bias" },
     { q: "Recall bias is most common in:", type:"mcq", standalone:true,
       options:["Prospective cohorts","Retrospective case-control","RCTs","Routine EHR extracts"], answer:1,
-      explain:"Cases often recall exposures more intensely than controls — classic in case-control.", method:"bias" },
+      explain:"Cases often recall exposures more intensely than controls — classic in case-control.", method:"bias",
+      optionExplanations: {
+        0: "Prospective cohorts measure exposure BEFORE the outcome occurs, so recall is anchored in time and unaffected by knowing one's outcome status. That's exactly the design property that minimizes recall bias.",
+        2: "RCTs collect baseline data prospectively under a protocol; treatment is randomized so there's no differential recall by exposure. Recall isn't a major threat in well-conducted RCTs.",
+        3: "EHR extracts use contemporaneous documentation (clinical notes recorded as care happened), not patient memory. Other biases apply (information completeness, miscoding) — but not recall bias."
+      },
+      misconceptionTag: {
+        0: "recall_bias_assigned_to_prospective",
+        2: "recall_bias_assigned_to_rct"
+      } },
     { q: "Detection bias arises when:", type:"mcq", standalone:true,
       options:["Outcomes are missed completely at random","Exposure status affects outcome detection","Blinding of assessors works well","The sample is fully representative"], answer:1,
       explain:"If exposed persons are more likely to be tested, apparent outcome rates differ spuriously.", method:"bias" },
     { q: "Berkson's bias happens when:", type:"mcq", standalone:true,
       options:["Sampling from a hospital induces spurious exposure-disease association","The outcome is rare in the source population","The study is cross-sectional in design","Cases and controls are matched perfectly"], answer:0,
-      explain:"Conditioning on hospitalisation (a collider) induces associations absent in the general population.", method:"bias" },
+      explain:"Conditioning on hospitalisation (a collider) induces associations absent in the general population.", method:"bias",
+      optionExplanations: {
+        1: "Outcome rarity is unrelated to Berkson — it's about WHERE you sample (a hospital, conditional on admission), not about how common the outcome is in the underlying population. Berkson's is a special case of collider bias from selection.",
+        2: "Berkson's bias is a SAMPLING/selection artifact, not specific to cross-sectional design. It can affect cohort, case-control, or cross-sectional studies whenever the sampling frame is conditioned on a collider (e.g., hospitalisation).",
+        3: "Matching is a study-design tool to control confounding by matched variables. It doesn't cause Berkson's, and it doesn't fix it either — Berkson's arises from the SAMPLING FRAME, which matching can't undo."
+      },
+      misconceptionTag: {
+        1: "berkson_attributed_to_rarity",
+        2: "berkson_attributed_to_design_type"
+      } },
     { q: "Loss to follow-up is most worrying when it is:", type:"mcq", standalone:true,
       options:["Random with respect to everything","Related to both exposure and outcome","Balanced across treatment arms","Small in magnitude (below 5%)"], answer:1,
-      explain:"Informative dropout distorts comparisons — sensitivity analyses are needed.", method:"roc_auc" },
+      explain:"Informative dropout distorts comparisons — sensitivity analyses are needed.", method:"roc_auc",
+      optionExplanations: {
+        0: "Random (MCAR) loss reduces effective sample size and precision but doesn't bias estimates. The dangerous flavour is INFORMATIVE dropout — when whether someone leaves depends on their (unobserved) outcome AND their exposure.",
+        2: "Balanced attrition rates across arms is reassuring but NOT sufficient — what matters is whether the REASONS for dropping out differ across arms. Equal % dropout from very different patient types still distorts the comparison.",
+        3: "Magnitude alone doesn't decide. 5% biased dropout can swing a borderline result; 30% truly random dropout costs precision but not bias. Always check the MECHANISM, not just the rate (CONSORT-style flow diagram + sensitivity analyses)."
+      },
+      misconceptionTag: {
+        0: "random_dropout_assumed_dangerous",
+        2: "balance_assumed_sufficient",
+        3: "small_loss_assumed_safe"
+      } },
     { q: "A trial that breaks blinding mid-study risks:", type:"mcq", standalone:true,
       options:["Information bias","Survivorship bias","Immortal time","Ecological fallacy"], answer:0,
       explain:"Unblinded assessors/patients may measure/report outcomes differently.", method:"study_design" },
@@ -2976,7 +3095,17 @@ NOTE: n is number in *each* group`,
       explain:"Selective verification inflates sensitivity and distorts specificity.", method:"bias" },
     { q: "Protopathic bias happens when:", type:"mcq", standalone:true,
       options:["Exposure directly causes the outcome","Early symptoms of disease prompt the exposure","Age confounds the relationship","Outcome drives study enrollment"], answer:1,
-      explain:"The drug is started for early-disease symptoms; apparent harm is reverse causation in disguise.", method:"bias" },
+      explain:"The drug is started for early-disease symptoms; apparent harm is reverse causation in disguise.", method:"bias",
+      optionExplanations: {
+        0: "That's just exposure → outcome causation — the OPPOSITE of protopathic, where the (early, undiagnosed) disease silently DRIVES the exposure (e.g., patient takes a painkiller for vague pain that turns out to be early cancer). The classic 'PPI use raises gastric cancer risk' artifact.",
+        2: "Age IS a common confounder — but that's CONFOUNDING, not protopathic bias. Protopathic is specifically about reverse causation hiding behind a temporal pattern: undiagnosed disease prompts treatment, treatment looks like a 'risk factor'.",
+        3: "That's selection bias. Protopathic bias is about the CAUSAL direction (subclinical disease → exposure), not about who gets enrolled."
+      },
+      misconceptionTag: {
+        0: "protopathic_confused_with_causation",
+        2: "protopathic_confused_with_confounding",
+        3: "protopathic_confused_with_selection"
+      } },
     { q: "Confounding by indication is typical in:", type:"mcq", standalone:true,
       options:["Randomized controlled trials","Observational drug effectiveness studies","Crossover trial designs","Blinded randomized trials"], answer:1,
       explain:"Sicker patients receive the drug; indication is itself a strong confounder.", method:"bias" },
@@ -2988,7 +3117,17 @@ NOTE: n is number in *each* group`,
       explain:"Random exposure error shrinks regression coefficients toward null.", method:"bias" },
     { q: "Lead-time bias in screening:", type:"mcq", standalone:true,
       options:["Extends apparent survival without changing mortality","Shortens observed survival time","Only affects screening-program cost","Is balanced out by blinding"], answer:0,
-      explain:"Earlier diagnosis increases survival time measured from diagnosis, not time of death.", method:"bias" },
+      explain:"Earlier diagnosis increases survival time measured from diagnosis, not time of death.", method:"bias",
+      optionExplanations: {
+        1: "Reversed. Screening detects disease EARLIER, so survival measured FROM DIAGNOSIS appears longer — not shorter. The clock starts sooner; the date of death is unchanged. This is exactly the trap the bias creates.",
+        2: "Lead-time bias is an INFERENTIAL artifact about screening EFFECTIVENESS, not a budget concern. It misleads clinical conclusions about whether earlier detection saves lives — the right comparator is mortality, not survival from diagnosis.",
+        3: "Blinding addresses information bias (differential measurement based on knowledge of group). Lead time is structural — it operates regardless of whether assessors are blinded. The fix is to compare MORTALITY in the screened vs unscreened populations (RCT design)."
+      },
+      misconceptionTag: {
+        1: "lead_time_direction_reversed",
+        2: "lead_time_treated_as_cost",
+        3: "blinding_assumed_to_fix_lead_time"
+      } },
     { q: "Length-time bias in cancer screening favours detecting:", type:"mcq", standalone:true,
       options:["Aggressive fast-growing tumours","Slower-growing tumours with better prognosis","Only late-stage advanced cases","A truly random mix of tumours"], answer:1,
       explain:"Slow-growing lesions have more time in the detectable preclinical phase.", method:"bias" },

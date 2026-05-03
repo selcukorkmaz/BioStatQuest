@@ -1,11 +1,25 @@
-// Client-side Stripe helpers. All network calls hit /api/stripe/* routes
-// which are Vercel serverless functions — keys live there, not here.
+// Client-side billing helpers. Routes to either /api/stripe/* (legacy
+// customers) or /api/lemonsqueezy/* (new buyers, default) depending on
+// the `provider` argument. Keys live server-side, not here.
 //
 // Usage:
-//   await billing.startCheckout("monthly");   // redirects to Stripe Checkout
-//   await billing.openPortal();               // redirects to Stripe Billing Portal
+//   await billing.startCheckout("monthly");                 // → Lemon Squeezy
+//   await billing.startCheckout("monthly", "stripe");       // → Stripe
+//   await billing.openPortal("lemonsqueezy");               // route by provider
+//   await billing.openPortal("stripe");                     // legacy customers
+//
+// New purchases default to Lemon Squeezy as part of the v2.0 cutover; the
+// Stripe rail remains available for existing customers via webhook-driven
+// state. The `billing_provider` column on user_progress tells SubscriptionPanel
+// which portal to open for any given user.
 
 import { createClient } from "@supabase/supabase-js";
+
+export type BillingProvider = "stripe" | "lemonsqueezy";
+
+// Default provider for net-new buyers. Change to "stripe" if you ever
+// need to roll back the Lemon Squeezy migration.
+export const DEFAULT_PROVIDER: BillingProvider = "lemonsqueezy";
 
 async function getAccessToken(): Promise<string | null> {
   const anyWin = window as any;
@@ -39,16 +53,36 @@ async function post(path: string, body?: Record<string, unknown>) {
   return json;
 }
 
-async function startCheckout(plan: "monthly" | "yearly"): Promise<void> {
-  const { url } = await post("/api/stripe/checkout", { plan });
+function checkoutPath(provider: BillingProvider): string {
+  return provider === "lemonsqueezy"
+    ? "/api/lemonsqueezy/checkout"
+    : "/api/stripe/checkout";
+}
+
+function portalPath(provider: BillingProvider): string {
+  return provider === "lemonsqueezy"
+    ? "/api/lemonsqueezy/portal"
+    : "/api/stripe/portal";
+}
+
+async function startCheckout(
+  plan: "monthly" | "yearly",
+  provider: BillingProvider = DEFAULT_PROVIDER,
+): Promise<void> {
+  const { url } = await post(checkoutPath(provider), { plan });
   if (!url) throw new Error("No checkout URL returned");
   window.location.href = url;
 }
 
-async function openPortal(): Promise<void> {
-  const { url } = await post("/api/stripe/portal", {});
+// `provider` defaults to DEFAULT_PROVIDER but the SubscriptionPanel always
+// passes the value read from the user's billing_provider column, so legacy
+// Stripe customers reliably land on the Stripe portal.
+async function openPortal(
+  provider: BillingProvider = DEFAULT_PROVIDER,
+): Promise<void> {
+  const { url } = await post(portalPath(provider), {});
   if (!url) throw new Error("No portal URL returned");
   window.location.href = url;
 }
 
-export const billing = { startCheckout, openPortal };
+export const billing = { startCheckout, openPortal, DEFAULT_PROVIDER };

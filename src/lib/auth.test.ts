@@ -82,3 +82,35 @@ describe("BQAuth.logQuestionAttempt (F2 telemetry hook)", () => {
     ).resolves.toBeUndefined();
   });
 });
+
+describe("BQAuth.fetchMyMisconceptions (F8 ledger API)", () => {
+  it("is exported on BQAuth", () => {
+    expect(typeof BQAuth.fetchMyMisconceptions).toBe("function");
+  });
+
+  it("returns an empty object when Supabase is not configured", async () => {
+    const result = await BQAuth.fetchMyMisconceptions();
+    expect(result).toEqual({});
+  });
+
+  it("never throws — repeat-chip lookup must degrade silently", async () => {
+    await expect(BQAuth.fetchMyMisconceptions()).resolves.toBeDefined();
+  });
+});
+
+describe("BQAuth admin telemetry APIs (S — admin dashboard)", () => {
+  it("exports adminFetchTopMisconceptions and adminFetchQuestionStats", () => {
+    expect(typeof BQAuth.adminFetchTopMisconceptions).toBe("function");
+    expect(typeof BQAuth.adminFetchQuestionStats).toBe("function");
+  });
+
+  it("returns an empty array when Supabase is not configured (no admin gate triggered)", async () => {
+    // With no client, both functions return [] before reaching the isAdmin gate.
+    // This means a misconfigured deploy degrades silently to empty tables in
+    // the admin UI rather than throwing.
+    const tags = await BQAuth.adminFetchTopMisconceptions(30);
+    const stats = await BQAuth.adminFetchQuestionStats(30, 5);
+    expect(tags).toEqual([]);
+    expect(stats).toEqual([]);
+  });
+});

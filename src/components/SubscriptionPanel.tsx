@@ -3,13 +3,14 @@
 // Deliberately separate from the auth UI — keeps the panel single-purpose.
 
 import * as React from "react";
-import { billing } from "../lib/billing";
+import { billing, type BillingProvider } from "../lib/billing";
 import { fmtDate } from "../lib/format";
 
 type Sub = {
   user_type?: "free" | "pro" | "institutional";
   status?: string;
   currentPeriodEnd?: string | number | Date | null;
+  provider?: BillingProvider | null;
 } | null;
 
 export function useSubscription() {
@@ -54,8 +55,14 @@ export function SubscriptionPanel() {
 
   async function openPortal() {
     setBusy(true); setErr("");
-    try { await billing.openPortal(); }
-    catch (e: any) { setErr(e?.message || "Could not open billing portal."); setBusy(false); }
+    try {
+      // Route to the same provider that issued this subscription so legacy
+      // Stripe customers don't get sent to the Lemon Squeezy portal.
+      const provider = (sub?.provider ?? billing.DEFAULT_PROVIDER) as BillingProvider;
+      await billing.openPortal(provider);
+    } catch (e: any) {
+      setErr(e?.message || "Could not open billing portal."); setBusy(false);
+    }
   }
 
   if (loading) {

@@ -110,6 +110,190 @@ update public.user_progress
 
 
 -- ============================================================
+-- F8 — MISCONCEPTION LEDGER (per-user aggregation RPC)
+-- ============================================================
+-- Postgres function the client calls (via Supabase RPC) to get the
+-- count and most-recent timestamp for each misconception_tag the
+-- learner has hit in the last 60 days. SECURITY DEFINER so the
+-- function can read question_attempts on the caller's behalf without
+-- needing to expose row-level GROUP BY through PostgREST. Authorization
+-- is enforced inline: we filter by auth.uid().
+--
+-- Returned shape (one row per tag):
+--   tag        text
+--   cnt        integer
+--   last_seen  timestamptz
+create or replace function public.my_misconception_counts()
+returns table (tag text, cnt integer, last_seen timestamptz)
+language sql
+security definer
+set search_path = public
+as $$
+  select misconception_tag as tag,
+         count(*)::int     as cnt,
+         max(created_at)   as last_seen
+    from public.question_attempts
+   where user_id = auth.uid()
+     and misconception_tag is not null
+     and created_at > now() - interval '60 days'
+   group by misconception_tag
+   order by cnt desc, last_seen desc
+$$;
+
+revoke all on function public.my_misconception_counts() from public;
+grant execute on function public.my_misconception_counts() to authenticated;
+
+
+-- ============================================================
+-- S — ADMIN TELEMETRY RPCs
+-- ============================================================
+-- Two read-only aggregation functions surfaced to the in-app admin
+-- dashboard: top misconception tags fired across all learners, and
+-- per-question stats (n, accuracy, dominant distractor share). Both
+-- gated to a single admin email — same convention as admin_set_user_type
+-- in the v1 schema. Switch to a public.admins table when there's >1
+-- admin to maintain.
+--
+-- Both functions are SECURITY DEFINER + search_path = public so the
+-- caller's RLS doesn't restrict the aggregation.
+
+create or replace function public.admin_top_misconceptions(p_days int default 30)
+returns table (tag text, cnt int, last_seen timestamptz)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.jwt() ->> 'email' <> 'selcukorkmaz@gmail.com' then
+    raise exception 'Admin only';
+  end if;
+  return query
+    select misconception_tag,
+           count(*)::int,
+           max(created_at)
+      from public.question_attempts
+     where misconception_tag is not null
+       and created_at > now() - (p_days || ' days')::interval
+     group by misconception_tag
+     order by count(*) desc, max(created_at) desc
+     limit 200;
+end;
+$$;
+
+revoke all on function public.admin_top_misconceptions(int) from public;
+grant execute on function public.admin_top_misconceptions(int) to authenticated;
+
+
+create or replace function public.admin_question_stats(p_days int default 30, p_min_n int default 5)
+returns table (
+  qid                 text,
+  case_id             text,
+  n                   int,
+  accuracy            numeric,
+  top_distractor      text,           -- jsonb of chosen rendered as text; numeric questions surface input
+  top_distractor_pct  numeric         -- proportion of WRONG answers picking that distractor
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.jwt() ->> 'email' <> 'selcukorkmaz@gmail.com' then
+    raise exception 'Admin only';
+  end if;
+  return query
+    with attempts as (
+      select qa.qid,
+             qa.case_id,
+             qa.correct,
+             qa.chosen
+        from public.question_attempts qa
+       where qa.created_at > now() - (p_days || ' days')::interval
+         and not qa.timed_out
+    ),
+    base as (
+      select a.qid,
+             a.case_id,
+             count(*)::int                                  as n,
+             avg(case when a.correct then 1.0 else 0.0 end) as accuracy
+        from attempts a
+       group by a.qid, a.case_id
+       having count(*) >= p_min_n
+    ),
+    distractors as (
+      select a.qid,
+             a.chosen::text                                 as picked,
+             count(*)::int                                  as picks
+        from attempts a
+       where not a.correct
+       group by a.qid, a.chosen::text
+    ),
+    ranked as (
+      select d.qid, d.picked, d.picks,
+             row_number() over (partition by d.qid order by d.picks desc) as rk,
+             sum(d.picks) over (partition by d.qid)         as wrong_total
+        from distractors d
+    )
+    select b.qid,
+           b.case_id,
+           b.n,
+           round(b.accuracy::numeric, 3)                                    as accuracy,
+           r.picked                                                         as top_distractor,
+           case when r.wrong_total > 0
+                then round((r.picks::numeric / r.wrong_total::numeric), 3)
+                else null::numeric end                                       as top_distractor_pct
+      from base b
+ left join ranked r on r.qid = b.qid and r.rk = 1
+     order by b.accuracy asc, b.n desc
+     limit 200;
+end;
+$$;
+
+revoke all on function public.admin_question_stats(int, int) from public;
+grant execute on function public.admin_question_stats(int, int) to authenticated;
+
+
+-- ============================================================
+-- F15 — AI TUTOR CHAT LOG
+-- ============================================================
+-- One row per AI tutor turn. Drives three things:
+--   1. Per-week quota enforcement for free-tier users (Pro unlimited).
+--   2. Instructor / admin transparency over what the tutor said.
+--   3. Cost & abuse monitoring (token counts, suspicious patterns).
+--
+-- The endpoint inserts a row using the SERVICE ROLE so the same row also
+-- doubles as a permission-checked audit trail. Users get SELECT on their
+-- own rows for a future "history" view; INSERT/UPDATE through the client
+-- is denied — only the API may write here.
+create table if not exists public.ai_chats (
+  id              uuid primary key default gen_random_uuid(),
+  user_id         uuid not null references auth.users(id) on delete cascade,
+  qid             text not null,
+  case_id         text not null,
+  user_message    text not null,
+  ai_reply        text,
+  model           text,
+  tokens_in       int,
+  tokens_out      int,
+  status          text not null default 'ok',     -- 'ok' | 'error' | 'blocked'
+  error           text,
+  created_at      timestamptz not null default now()
+);
+
+create index if not exists ai_chats_user_created_idx
+  on public.ai_chats(user_id, created_at desc);
+create index if not exists ai_chats_qid_created_idx
+  on public.ai_chats(qid, created_at desc);
+
+alter table public.ai_chats enable row level security;
+
+-- Read your own; no client-side writes (the API uses service_role).
+drop policy if exists ai_chats_select_own on public.ai_chats;
+create policy ai_chats_select_own on public.ai_chats
+  for select to authenticated using (user_id = auth.uid());
+
+
+-- ============================================================
 -- DONE
 -- ============================================================
 -- Sanity-check after applying:

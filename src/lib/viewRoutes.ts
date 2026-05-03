@@ -31,6 +31,7 @@ export const PATH_TO_VIEW: Record<string, string> = {
   "/leaderboard": "board",
   "/stats": "stats",
   "/glossary": "glossary",
+  "/misconceptions": "misconceptions",
   "/admin": "admin",
   "/teach": "teach",
   "/join": "join",

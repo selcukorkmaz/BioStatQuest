@@ -102,6 +102,18 @@ const NAV_ICON = {
       <path d="M6.5 8h3M6.5 11h3M14.5 8h3M14.5 11h3"/>
     </svg>
   ),
+  // Misconceptions — magnifier with an exclamation inside the lens.
+  // "Spot the trap" metaphor: the tool that catches recurring wrong-answer
+  // patterns and surfaces them so the learner can see + fix them.
+  misconceptions: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="10.5" cy="10.5" r="6.25"/>
+      <path d="M15 15 L 20 20"/>
+      {/* exclamation mark inside the lens */}
+      <path d="M10.5 7.5 V 11"/>
+      <circle cx="10.5" cy="13.2" r="0.55" fill="currentColor" stroke="none"/>
+    </svg>
+  ),
 };
 
 // Premium custom branch icons — unified stroke-based set, inherit branch color

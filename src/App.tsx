@@ -39,6 +39,7 @@ import { CASES } from "./data/cases";
 import { DIAGNOSTIC } from "./data/diagnostic";
 import { getNarrative, getNarrativeQids, getActForQid } from "./data/caseNarratives";
 import { GLOSSARY, GLOSSARY_BY_ID, GLOSSARY_KIND_META, normalizeGlossaryText } from "./data/glossary";
+import { MyMisconceptions } from "./views/MyMisconceptions";
 import { fmtNumber, fmtDate, fmtDateTime, fmtTime } from "./lib/format";
 import { buildStudyPath, recommendedDifficultyFromBand, bandLabel } from "./lib/diagnostic";
 import { useUrlPath } from "./lib/useUrlPath";
@@ -533,7 +534,7 @@ function TopBar({ state, setState, onReset, onNav, current }) {
         {/* Nav: horizontally scrollable on mobile, wraps on desktop */}
         <div className="order-3 w-full md:order-2 md:w-auto hscroll md:overflow-visible -mx-3 sm:-mx-6 md:mx-0 px-3 sm:px-6 md:px-0">
           <div className="flex gap-1 items-center md:flex-wrap">
-            {[["home","Home"],["tree","Skill Tree"],["lab","Lab"],["rlab","R Lab"],["badges","Badges"],["board","Leaders"],["stats","Stats"],["glossary","Glossary"]].map(([k,l]) => (
+            {[["home","Home"],["tree","Skill Tree"],["lab","Lab"],["rlab","R Lab"],["badges","Badges"],["board","Leaders"],["stats","Stats"],["glossary","Glossary"],["misconceptions","Misconceptions"]].map(([k,l]) => (
               // aria-label + title cover the mobile icon-only state where
               // the visible label (.hidden md:inline) collapses to nothing.
               // aria-current marks the active route for screen-reader users.
@@ -6942,6 +6943,140 @@ function AdminActivity({ events }) {
   );
 }
 
+// ---- Telemetry tab (S — telemetry-driven content quality view) ----------
+// Reads two admin RPCs over question_attempts:
+//   • Top misconceptions: which tags fire most often (drives F8 ledger
+//     priorities and content gaps).
+//   • Question stats: per-qid n / accuracy / dominant distractor share
+//     (low-accuracy + high-dominant-distractor = pedagogical signal worth
+//     reviewing). Sorted ascending by accuracy so the worst items float up.
+//
+// Both views are read-only here; turning a row into a content-edit action
+// (e.g. "open in Glossary editor") is a later iteration.
+function AdminTelemetry() {
+  const [days, setDays] = useState(30);
+  const [tags, setTags] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const load = React.useCallback(async () => {
+    setBusy(true); setErr("");
+    try {
+      const [t, s] = await Promise.all([
+        window.BQAuth.adminFetchTopMisconceptions(days),
+        window.BQAuth.adminFetchQuestionStats(days, 5),
+      ]);
+      setTags(t || []);
+      setStats(s || []);
+    } catch (e) {
+      setErr((e && e.message) || "Could not load telemetry.");
+    } finally {
+      setBusy(false);
+    }
+  }, [days]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const totalAttempts = (stats || []).reduce((s, r) => s + (r.n || 0), 0);
+  const meanAccuracy = stats && stats.length
+    ? (stats.reduce((s, r) => s + (r.accuracy || 0), 0) / stats.length)
+    : 0;
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <label className="text-xs uppercase tracking-widest text-slate-500">Window</label>
+        <select
+          value={days}
+          onChange={e => setDays(Number(e.target.value))}
+          className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-sm">
+          <option value={7}>7 days</option>
+          <option value={30}>30 days</option>
+          <option value={90}>90 days</option>
+          <option value={365}>1 year</option>
+        </select>
+        <button onClick={load} disabled={busy} className="btn btn-ghost px-3 py-1.5 rounded-lg text-xs disabled:opacity-40">
+          {busy ? "Loading…" : "Refresh"}
+        </button>
+        {stats && (
+          <span className="text-xs text-slate-500 mono">
+            {stats.length} questions · {totalAttempts.toLocaleString()} attempts · mean acc {(meanAccuracy * 100).toFixed(1)}%
+          </span>
+        )}
+      </div>
+
+      {err && <div className="card rounded-xl p-4 mb-4 text-sm text-red-400">{err}</div>}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Top misconceptions */}
+        <div className="card rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-white">Top misconceptions</h3>
+            <span className="text-[10px] uppercase tracking-widest text-slate-500">tag · count · last</span>
+          </div>
+          {tags === null ? (
+            <div className="text-slate-500 text-sm">Loading…</div>
+          ) : tags.length === 0 ? (
+            <div className="text-slate-500 text-sm">No tagged attempts in this window yet.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <tbody>
+                  {tags.map((t) => (
+                    <tr key={t.tag} className="border-b border-slate-800/50 last:border-0">
+                      <td className="py-1.5 pr-3 mono text-[12px] text-slate-200">{t.tag}</td>
+                      <td className="py-1.5 pr-3 text-right text-slate-100 font-semibold">{t.cnt}</td>
+                      <td className="py-1.5 text-right text-[11px] text-slate-500 mono">{t.lastSeen ? new Date(t.lastSeen).toISOString().slice(0, 10) : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Question stats — worst-accuracy first */}
+        <div className="card rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-white">Lowest-accuracy questions</h3>
+            <span className="text-[10px] uppercase tracking-widest text-slate-500">qid · n · acc · top distractor</span>
+          </div>
+          {stats === null ? (
+            <div className="text-slate-500 text-sm">Loading…</div>
+          ) : stats.length === 0 ? (
+            <div className="text-slate-500 text-sm">No questions with ≥5 attempts in this window.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <tbody>
+                  {stats.map((r) => {
+                    const acc = Math.round(r.accuracy * 100);
+                    const accClass = acc < 30 ? "text-red-300"
+                                   : acc < 50 ? "text-amber-300"
+                                   : acc < 75 ? "text-yellow-200"
+                                   :            "text-emerald-300";
+                    return (
+                      <tr key={r.qid} className="border-b border-slate-800/50 last:border-0">
+                        <td className="py-1.5 pr-3 mono text-[12px] text-slate-200">{r.qid}</td>
+                        <td className="py-1.5 pr-3 text-right text-slate-400 mono text-[11px]">n={r.n}</td>
+                        <td className={`py-1.5 pr-3 text-right font-semibold ${accClass}`}>{acc}%</td>
+                        <td className="py-1.5 text-right text-[11px] text-slate-500 mono truncate max-w-[140px]">
+                          {r.topDistractor != null ? `${r.topDistractor} (${r.topDistractorPct != null ? Math.round(r.topDistractorPct * 100) : 0}%)` : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---- Reports tab (the existing triage queue, now embedded) ---------------
 function AdminReportsTab() {
   const [rows, setRows] = useState(null);
@@ -7133,12 +7268,13 @@ function AdminReports({ onHome }) {
   }
 
   const tabs = [
-    ["overview", "Overview"],
-    ["users",    `Users${users ? ` (${users.length})` : ""}`],
-    ["content",  "Content"],
-    ["activity", `Activity${events ? ` (${events.length})` : ""}`],
-    ["waitlist", "Waitlist"],
-    ["reports",  `Reports${openReports != null ? ` (${openReports})` : ""}`],
+    ["overview",  "Overview"],
+    ["users",     `Users${users ? ` (${users.length})` : ""}`],
+    ["content",   "Content"],
+    ["activity",  `Activity${events ? ` (${events.length})` : ""}`],
+    ["telemetry", "Telemetry"],
+    ["waitlist",  "Waitlist"],
+    ["reports",   `Reports${openReports != null ? ` (${openReports})` : ""}`],
   ];
 
   return (
@@ -7175,8 +7311,9 @@ function AdminReports({ onHome }) {
         {tab === "overview" && <AdminOverview users={users} openReportsCount={openReports} events={events} reports={allReports} onNavigate={setTab}/>}
         {tab === "users"    && (users === null ? <div className="text-slate-500 text-sm">Loading…</div> : <AdminUsers users={users} onRefresh={loadShared}/>)}
         {tab === "content"  && <AdminContent users={users} reports={allReports} events={events}/>}
-        {tab === "activity" && <AdminActivity events={events}/>}
-        {tab === "waitlist" && <AdminWaitlist/>}
+        {tab === "activity"  && <AdminActivity events={events}/>}
+        {tab === "telemetry" && <AdminTelemetry/>}
+        {tab === "waitlist"  && <AdminWaitlist/>}
         {tab === "reports"  && <AdminReportsTab/>}
       </AdminErrorBoundary>
     </div>
@@ -7682,6 +7819,7 @@ function App() {
       {view === "admin"    && <AdminReports onHome={()=>setView("home")}/>}
       {view === "teach"    && <TeachView onHome={()=>setView("home")}/>}
       {view === "join"     && <JoinView/>}
+      {view === "misconceptions" && <MyMisconceptions onExit={()=>setView("home")} onOpenGlossary={openGlossary}/>}
       </main>
       {sharePending && (
         <ShareCardModal
