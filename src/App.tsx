@@ -557,67 +557,14 @@ function TopBar({ state, setState, onReset, onNav, current }) {
             <div className="font-extrabold text-base sm:text-lg text-white tracking-tight leading-none transition-colors group-hover:text-cyan-200">BioStat <span className="gold-text">Quest</span></div>
           </div>
         </a>
-        {/* Nav: horizontally scrollable on mobile, wraps on desktop */}
-        <div className="order-3 w-full md:order-2 md:w-auto hscroll md:overflow-visible -mx-3 sm:-mx-6 md:mx-0 px-3 sm:px-6 md:px-0">
-          <div className="flex gap-1 items-center md:flex-wrap">
-            {[["home","Home"],["tree","Skill Tree"],["lab","Lab"],["rlab","R Lab"],["exam","Exam"],["competency","Competency"],["badges","Badges"],["board","Leaders"],["stats","Stats"],["glossary","Glossary"],["misconceptions","Misconceptions"]].map(([k,l]) => (
-              // aria-label + title cover the mobile icon-only state where
-              // the visible label (.hidden md:inline) collapses to nothing.
-              // aria-current marks the active route for screen-reader users.
-              <button
-                key={k}
-                onClick={()=>onNav(k)}
-                aria-label={l}
-                title={l}
-                aria-current={current===k ? "page" : undefined}
-                className={`nav-btn ${current===k?"active":""}`}
-              >
-                <span className="inline-flex items-center justify-center w-[18px] h-[18px] shrink-0" aria-hidden="true">{NAV_ICON[k]}</span>
-                <span className="hidden md:inline">{l}</span>
-              </button>
-            ))}
-            {!isProNow && (
-              <button onClick={()=>onNav("upgrade")} className={`nav-btn ${current==="upgrade"?"active":""}`} aria-label="Upgrade" title="Upgrade — see what Pro unlocks" aria-current={current==="upgrade" ? "page" : undefined}>
-                <span className="inline-flex items-center justify-center w-[18px] h-[18px] shrink-0 text-amber-300" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                    {/* upward arrow into a star — "level up" metaphor */}
-                    <path d="M12 4 L 12 14"/>
-                    <path d="M8 8 L 12 4 L 16 8"/>
-                    <path d="M5 18 L 12 14 L 19 18 L 17 21 L 12 19 L 7 21 z" fill="currentColor" stroke="none" opacity="0.85"/>
-                  </svg>
-                </span>
-                <span className="hidden md:inline text-amber-200">Upgrade</span>
-              </button>
-            )}
-            {isInstructorNow && (
-              <button onClick={()=>onNav("teach")} className={`nav-btn ${current==="teach"?"active":""}`} aria-label="Teach" title="Teach — manage classes you instruct" aria-current={current==="teach" ? "page" : undefined}>
-                <span className="inline-flex items-center justify-center w-[18px] h-[18px] shrink-0" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="9" cy="8" r="3"/>
-                    <path d="M3 20c.6-3 3-5 6-5s5.4 2 6 5"/>
-                    <circle cx="17" cy="9" r="2.3"/>
-                    <path d="M14.5 20c.4-2 1.8-3.5 3.5-3.5s3.1 1.5 3.5 3.5"/>
-                  </svg>
-                </span>
-                <span className="hidden md:inline">Teach</span>
-              </button>
-            )}
-            {isAdminNow && (
-              <button onClick={()=>onNav("admin")} className={`nav-btn ${current==="admin"?"active":""}`} aria-label="Admin" title="Admin — question reports" aria-current={current==="admin" ? "page" : undefined}>
-                <span className="inline-flex items-center justify-center w-[18px] h-[18px] shrink-0" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"/>
-                    <path d="M9 12l2 2 4-4"/>
-                  </svg>
-                </span>
-                <span className="hidden md:inline">Admin</span>
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="order-2 md:order-3 flex items-center gap-2 sm:gap-4 min-w-0">
-          {/* Single compact progress block: Lv · XP + thin level-progress bar.
-              Accuracy moved off the shell — it lives on /stats where it belongs. */}
+        {/* Nav: primary items always visible; secondary items collapse into
+            a "More ▾" dropdown to keep the chrome from feeling like a
+            kitchen sink. Upgrade moved to the right-side account block
+            (Pro CTA deserves prominence next to identity). */}
+        <NavBar current={current} onNav={onNav} isInstructorNow={isInstructorNow} isAdminNow={isAdminNow} />
+        <div className="order-2 md:order-3 flex items-center gap-2 sm:gap-3 min-w-0">
+          {/* Single compact progress block: Lv · XP. Accuracy moved off the
+              shell — it lives on /stats where it belongs. */}
           <div className="text-right min-w-0 hidden sm:block">
             <div className="flex items-center gap-1.5 justify-end whitespace-nowrap text-xs text-slate-300">
               <span className="font-semibold text-white">Lv {level}</span>
@@ -626,9 +573,143 @@ function TopBar({ state, setState, onReset, onNav, current }) {
             </div>
             <div className="bar w-32 sm:w-40 mt-1.5 ml-auto"><div style={{width: pct+"%"}}></div></div>
           </div>
+          {!isProNow && (
+            <button
+              onClick={()=>onNav("upgrade")}
+              aria-label="Upgrade to Pro"
+              title="Upgrade — see what Pro unlocks"
+              aria-current={current==="upgrade" ? "page" : undefined}
+              className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition border whitespace-nowrap ${current==="upgrade"
+                ? "bg-amber-500/30 border-amber-400 text-amber-100"
+                : "bg-amber-500/15 border-amber-500/40 text-amber-200 hover:bg-amber-500/25 hover:border-amber-400"}`}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 4 L 12 14"/>
+                <path d="M8 8 L 12 4 L 16 8"/>
+                <path d="M5 18 L 12 14 L 19 18 L 17 21 L 12 19 L 7 21 z" fill="currentColor" stroke="none"/>
+              </svg>
+              <span>Upgrade</span>
+            </button>
+          )}
           <AuthButton state={state} setState={setState} />
           <button onClick={onReset} className="text-xs text-slate-600 hover:text-red-400 transition hidden sm:inline">Reset</button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Primary nav items (always visible) + secondary in a "More ▾" dropdown.
+// Reordering is fine; the order here defines what surfaces first to a
+// new visitor. Five primary keeps the bar visually clean while leaving
+// breathing room for Upgrade on the right and the more dropdown.
+const PRIMARY_NAV: Array<[string, string]> = [
+  ["home",       "Home"],
+  ["tree",       "Skill Tree"],
+  ["exam",       "Exam"],
+  ["competency", "Competency"],
+  ["glossary",   "Glossary"],
+];
+const SECONDARY_NAV: Array<[string, string]> = [
+  ["lab",            "Lab"],
+  ["rlab",           "R Lab"],
+  ["misconceptions", "Misconceptions"],
+  ["badges",         "Badges"],
+  ["board",          "Leaders"],
+  ["stats",          "Stats"],
+];
+
+function NavBar({ current, onNav, isInstructorNow, isAdminNow }) {
+  const [moreOpen, setMoreOpen] = React.useState(false);
+  const moreRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Click-outside + ESC to close the More dropdown.
+  React.useEffect(() => {
+    if (!moreOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMoreOpen(false); };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onClick); document.removeEventListener("keydown", onKey); };
+  }, [moreOpen]);
+
+  const inSecondary = SECONDARY_NAV.some(([k]) => k === current);
+
+  return (
+    <div className="order-3 w-full md:order-2 md:w-auto hscroll md:overflow-visible -mx-3 sm:-mx-6 md:mx-0 px-3 sm:px-6 md:px-0">
+      <div className="flex gap-1 items-center md:flex-wrap">
+        {PRIMARY_NAV.map(([k,l]) => (
+          <button
+            key={k}
+            onClick={()=>onNav(k)}
+            aria-label={l}
+            title={l}
+            aria-current={current===k ? "page" : undefined}
+            className={`nav-btn ${current===k?"active":""}`}>
+            <span className="inline-flex items-center justify-center w-[18px] h-[18px] shrink-0" aria-hidden="true">{NAV_ICON[k]}</span>
+            <span className="hidden md:inline">{l}</span>
+          </button>
+        ))}
+        {/* More ▾ dropdown — secondary nav items live here */}
+        <div className="relative" ref={moreRef}>
+          <button
+            onClick={()=>setMoreOpen(o=>!o)}
+            aria-haspopup="menu"
+            aria-expanded={moreOpen}
+            aria-label="More"
+            title="More"
+            className={`nav-btn ${inSecondary ? "active" : ""}`}>
+            <span className="inline-flex items-center justify-center w-[18px] h-[18px] shrink-0" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="6" cy="12" r="1.4" fill="currentColor"/>
+                <circle cx="12" cy="12" r="1.4" fill="currentColor"/>
+                <circle cx="18" cy="12" r="1.4" fill="currentColor"/>
+              </svg>
+            </span>
+            <span className="hidden md:inline">More</span>
+            {inSecondary && <span className="hidden md:inline w-1.5 h-1.5 rounded-full bg-purple-400" aria-hidden="true"/>}
+          </button>
+          {moreOpen && (
+            <div role="menu" className="absolute right-0 sm:left-0 sm:right-auto top-full mt-1 z-50 min-w-[200px] rounded-xl border border-slate-700 bg-slate-900/95 backdrop-blur shadow-2xl overflow-hidden">
+              {SECONDARY_NAV.map(([k, l]) => (
+                <button
+                  key={k}
+                  role="menuitem"
+                  onClick={()=>{ setMoreOpen(false); onNav(k); }}
+                  aria-current={current===k ? "page" : undefined}
+                  className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 transition ${current===k ? "bg-purple-900/40 text-white" : "text-slate-200 hover:bg-slate-800"}`}>
+                  <span className="inline-flex items-center justify-center w-[16px] h-[16px] shrink-0 text-slate-400" aria-hidden="true">{NAV_ICON[k]}</span>
+                  {l}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        {isInstructorNow && (
+          <button onClick={()=>onNav("teach")} className={`nav-btn ${current==="teach"?"active":""}`} aria-label="Teach" title="Teach — manage classes you instruct" aria-current={current==="teach" ? "page" : undefined}>
+            <span className="inline-flex items-center justify-center w-[18px] h-[18px] shrink-0" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="8" r="3"/>
+                <path d="M3 20c.6-3 3-5 6-5s5.4 2 6 5"/>
+                <circle cx="17" cy="9" r="2.3"/>
+                <path d="M14.5 20c.4-2 1.8-3.5 3.5-3.5s3.1 1.5 3.5 3.5"/>
+              </svg>
+            </span>
+            <span className="hidden md:inline">Teach</span>
+          </button>
+        )}
+        {isAdminNow && (
+          <button onClick={()=>onNav("admin")} className={`nav-btn ${current==="admin"?"active":""}`} aria-label="Admin" title="Admin — question reports" aria-current={current==="admin" ? "page" : undefined}>
+            <span className="inline-flex items-center justify-center w-[18px] h-[18px] shrink-0" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"/>
+                <path d="M9 12l2 2 4-4"/>
+              </svg>
+            </span>
+            <span className="hidden md:inline">Admin</span>
+          </button>
+        )}
       </div>
     </div>
   );
