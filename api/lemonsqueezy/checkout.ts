@@ -9,13 +9,13 @@
 // Response: { url: "https://<store>.lemonsqueezy.com/checkout/buy/..." }
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { supabaseAdmin } from "../_lib/supabaseAdmin";
+import { supabaseAdmin } from "../_lib/supabaseAdmin.js";
 import {
   LS_STORE_ID,
   LS_VARIANT_MONTHLY,
   LS_VARIANT_YEARLY,
   lsCreateCheckout,
-} from "../_lib/ls";
+} from "../_lib/ls.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {

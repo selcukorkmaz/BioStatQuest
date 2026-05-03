@@ -9,8 +9,8 @@
 // Response: { url: "https://<store>.lemonsqueezy.com/billing?expires=..." }
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { supabaseAdmin } from "../_lib/supabaseAdmin";
-import { lsCustomerPortalUrl } from "../_lib/ls";
+import { supabaseAdmin } from "../_lib/supabaseAdmin.js";
+import { lsCustomerPortalUrl } from "../_lib/ls.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });

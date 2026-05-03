@@ -28,8 +28,8 @@
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import crypto from "node:crypto";
-import { LS_WEBHOOK_SECRET } from "../_lib/ls";
-import { supabaseAdmin } from "../_lib/supabaseAdmin";
+import { LS_WEBHOOK_SECRET } from "../_lib/ls.js";
+import { supabaseAdmin } from "../_lib/supabaseAdmin.js";
 
 export const config = {
   api: { bodyParser: false },
