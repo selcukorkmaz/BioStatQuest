@@ -672,12 +672,25 @@ export function AuthButton({ state, setState }) {
       title="Accounts not yet configured"
     >Sign in</button>
   ) : user ? (
-    <button
-      onClick={() => setOpen(true)}
-      className="text-xs px-3 py-1.5 rounded-lg bg-emerald-900/40 text-emerald-200 hover:bg-emerald-900/60 border border-emerald-800"
-    >
-      <span className="hidden sm:inline-flex items-center mr-1.5"><Ico name="check" size={12}/></span>{user.email?.split("@")[0] || "Account"}
-    </button>
+    // Compact signed-in chip: avatar circle (first letter of username)
+    // always visible; full username text only at lg+ widths so the
+    // header chrome stays tight on mid-widths and the nav doesn't wrap.
+    // Click opens the same account modal.
+    (() => {
+      const handle = user.email?.split("@")[0] || "Account";
+      const initial = (handle[0] || "A").toUpperCase();
+      return (
+        <button
+          onClick={() => setOpen(true)}
+          aria-label={`Account: ${handle}`}
+          title={user.email || handle}
+          className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg bg-emerald-900/40 text-emerald-200 hover:bg-emerald-900/60 border border-emerald-800 whitespace-nowrap shrink-0"
+        >
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-700/60 text-emerald-100 font-semibold text-[11px]" aria-hidden="true">{initial}</span>
+          <span className="hidden lg:inline truncate max-w-[140px]">{handle}</span>
+        </button>
+      );
+    })()
   ) : (
     <button
       onClick={() => setOpen(true)}

@@ -579,7 +579,7 @@ function TopBar({ state, setState, onReset, onNav, current }) {
               aria-label="Upgrade to Pro"
               title="Upgrade — see what Pro unlocks"
               aria-current={current==="upgrade" ? "page" : undefined}
-              className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition border whitespace-nowrap ${current==="upgrade"
+              className={`hidden sm:inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold transition border whitespace-nowrap shrink-0 ${current==="upgrade"
                 ? "bg-amber-500/30 border-amber-400 text-amber-100"
                 : "bg-amber-500/15 border-amber-500/40 text-amber-200 hover:bg-amber-500/25 hover:border-amber-400"}`}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -587,7 +587,9 @@ function TopBar({ state, setState, onReset, onNav, current }) {
                 <path d="M8 8 L 12 4 L 16 8"/>
                 <path d="M5 18 L 12 14 L 19 18 L 17 21 L 12 19 L 7 21 z" fill="currentColor" stroke="none"/>
               </svg>
-              <span>Upgrade</span>
+              {/* Text only at lg+ — keeps the right block tight on mid-widths
+                  so the AuthButton's username doesn't push the nav into a wrap. */}
+              <span className="hidden lg:inline">Upgrade</span>
             </button>
           )}
           <AuthButton state={state} setState={setState} />
