@@ -12,10 +12,13 @@
 // remove) and redeploy. The DB state never changes; this is purely a
 // client/server gate override.
 
-// Read from Vite env. Returns false (the strict default) when the var
-// isn't set or doesn't equal "true" — fail safe.
-export const OPEN_BETA_PRO: boolean =
-  ((import.meta as any)?.env?.VITE_OPEN_BETA_PRO ?? "").toString().toLowerCase() === "true";
+// Hardcoded for the launch window. Flip to `false` and redeploy when
+// paid plans go live (that's the entire teardown — no DB change, no
+// env-var dance). Env-driven version was tried first but Vercel's
+// build pipeline didn't reliably inline VITE_ envs in our setup;
+// hardcoded constant is friction-free for a flag that's meant to flip
+// exactly twice in its life.
+export const OPEN_BETA_PRO: boolean = true;
 
 // "Effectively Pro" — the truth source for client-side feature gating.
 // Centralises the check so future tier additions (e.g. educator)

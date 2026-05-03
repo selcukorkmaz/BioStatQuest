@@ -89,11 +89,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .select("user_type")
     .eq("user_id", user.id)
     .maybeSingle();
-  // Open-beta override: when OPEN_BETA_PRO=true (env var), every signed-in
-  // user is treated as Pro for quota purposes during the launch window
-  // before the payment processor is live. Flip the env var to disable.
-  const openBeta = (process.env.OPEN_BETA_PRO || "").toLowerCase() === "true";
-  const isPro = openBeta
+  // Open-beta override: hardcoded constant matched to the client-side
+  // src/lib/launchFlags.ts OPEN_BETA_PRO. Flip both to false and redeploy
+  // when paid plans launch. Single source of truth on each side; no env
+  // var dance.
+  const OPEN_BETA_PRO = true;
+  const isPro = OPEN_BETA_PRO
     || progress?.user_type === "pro"
     || progress?.user_type === "institutional";
 
