@@ -10,7 +10,7 @@
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { supabaseAdmin } from "../_lib/supabaseAdmin";
-import { lsCustomerPortalUrl } from "../_lib/lemonsqueezy";
+import { lsCustomerPortalUrl } from "../_lib/ls";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });

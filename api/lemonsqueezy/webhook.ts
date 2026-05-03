@@ -28,7 +28,7 @@
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import crypto from "node:crypto";
-import { LS_WEBHOOK_SECRET } from "../_lib/lemonsqueezy";
+import { LS_WEBHOOK_SECRET } from "../_lib/ls";
 import { supabaseAdmin } from "../_lib/supabaseAdmin";
 
 export const config = {
