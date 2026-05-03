@@ -170,7 +170,7 @@ export function Upgrade({ onExit }) {
               disabled={busy || !signedIn}
               className="btn btn-primary px-4 py-3 rounded-xl text-sm disabled:opacity-40">
               <div className="font-semibold">Yearly</div>
-              <div className="text-[11px] opacity-80">two months free</div>
+              <div className="text-[11px] opacity-80">save $48 · 44% off</div>
             </button>
           </div>
         </div>
