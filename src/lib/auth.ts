@@ -307,6 +307,23 @@ export type MisconceptionAttempt = {
   createdAt: string;
 };
 
+// F9 Pro — server-side exam quota check. Returns the count of distinct
+// exam runs in the last 30 days for the current user. Used by Exam.tsx
+// to enforce the free 2-exam quota (the previous localStorage gate was
+// bypassable by clearing storage). Returns 0 for guests / failures so
+// the localStorage path can still serve as a soft fallback for guests.
+async function fetchMyExamCount30d(): Promise<number> {
+  if (!enabled || !client || !currentUser) return 0;
+  try {
+    const { data, error } = await client.rpc("my_exam_count_30d");
+    if (error || data == null) return 0;
+    const n = Number(data);
+    return Number.isFinite(n) ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
 async function fetchMyMisconceptionHistory(tag: string, limit = 50): Promise<MisconceptionAttempt[]> {
   if (!enabled || !client || !currentUser || !tag) return [];
   try {
@@ -766,6 +783,7 @@ export const BQAuth = {
   logQuestionAttempt,
   fetchMyMisconceptions,
   fetchMyMisconceptionHistory,
+  fetchMyExamCount30d,
   adminFetchTopMisconceptions,
   adminFetchQuestionStats,
   isAdmin,

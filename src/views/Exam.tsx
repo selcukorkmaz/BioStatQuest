@@ -57,8 +57,12 @@ export function Exam({ onExit }) {
   const [now, setNow] = useState(Date.now());
   const [answers, setAnswers] = useState([]); // ExamAnswer[]
   const [isPro, setIsPro] = useState(false);
+  // Server-side exam count (last 30d). Loaded on mount + refreshed after
+  // a successful start. Drives the free-tier quota gate; localStorage
+  // path remains as guest fallback (see getExamQuota in lib/exam.ts).
+  const [serverExamCount, setServerExamCount] = useState<number | null>(null);
 
-  // Pull subscription tier on mount (drives quota check).
+  // Pull subscription tier + server exam count on mount.
   useEffect(() => {
     let alive = true;
     const auth = (window as any).BQAuth;
@@ -67,10 +71,26 @@ export function Exam({ onExit }) {
         if (alive) setIsPro(s?.user_type === "pro" || s?.user_type === "institutional");
       }).catch(() => {});
     }
+    if (auth?.fetchMyExamCount30d) {
+      auth.fetchMyExamCount30d().then((n) => {
+        if (alive) setServerExamCount(typeof n === "number" ? n : 0);
+      }).catch(() => {});
+    }
     return () => { alive = false; };
   }, []);
 
-  const quota = useMemo(() => getExamQuota(isPro), [isPro, state]);
+  // Free-tier quota: server count > localStorage count (server is the
+  // source of truth for signed-in users; localStorage is a soft floor
+  // for guests / when the API is unreachable). Take the max so the
+  // gate is at least as strict as the most pessimistic source.
+  const quota = useMemo(() => {
+    const local = getExamQuota(isPro);
+    if (isPro) return local;
+    if (serverExamCount === null) return local;
+    const used = Math.max(local.used, serverExamCount);
+    const remaining = Math.max(0, local.limit - used);
+    return { used, limit: local.limit, remaining, blocked: remaining <= 0 };
+  }, [isPro, serverExamCount, state]);
 
   // Tick clock every second while running.
   useEffect(() => {
@@ -94,6 +114,11 @@ export function Exam({ onExit }) {
     if (qs.length === 0) return;
     const id = newExamId();
     recordExamStart();
+    // Optimistically bump the server count so a free user who opens
+    // setup again (without finishing the exam) immediately sees the
+    // new used/remaining. The actual server count refreshes on next
+    // mount via fetchMyExamCount30d.
+    setServerExamCount((prev) => (prev === null ? null : prev + 1));
     setQuestions(qs);
     setPicks(new Array(qs.length).fill(null));
     setStepIdx(0);

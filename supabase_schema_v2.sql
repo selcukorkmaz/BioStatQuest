@@ -291,6 +291,32 @@ grant execute on function public.my_misconception_history(text, int) to authenti
 
 
 -- ============================================================
+-- F9 Pro — server-side exam quota
+-- ============================================================
+-- Counts distinct exam runs the calling user has started in the last 30
+-- days. Each exam run tags its question_attempts with difficulty='exam'
+-- and a stable run_id, so distinct run_ids in a window = exam count.
+-- Used by the Exam view to enforce the free 2/30d quota server-side
+-- (localStorage was easily bypassable). Pro tier unlimited.
+create or replace function public.my_exam_count_30d()
+returns int
+language sql
+security definer
+set search_path = public
+as $$
+  select count(distinct run_id)::int
+    from public.question_attempts
+   where user_id = auth.uid()
+     and difficulty = 'exam'
+     and run_id is not null
+     and created_at > now() - interval '30 days'
+$$;
+
+revoke all on function public.my_exam_count_30d() from public;
+grant execute on function public.my_exam_count_30d() to authenticated;
+
+
+-- ============================================================
 -- F15 — AI TUTOR CHAT LOG
 -- ============================================================
 -- One row per AI tutor turn. Drives three things:

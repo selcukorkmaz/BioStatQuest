@@ -98,6 +98,20 @@ describe("BQAuth.fetchMyMisconceptions (F8 ledger API)", () => {
   });
 });
 
+describe("BQAuth.fetchMyExamCount30d (F9 Pro server-side quota)", () => {
+  it("is exported on BQAuth", () => {
+    expect(typeof BQAuth.fetchMyExamCount30d).toBe("function");
+  });
+
+  it("returns 0 when Supabase is not configured", async () => {
+    await expect(BQAuth.fetchMyExamCount30d()).resolves.toBe(0);
+  });
+
+  it("never throws — quota check must degrade silently to 0", async () => {
+    await expect(BQAuth.fetchMyExamCount30d()).resolves.toBeTypeOf("number");
+  });
+});
+
 describe("BQAuth.fetchMyMisconceptionHistory (F8 Pro per-tag drill-down)", () => {
   it("is exported on BQAuth", () => {
     expect(typeof BQAuth.fetchMyMisconceptionHistory).toBe("function");
