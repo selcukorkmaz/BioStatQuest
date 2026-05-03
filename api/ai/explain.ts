@@ -28,10 +28,10 @@
 // (default "anthropic/claude-haiku-4-5"), AI_FREE_WEEKLY_QUOTA (default 5).
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { supabaseAdmin } from "../_lib/supabaseAdmin";
+import { supabaseAdmin } from "../_lib/supabaseAdmin.js";
 // The system-prompt construction lives in src/lib so it can be unit-tested
 // alongside the rest of the app (vitest is scoped to src/).
-import { buildSystemPrompt } from "../../src/lib/aiPrompt";
+import { buildSystemPrompt } from "../../src/lib/aiPrompt.js";
 
 const AI_GATEWAY_URL   = "https://gateway.ai.vercel.com/v1/chat/completions";
 const DEFAULT_MODEL    = "anthropic/claude-haiku-4-5";
