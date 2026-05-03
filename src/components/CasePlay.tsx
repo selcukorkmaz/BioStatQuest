@@ -193,8 +193,8 @@ function AskTutor({ step, current, caseId }) {
         <button
           onClick={() => { setOpen(true); setMsg(""); setReply(""); setErr(""); setQuotaHit(false); }}
           className="btn btn-ghost px-3 py-1.5 rounded-lg text-xs inline-flex items-center gap-1.5"
-          title={signedIn ? "Ask a one-question AI tutor (free tier limited)" : "Sign in to use the tutor"}>
-          <Ico name="orb" size={12}/> Ask the tutor
+          title={signedIn ? "Ask a one-question AI tutor (free tier limited)" : "Sign in to use the AI tutor"}>
+          <Ico name="orb" size={12}/> Ask the AI tutor
         </button>
       </div>
 
@@ -202,7 +202,7 @@ function AskTutor({ step, current, caseId }) {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{background: "rgba(2,6,23,0.7)"}}>
           <div className="card premium-border rounded-2xl max-w-lg w-full p-6" onClick={e=>e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-white inline-flex items-center gap-2"><Ico name="orb" size={16}/> Ask the tutor</h3>
+              <h3 className="text-lg font-bold text-white inline-flex items-center gap-2"><Ico name="orb" size={16}/> AI tutor</h3>
               <button onClick={()=>setOpen(false)} className="text-slate-400 hover:text-white inline-flex items-center"><Ico name="close" size={16}/></button>
             </div>
 
@@ -214,7 +214,9 @@ function AskTutor({ step, current, caseId }) {
             ) : (
               <>
                 <p className="text-xs text-slate-400 mb-2 leading-relaxed">
-                  Scoped to <span className="mono text-slate-300">{step.qid}</span>. Off-topic questions will be declined.
+                  Scoped to <span className="mono text-slate-300">{step.qid}</span>.{" "}
+                  <span className="text-amber-300/90">AI-generated — may be imperfect; verify critical claims.</span>{" "}
+                  Off-topic questions will be declined.
                   {!isPro && quotaInfo && (
                     <span className="block mt-1 text-amber-300/90">
                       Free tier: {quotaInfo.remaining ?? 0}/{quotaInfo.limit} questions left this week.
@@ -244,7 +246,7 @@ function AskTutor({ step, current, caseId }) {
                 {reply && (
                   <>
                     <div className="mt-4 p-3 rounded-lg bg-cyan-950/30 border border-cyan-700/40">
-                      <div className="text-[10px] uppercase tracking-widest text-cyan-300 font-bold mb-1">Tutor</div>
+                      <div className="text-[10px] uppercase tracking-widest text-cyan-300 font-bold mb-1">AI tutor</div>
                       <div className="text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">{reply}</div>
                     </div>
                     {/* Templated quick re-asks. Each one fires a fresh single-shot
