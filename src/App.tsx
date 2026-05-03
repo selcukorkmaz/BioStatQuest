@@ -18,6 +18,7 @@ import { hasAnyInstructorRole } from "./lib/classesApi";
 import { levelFromXP, xpForLevel } from "./lib/xp";
 import { DIFFICULTIES, REVIEW_CASE_ID } from "./lib/difficulty";
 import { getMethodMastery } from "./lib/mastery";
+import { adaptiveOrder } from "./lib/adaptive";
 
 // ============================================================
 // BILLING / GATING (Phase 3a — consumer Pro tier)
@@ -417,9 +418,12 @@ function pickQuestions(caseObj, seenArr, srs) {
   const shuf = (arr) => { for (let i=arr.length-1; i>0; i--) { const j = Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; };
   // Priority 1: items due for review (seen before, SRS says due)
   const due = shuf(bank.filter(q => srsMap[q.qid] && srsMap[q.qid].due <= now));
-  // Priority 2: unseen items
+  // Priority 2: unseen items — biased by F4 adaptive order so weaker
+  // methods bubble to the top of the queue. Within methods, ordering
+  // remains random (Efraimidis-Spirakis weighted reservoir handles ties).
   const unseenSet = new Set();
-  const unseen = shuf(bank.filter(q => { if (seenSet.has(q.qid) || srsMap[q.qid]) return false; unseenSet.add(q.qid); return true; }));
+  const unseenRaw = bank.filter(q => { if (seenSet.has(q.qid) || srsMap[q.qid]) return false; unseenSet.add(q.qid); return true; });
+  const unseen = adaptiveOrder(unseenRaw, srsMap);
   // Priority 3: not-yet-due seen items (fillers)
   const rest = shuf(bank.filter(q => !unseenSet.has(q.qid) && !(srsMap[q.qid] && srsMap[q.qid].due <= now)));
   let picked = [...due, ...unseen, ...rest].slice(0, n);
