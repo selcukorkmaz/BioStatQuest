@@ -488,7 +488,7 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
     }
     if (auth?.fetchSubscription) {
       auth.fetchSubscription()
-        .then((s) => { if (alive) setIsPro(s?.user_type === "pro" || s?.user_type === "institutional"); })
+        .then((s) => { if (alive) setIsPro(effectivelyPro(s?.user_type)); })
         .catch(() => {});
     }
     return () => { alive = false; };

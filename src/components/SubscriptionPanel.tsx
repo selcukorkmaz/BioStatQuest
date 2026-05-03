@@ -5,6 +5,7 @@
 import * as React from "react";
 import { billing, type BillingProvider } from "../lib/billing";
 import { fmtDate } from "../lib/format";
+import { OPEN_BETA_PRO } from "../lib/launchFlags";
 
 type Sub = {
   user_type?: "free" | "pro" | "institutional";
@@ -76,6 +77,25 @@ export function SubscriptionPanel() {
   const userType = sub?.user_type || "free";
   const status = sub?.status;
   const periodEnd = sub?.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null;
+
+  // During open beta, free users have temporary Pro access. Surface this
+  // explicitly so the account panel doesn't look empty / paid-tier
+  // doesn't look hidden — both would suggest "you have nothing" when
+  // they actually have everything.
+  if (OPEN_BETA_PRO && userType === "free") {
+    return (
+      <div className="rounded-xl bg-emerald-950/30 border border-emerald-700/40 p-4 mb-4">
+        <div className="flex items-center justify-between gap-3 mb-1">
+          <div className="font-semibold text-white text-sm">Plan</div>
+          <span className="chip text-[10px] bg-emerald-900/40 text-emerald-200">Open beta · Pro</span>
+        </div>
+        <p className="text-xs text-slate-400 leading-relaxed">
+          All Pro features are unlocked while we finish payment-processor activation.
+          Paid plans launching shortly — early-beta users get a launch discount.
+        </p>
+      </div>
+    );
+  }
 
   if (userType === "institutional") {
     return (
