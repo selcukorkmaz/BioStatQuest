@@ -15,7 +15,7 @@
 
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
-import { getMisconceptionMeta } from "../lib/misconceptions";
+import { getMisconceptionMeta, getCasesForTag } from "../lib/misconceptions";
 import { effectivelyPro } from "../lib/launchFlags";
 
 // Free tier sees only the top N tags. Pro removes the cap and unlocks the
@@ -44,7 +44,7 @@ function formatChosen(chosen) {
   return String(chosen);
 }
 
-export function MyMisconceptions({ onExit, onOpenGlossary = null }) {
+export function MyMisconceptions({ onExit, onOpenGlossary = null, onStartCase = null }) {
   const [counts, setCounts] = useState(null); // null = loading, {} = loaded
   const [err, setErr] = useState("");
   const [signedIn, setSignedIn] = useState(
@@ -216,6 +216,34 @@ export function MyMisconceptions({ onExit, onOpenGlossary = null }) {
                           </span>
                         )}
                       </div>
+
+                      {/* Study-this queue: cases that test the same misconception.
+                          Turns the ledger from passive readout into an actionable
+                          practice loop. Up to 3 cases, sorted by question-count. */}
+                      {(() => {
+                        const cases = getCasesForTag(r.tag, 3);
+                        if (!cases.length || !onStartCase) return null;
+                        return (
+                          <div className="mt-3 rounded-lg border border-cyan-700/30 bg-cyan-950/15 p-3">
+                            <div className="text-[10px] uppercase tracking-widest text-cyan-300/90 font-bold mb-2 inline-flex items-center gap-1.5">
+                              Practice this misconception
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {cases.map((c) => (
+                                <button
+                                  key={c.caseId}
+                                  onClick={() => onStartCase(c.caseId)}
+                                  className="px-2.5 py-1 rounded-md text-xs inline-flex items-center gap-1.5 transition border border-cyan-700/40 bg-cyan-950/30 text-cyan-100 hover:bg-cyan-900/40 hover:border-cyan-600/60"
+                                  title={`${c.qids.length} question${c.qids.length === 1 ? "" : "s"} in this case test ${r.meta.label}`}>
+                                  <span className="mono text-[10px] text-cyan-400/80">{c.caseId}</span>
+                                  <span>{c.caseTitle}</span>
+                                  <span className="text-cyan-500/70 text-[10px] mono">×{c.qids.length}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </>
                   ) : (
                     <p className="text-sm text-slate-500 italic">

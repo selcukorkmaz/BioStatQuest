@@ -7989,7 +7989,7 @@ function App() {
       {view === "admin"    && <AdminReports onHome={()=>setView("home")}/>}
       {view === "teach"    && <TeachView onHome={()=>setView("home")}/>}
       {view === "join"     && <JoinView/>}
-      {view === "misconceptions" && <MyMisconceptions onExit={()=>setView("home")} onOpenGlossary={openGlossary}/>}
+      {view === "misconceptions" && <MyMisconceptions onExit={()=>setView("home")} onOpenGlossary={openGlossary} onStartCase={startCaseSelect}/>}
       {view === "exam"           && <Exam onExit={()=>setView("home")}/>}
       {view === "competency"     && <Competency state={state} onExit={()=>setView("home")}/>}
       {view === "upgrade"        && <Upgrade onExit={()=>setView("home")}/>}
