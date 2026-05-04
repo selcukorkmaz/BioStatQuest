@@ -264,65 +264,139 @@ function AskTutor({ step, current, caseId }) {
       </div>
 
       {open && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{background: "rgba(2,6,23,0.7)"}}>
-          <div className="card premium-border rounded-2xl max-w-lg w-full p-6 max-h-[90vh] flex flex-col" onClick={e=>e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-3 shrink-0">
-              <h3 className="text-lg font-bold text-white inline-flex items-center gap-2"><span className="text-amber-300"><Ico name="sparkles" size={18}/></span> AI tutor</h3>
-              <button onClick={()=>setOpen(false)} className="text-slate-400 hover:text-white inline-flex items-center"><Ico name="close" size={16}/></button>
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 fade-in"
+          style={{
+            background: "radial-gradient(ellipse at center, rgba(15,23,42,0.85) 0%, rgba(2,6,23,0.94) 100%)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+          }}
+          onClick={() => setOpen(false)}>
+          <div
+            className="relative rounded-2xl max-w-xl w-full max-h-[88vh] flex flex-col overflow-hidden"
+            style={{
+              background: "linear-gradient(180deg, rgba(28,25,23,0.55) 0%, rgba(15,23,42,0.92) 12%, rgba(15,23,42,0.95) 100%)",
+              border: "1px solid rgba(251,191,36,0.18)",
+              boxShadow: "0 20px 60px -15px rgba(0,0,0,0.7), 0 0 80px -20px rgba(245,158,11,0.15), inset 0 1px 0 rgba(251,191,36,0.1)",
+            }}
+            onClick={e => e.stopPropagation()}>
+            {/* Top accent strip — amber→cyan gradient */}
+            <div
+              className="absolute top-0 left-0 right-0 h-px"
+              style={{ background: "linear-gradient(90deg, transparent, rgba(251,191,36,0.6), rgba(34,211,238,0.4), transparent)" }}
+              aria-hidden="true"/>
+
+            {/* Header */}
+            <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-4 shrink-0 border-b" style={{ borderColor: "rgba(148,163,184,0.08)" }}>
+              <div className="inline-flex items-center gap-3 min-w-0">
+                <div
+                  className="shrink-0 w-9 h-9 rounded-lg inline-flex items-center justify-center"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(245,158,11,0.18), rgba(217,119,6,0.10))",
+                    border: "1px solid rgba(251,191,36,0.35)",
+                    boxShadow: "0 0 14px -4px rgba(245,158,11,0.45), inset 0 1px 0 rgba(251,191,36,0.2)",
+                  }}>
+                  <span className="text-amber-300"><Ico name="sparkles" size={18}/></span>
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-white tracking-tight leading-tight">AI tutor</h3>
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-slate-500 mt-0.5">Scoped · single-turn · refuses off-topic</div>
+                </div>
+              </div>
+              <button
+                onClick={() => setOpen(false)}
+                className="shrink-0 w-8 h-8 rounded-lg inline-flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800/60 transition"
+                aria-label="Close">
+                <Ico name="close" size={16}/>
+              </button>
             </div>
 
             {!signedIn ? (
-              <div className="text-sm text-slate-300">
-                <p className="mb-3">Sign in to use the AI tutor. Free accounts get 5 questions per week; Pro is unlimited.</p>
-                <button onClick={()=>setOpen(false)} className="btn btn-ghost px-5 py-2 rounded-lg text-sm">Close</button>
+              <div className="px-5 sm:px-6 py-6 text-sm text-slate-300">
+                <p className="mb-4">Sign in to use the AI tutor. Free accounts get 5 questions per week; Pro is unlimited.</p>
+                <button onClick={() => setOpen(false)} className="btn btn-ghost px-5 py-2 rounded-lg text-sm">Close</button>
               </div>
             ) : (
               <>
-                <p className="text-[11px] text-slate-500 mb-3 leading-relaxed shrink-0">
-                  Scoped to <span className="mono text-slate-400">{step.qid}</span>. Each turn is independent — no multi-turn memory.{" "}
-                  <span className="text-amber-300/80">AI-generated; verify critical claims.</span>
-                  {!isPro && quotaInfo && (
-                    <span className="block mt-1 text-amber-300/90">
-                      Free tier: {quotaInfo.remaining ?? 0}/{quotaInfo.limit} questions left this week.
-                    </span>
-                  )}
-                </p>
+                {/* Scope strip — quiet meta line under the header */}
+                <div className="px-5 sm:px-6 pt-3 pb-2 shrink-0">
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Scoped to <span className="mono text-slate-400">{step.qid}</span>.{" "}
+                    <span className="text-amber-300/70">AI-generated — verify critical claims.</span>
+                    {!isPro && quotaInfo && (
+                      <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] mono bg-amber-950/30 border border-amber-800/40 text-amber-200">
+                        {quotaInfo.remaining ?? 0}/{quotaInfo.limit} this week
+                      </span>
+                    )}
+                  </p>
+                </div>
 
-                {/* Conversation thread — accumulates client-side for visibility.
-                    Empty state shows a one-line prompt nudge. */}
-                <div className="flex-1 overflow-y-auto -mx-1 px-1 mb-3 min-h-[120px] max-h-[50vh]">
+                {/* Conversation thread */}
+                <div
+                  className="flex-1 overflow-y-auto px-5 sm:px-6 py-3 min-h-[160px]"
+                  style={{
+                    background: "linear-gradient(180deg, rgba(2,6,23,0.25) 0%, rgba(2,6,23,0) 60px)",
+                  }}>
                   {thread.length === 0 && !busy && !err && (
-                    <div className="text-xs text-slate-500 italic py-4 text-center">
-                      Ask anything about this question.
+                    <div className="flex flex-col items-center justify-center text-center py-10 px-4">
+                      <div
+                        className="w-12 h-12 rounded-full inline-flex items-center justify-center mb-3"
+                        style={{
+                          background: "radial-gradient(circle, rgba(245,158,11,0.18) 0%, rgba(245,158,11,0) 70%)",
+                          border: "1px solid rgba(251,191,36,0.2)",
+                        }}>
+                        <span className="text-amber-300/80"><Ico name="sparkles" size={22}/></span>
+                      </div>
+                      <div className="text-sm font-semibold text-slate-200 mb-1">Ask anything about this question.</div>
+                      <div className="text-[11px] text-slate-500 leading-relaxed max-w-xs">
+                        The tutor sees the stem, options, your pick, and the canonical explanation — so it can clarify, not invent.
+                      </div>
                     </div>
                   )}
-                  <div className="space-y-3">
+                  <div className="space-y-3.5">
                     {thread.map((turn, i) => (
                       turn.role === "user" ? (
                         <div key={i} className="flex justify-end">
-                          <div className="max-w-[85%] p-2.5 rounded-lg rounded-br-sm bg-slate-800/70 border border-slate-700 text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">
+                          <div
+                            className="max-w-[80%] px-3.5 py-2.5 rounded-2xl rounded-br-md text-sm text-slate-50 whitespace-pre-wrap leading-relaxed"
+                            style={{
+                              background: "linear-gradient(135deg, rgba(51,65,85,0.85), rgba(30,41,59,0.85))",
+                              border: "1px solid rgba(148,163,184,0.18)",
+                              boxShadow: "0 2px 8px -2px rgba(0,0,0,0.4)",
+                            }}>
                             {turn.content}
                           </div>
                         </div>
                       ) : (
                         <div key={i} className="flex justify-start">
-                          <div className="max-w-[90%] p-3 rounded-lg rounded-bl-sm bg-cyan-950/30 border border-cyan-700/40">
-                            <div className="text-[10px] uppercase tracking-widest text-cyan-300 font-bold mb-1 inline-flex items-center gap-1.5">
+                          <div
+                            className="max-w-[88%] px-4 py-3 rounded-2xl rounded-bl-md"
+                            style={{
+                              background: "linear-gradient(135deg, rgba(8,47,73,0.55), rgba(15,23,42,0.55))",
+                              border: "1px solid rgba(34,211,238,0.28)",
+                              boxShadow: "0 4px 14px -4px rgba(0,0,0,0.5), inset 0 1px 0 rgba(34,211,238,0.08)",
+                            }}>
+                            <div className="text-[10px] uppercase tracking-[0.18em] text-cyan-300/90 font-bold mb-1.5 inline-flex items-center gap-1.5">
                               <Ico name="sparkles" size={10}/> AI tutor
                             </div>
-                            <div className="text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">{turn.content}</div>
+                            <div className="text-[13.5px] text-slate-100 whitespace-pre-wrap leading-relaxed">{turn.content}</div>
                           </div>
                         </div>
                       )
                     ))}
                     {busy && (
                       <div className="flex justify-start">
-                        <div className="max-w-[90%] p-3 rounded-lg rounded-bl-sm bg-cyan-950/20 border border-cyan-700/30">
-                          <div className="text-xs text-cyan-300/70 inline-flex items-center gap-2">
+                        <div
+                          className="px-4 py-3 rounded-2xl rounded-bl-md"
+                          style={{
+                            background: "linear-gradient(135deg, rgba(8,47,73,0.4), rgba(15,23,42,0.4))",
+                            border: "1px solid rgba(34,211,238,0.18)",
+                          }}>
+                          <div className="text-xs text-cyan-300/80 inline-flex items-center gap-2">
                             <span className="inline-flex gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/70 animate-pulse" style={{animationDelay:"0ms"}}/>
-                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/70 animate-pulse" style={{animationDelay:"150ms"}}/>
-                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/70 animate-pulse" style={{animationDelay:"300ms"}}/>
+                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/80 animate-pulse" style={{animationDelay:"0ms"}}/>
+                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/80 animate-pulse" style={{animationDelay:"150ms"}}/>
+                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/80 animate-pulse" style={{animationDelay:"300ms"}}/>
                             </span>
                             <span>Thinking…</span>
                           </div>
@@ -333,68 +407,80 @@ function AskTutor({ step, current, caseId }) {
                   </div>
                 </div>
 
-                {/* Quick re-asks: only show after at least one assistant turn so
-                    they look like contextual follow-ups, not initial prompts. */}
-                {thread.some(t => t.role === "assistant") && !busy && (
-                  <div className="flex flex-wrap gap-1.5 mb-2 shrink-0">
-                    <button
-                      onClick={() => ask("Same question — explain at an intern (junior level): short sentences, fewer technical terms, plain language.")}
-                      disabled={busy}
-                      className="btn btn-ghost px-2.5 py-1 rounded-md text-[11px] disabled:opacity-40">
-                      Explain simpler
-                    </button>
-                    <button
-                      onClick={() => ask("Same question — give one concrete clinical or research example that illustrates this exact concept in 2–3 sentences.")}
-                      disabled={busy}
-                      className="btn btn-ghost px-2.5 py-1 rounded-md text-[11px] disabled:opacity-40">
-                      Give an example
-                    </button>
-                    <button
-                      onClick={() => ask("Same question — show the relevant formula(s) and explain what each symbol means. Keep it tight.")}
-                      disabled={busy}
-                      className="btn btn-ghost px-2.5 py-1 rounded-md text-[11px] disabled:opacity-40">
-                      Show the formula
-                    </button>
-                  </div>
-                )}
+                {/* Footer area — quick re-asks + composer, with subtle gradient cap */}
+                <div
+                  className="shrink-0 px-5 sm:px-6 pt-2 pb-4 border-t"
+                  style={{
+                    borderColor: "rgba(148,163,184,0.08)",
+                    background: "linear-gradient(180deg, rgba(2,6,23,0) 0%, rgba(2,6,23,0.4) 100%)",
+                  }}>
+                  {/* Quick re-asks */}
+                  {thread.some(t => t.role === "assistant") && !busy && (
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {[
+                        ["Explain simpler", "Same question — explain at an intern (junior level): short sentences, fewer technical terms, plain language."],
+                        ["Give an example", "Same question — give one concrete clinical or research example that illustrates this exact concept in 2–3 sentences."],
+                        ["Show the formula", "Same question — show the relevant formula(s) and explain what each symbol means. Keep it tight."],
+                      ].map(([label, prompt]) => (
+                        <button
+                          key={label}
+                          onClick={() => ask(prompt)}
+                          disabled={busy}
+                          className="px-2.5 py-1 rounded-full text-[11px] inline-flex items-center gap-1 transition border border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-800 hover:border-slate-600 hover:text-white disabled:opacity-40">
+                          <span className="text-amber-300/80 text-[9px]">+</span>{label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
-                {err && (
-                  <div className={`text-xs mb-2 shrink-0 ${quotaHit ? "text-amber-300" : "text-red-400"}`}>
-                    {err}
-                    {quotaHit && (
-                      <span className="ml-1 text-slate-400">
-                        Pro removes the limit. <a href="/upgrade" className="underline text-amber-300 hover:text-amber-200">See Pro →</a>
-                      </span>
-                    )}
-                  </div>
-                )}
+                  {err && (
+                    <div className={`text-xs mb-2 ${quotaHit ? "text-amber-300" : "text-red-400"}`}>
+                      {err}
+                      {quotaHit && (
+                        <span className="ml-1 text-slate-400">
+                          Pro removes the limit. <a href="/upgrade" className="underline text-amber-300 hover:text-amber-200">See Pro →</a>
+                        </span>
+                      )}
+                    </div>
+                  )}
 
-                {/* Composer — Enter sends, Shift+Enter newline. */}
-                <div className="shrink-0">
-                  <textarea
-                    value={msg}
-                    onChange={e => setMsg(e.target.value.slice(0, 500))}
-                    onKeyDown={e => {
-                      if (e.key === "Enter" && !e.shiftKey && msg.trim() && !busy) {
-                        e.preventDefault();
-                        ask();
-                      }
-                    }}
-                    rows={2}
-                    placeholder={thread.length === 0
-                      ? "e.g. why is the CI not a probability about the parameter?"
-                      : "Ask a follow-up…"}
-                    className="w-full p-3 rounded-lg bg-slate-950/60 border border-slate-700 text-slate-100 text-sm placeholder-slate-500 resize-none"
-                    disabled={busy}/>
-                  <div className="flex items-center justify-between gap-2 mt-1.5">
-                    <span className="text-[10px] text-slate-500 mono">{msg.length}/500 · Enter to send</span>
-                    <div className="flex gap-2">
-                      <button onClick={()=>setOpen(false)} className="btn btn-ghost px-3 py-1.5 rounded-lg text-xs">Close</button>
+                  {/* Composer */}
+                  <div
+                    className="rounded-xl overflow-hidden transition focus-within:ring-2 focus-within:ring-amber-500/30"
+                    style={{
+                      background: "rgba(2,6,23,0.7)",
+                      border: "1px solid rgba(148,163,184,0.18)",
+                    }}>
+                    <textarea
+                      value={msg}
+                      onChange={e => setMsg(e.target.value.slice(0, 500))}
+                      onKeyDown={e => {
+                        if (e.key === "Enter" && !e.shiftKey && msg.trim() && !busy) {
+                          e.preventDefault();
+                          ask();
+                        }
+                      }}
+                      rows={2}
+                      placeholder={thread.length === 0
+                        ? "e.g. why is the CI not a probability about the parameter?"
+                        : "Ask a follow-up…"}
+                      className="w-full px-3.5 py-2.5 bg-transparent text-slate-100 text-sm placeholder-slate-500 resize-none focus:outline-none"
+                      disabled={busy}/>
+                    <div className="flex items-center justify-between gap-2 px-3 py-2 border-t" style={{ borderColor: "rgba(148,163,184,0.08)" }}>
+                      <span className="text-[10px] text-slate-500 mono">{msg.length}/500 · ⏎ send · ⇧⏎ newline</span>
                       <button
                         onClick={() => ask()}
                         disabled={busy || !msg.trim()}
-                        className="btn btn-primary px-4 py-1.5 rounded-lg text-xs disabled:opacity-40">
-                        {busy ? "Sending…" : "Send"}
+                        className="px-4 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                        style={{
+                          background: msg.trim() && !busy
+                            ? "linear-gradient(135deg, #f59e0b, #d97706)"
+                            : "rgba(245,158,11,0.15)",
+                          color: msg.trim() && !busy ? "#fff8e1" : "#fbbf24",
+                          boxShadow: msg.trim() && !busy ? "0 4px 14px -4px rgba(245,158,11,0.5)" : "none",
+                          border: "1px solid rgba(251,191,36,0.4)",
+                        }}>
+                        {busy ? "Sending…" : <>Send <span aria-hidden="true">→</span></>}
                       </button>
                     </div>
                   </div>
