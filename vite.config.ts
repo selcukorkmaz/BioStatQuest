@@ -18,6 +18,7 @@ export default defineConfig({
         terms: resolve(__dirname, "terms.html"),
         cookies: resolve(__dirname, "cookies.html"),
         forEducators: resolve(__dirname, "for-educators.html"),
+        verify: resolve(__dirname, "verify.html"),
       },
       output: {
         manualChunks(id) {

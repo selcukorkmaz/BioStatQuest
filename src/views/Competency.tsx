@@ -12,6 +12,7 @@
 
 import * as React from "react";
 import { useMemo, useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
 import {
   overviewFromSrs,
   TIER_META,
@@ -19,6 +20,20 @@ import {
   type Tier,
 } from "../lib/competency";
 import { effectivelyPro } from "../lib/launchFlags";
+
+// Best-effort access-token reader — same pattern as CasePlay's helper.
+// Returns null if the user isn't signed in or the env isn't configured.
+async function getAccessToken(): Promise<string | null> {
+  try {
+    const w = window as any;
+    const url = (import.meta as any).env?.VITE_SUPABASE_URL || w.__SUPABASE_URL || "";
+    const key = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || w.__SUPABASE_ANON_KEY || "";
+    if (!url || !key) return null;
+    const c = createClient(url, key);
+    const { data } = await c.auth.getSession();
+    return data.session?.access_token ?? null;
+  } catch { return null; }
+}
 
 function tierBadge(tier: Tier) {
   const meta = TIER_META[tier];
@@ -166,8 +181,8 @@ function StatementPage({ overview, user, onBack }) {
   const summaryTiers = TIER_ORDER.filter((t) => t !== "untouched");
 
   // Document ID — deterministic hash of (email + ISO date + per-tier counts).
-  // Not cryptographically signed, but stable: re-running the math on the
-  // same inputs reproduces the same ID. Future /verify endpoint can compare.
+  // Stable: re-running the math on the same inputs reproduces the same ID.
+  // The /api/verify endpoint looks it up against records written below.
   const isoDate = new Date().toISOString().slice(0, 10);
   const docPayload = `${learner}|${isoDate}|${summaryTiers.map((t) => `${t}:${overview.byTier[t]}`).join(",")}`;
   const docId = (() => {
@@ -179,6 +194,38 @@ function StatementPage({ overview, user, onBack }) {
     }
     return h.toString(36).toUpperCase().padStart(7, "0");
   })();
+
+  // Record the issued statement server-side so /api/verify can confirm it
+  // later. Idempotent (same docId → upsert), fire-and-forget — print
+  // succeeds even if the network call fails. Skipped for guest sessions
+  // (the empty-state guard below catches those anyway).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const token = await getAccessToken();
+      if (cancelled || !token) return;
+      try {
+        await fetch("/api/statements/issue", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            docId,
+            payload: {
+              issuedAt: isoDate,
+              tierCounts: Object.fromEntries(summaryTiers.map((t) => [t, overview.byTier[t]])),
+              branches: branchesWithProgress.map((b) => ({
+                id: b.branch,
+                name: b.branchName,
+                methodCount: b.methods.length,
+              })),
+            },
+          }),
+        });
+      } catch {/* swallow — print still works without verification */}
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [docId]);
 
   // Empty-state guard — a Statement listing nothing is worse than no
   // Statement. Send the user back with a clear "do this first" message
