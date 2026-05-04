@@ -1449,7 +1449,7 @@ const CASES: Case[] = [
     { q: "Stopping a trial early for efficacy is more natural in:", type:"mcq",
       scenario:"Midway through an oncology trial, the interim analysis shows posterior P(new treatment better than standard of care) = 0.99. The team weighs whether to stop enrollment and declare efficacy.",
       options:["Frequentist paradigm","Bayesian paradigm","Neither","Both identically"], answer:1,
-      explain:"Bayesian monitoring uses the posterior directly at any interim look — no α-spending corrections needed because Bayes factors and credible intervals update coherently as data accrue. Frequentist sequential designs (O'Brien-Fleming etc.) require pre-planned α-spending rules.", method:"study_design" },
+      explain:"Bayesian monitoring uses the posterior directly at any interim look — no α-spending corrections needed because Bayes factors and credible intervals update coherently as data accrue. Frequentist sequential designs (O'Brien-Fleming etc.) require pre-planned α-spending rules.", method:"bayes" },
     { q: "Posterior predictive checks assess:", type:"mcq", standalone:true,
       options:["Prior only","Model fit by simulating","Frequentist p-value","Sample size"], answer:1,
       explain:"Compare replicated data to observed data to check fit.", method:"bayes" },
@@ -1468,7 +1468,7 @@ const CASES: Case[] = [
       explain:"Bayesian analogs of AIC/BIC for predictive accuracy.", method:"model_selection" },
     { q: "Convergence of MCMC chains can be checked with:", type:"mcq", standalone:true,
       options:["R-hat (Gelman-Rubin) and effective sample size","R² only","P-value","Prior predictive"], answer:0,
-      explain:"R-hat near 1 and well-mixed trace plots indicate convergence.", method:"regression_diagnostics" },
+      explain:"R-hat near 1 and well-mixed trace plots indicate convergence.", method:"bayes" },
   ])
 },
 
