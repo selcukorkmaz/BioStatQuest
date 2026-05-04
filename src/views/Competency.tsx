@@ -161,6 +161,25 @@ function StatementPage({ overview, user, onBack }) {
     .map((b) => ({ ...b, methods: b.methods.filter((m) => m.tier !== "untouched") }))
     .filter((b) => b.methods.length > 0);
 
+  // Summary tiers exclude "untouched" — a competency document shouldn't
+  // visually emphasize what the learner hasn't done.
+  const summaryTiers = TIER_ORDER.filter((t) => t !== "untouched");
+
+  // Document ID — deterministic hash of (email + ISO date + per-tier counts).
+  // Not cryptographically signed, but stable: re-running the math on the
+  // same inputs reproduces the same ID. Future /verify endpoint can compare.
+  const isoDate = new Date().toISOString().slice(0, 10);
+  const docPayload = `${learner}|${isoDate}|${summaryTiers.map((t) => `${t}:${overview.byTier[t]}`).join(",")}`;
+  const docId = (() => {
+    // FNV-1a 32-bit → base36, padded. Cheap, dependency-free, stable across runs.
+    let h = 0x811c9dc5;
+    for (let i = 0; i < docPayload.length; i++) {
+      h ^= docPayload.charCodeAt(i);
+      h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+    }
+    return h.toString(36).toUpperCase().padStart(7, "0");
+  })();
+
   // Empty-state guard — a Statement listing nothing is worse than no
   // Statement. Send the user back with a clear "do this first" message
   // before they print a blank page.
@@ -189,11 +208,18 @@ function StatementPage({ overview, user, onBack }) {
     <>
       <style>{`
         @media print {
+          @page { margin: 0.5in; }
           .no-print { display: none !important; }
-          body { background: white !important; color: black !important; }
-          .print-page { background: white !important; color: black !important; padding: 24px !important; }
-          .print-page * { color: black !important; }
-          .print-tier-bar { border-color: #888 !important; }
+          html, body { background: white !important; }
+          .print-page { background: white !important; color: #111 !important; padding: 0 !important; max-width: none !important; min-height: 0 !important; box-shadow: none !important; }
+          .print-page .print-muted { color: #4b5563 !important; }
+          .print-page .print-rule { border-color: #cbd5e1 !important; }
+          .print-page .print-soft-rule { border-color: #e5e7eb !important; }
+          .print-page table { page-break-inside: avoid; }
+          .print-page section { page-break-inside: avoid; }
+          /* Force colored tier labels and branch dots to render at print time
+             (Chromium honors print-color-adjust). */
+          .print-page * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
       `}</style>
       <div className="no-print max-w-4xl mx-auto p-4 sm:p-6 flex items-center justify-between gap-3 flex-wrap">
@@ -201,59 +227,98 @@ function StatementPage({ overview, user, onBack }) {
         <button onClick={() => { try { window.print(); } catch {} }} className="btn btn-primary px-4 py-2 rounded-lg text-sm">Print / Save as PDF</button>
       </div>
 
-      <div className="print-page max-w-4xl mx-auto p-8 bg-slate-950 text-slate-100" style={{ minHeight: "11in" }}>
-        <header className="border-b border-slate-700 pb-4 mb-6 flex items-end justify-between">
-          <div>
-            <div className="text-xs uppercase tracking-widest text-slate-400 mb-1">BioStat Quest</div>
-            <h1 className="text-2xl font-bold">Statement of Competency</h1>
+      <div className="print-page max-w-4xl mx-auto p-8 sm:p-10 bg-white text-slate-900" style={{ minHeight: "10.5in", boxShadow: "0 10px 40px -10px rgba(0,0,0,0.4)" }}>
+        {/* Header — name + monogram, with issue date and document ID */}
+        <header className="flex items-start justify-between gap-6 pb-5 mb-7 border-b print-rule" style={{ borderColor: "#cbd5e1" }}>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-lg flex items-center justify-center font-extrabold text-white text-lg" style={{ background: "linear-gradient(135deg, #0891b2, #6366f1)" }}>BQ</div>
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.2em] print-muted text-slate-500 mb-0.5">BioStat Quest</div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Statement of Competency</h1>
+            </div>
           </div>
-          <div className="text-right text-xs text-slate-400">
-            <div>Issued {today}</div>
-            <div className="mono">biostatquest.com</div>
+          <div className="text-right text-[11px] print-muted text-slate-500 leading-tight">
+            <div className="font-semibold text-slate-700">Issued {today}</div>
+            <div className="mono mt-0.5">Doc ID · {docId}</div>
           </div>
         </header>
 
-        <section className="mb-6">
-          <div className="text-xs uppercase tracking-widest text-slate-400 mb-1">Issued to</div>
-          <div className="text-lg font-semibold">{learner}</div>
-        </section>
-
-        <section className="mb-6">
-          <div className="text-xs uppercase tracking-widest text-slate-400 mb-2">Summary</div>
-          <div className="grid grid-cols-5 gap-2 text-center">
-            {TIER_ORDER.map((t) => (
-              <div key={t} className="rounded border border-slate-700 print-tier-bar p-2">
-                <div className="text-[10px] uppercase tracking-widest" style={{ color: TIER_META[t].color }}>{TIER_META[t].label}</div>
-                <div className="text-2xl font-bold mt-1">{overview.byTier[t]}</div>
-              </div>
-            ))}
+        {/* Issued-to + Summary side-by-side */}
+        <section className="grid grid-cols-1 sm:grid-cols-[1fr_1.4fr] gap-8 mb-8">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.2em] print-muted text-slate-500 mb-1.5">Issued to</div>
+            <div className="text-lg font-semibold text-slate-900 break-words">{learner}</div>
+            <p className="text-[11px] print-muted text-slate-500 leading-relaxed mt-2">
+              Spaced-repetition–verified competency across {branchesWithProgress.length} {branchesWithProgress.length === 1 ? "branch" : "branches"} of biostatistics.
+            </p>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.2em] print-muted text-slate-500 mb-2">Summary</div>
+            <div className="grid grid-cols-4 gap-2 text-center">
+              {summaryTiers.map((t) => (
+                <div key={t} className="rounded border print-soft-rule px-2 py-2.5" style={{ borderColor: "#e5e7eb" }}>
+                  <div className="text-[9px] uppercase tracking-widest font-semibold" style={{ color: TIER_META[t].color }}>{TIER_META[t].label}</div>
+                  <div className="text-xl font-bold mt-1 text-slate-900">{overview.byTier[t]}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
-        {branchesWithProgress.map((b) => (
-          <section key={b.branch} className="mb-5">
-            <h3 className="text-base font-semibold mb-2 inline-flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ background: b.branchColor }}/>
-              {b.branchName}
-            </h3>
-            <table className="w-full text-sm">
-              <tbody>
-                {b.methods.map((m) => (
-                  <tr key={m.methodId} className="border-b border-slate-800/50">
-                    <td className="py-1 pr-3">{m.title}</td>
-                    <td className="py-1 pr-3 mono text-xs text-slate-400 text-right">{m.stats.attempted}/{m.stats.total}</td>
-                    <td className="py-1 text-right text-xs font-semibold" style={{ color: TIER_META[m.tier].color }}>{TIER_META[m.tier].label}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-        ))}
+        {/* Per-branch method list */}
+        <section className="mb-8">
+          <div className="text-[10px] uppercase tracking-[0.2em] print-muted text-slate-500 mb-3">Method-by-method tier</div>
+          {branchesWithProgress.map((b) => (
+            <div key={b.branch} className="mb-5 last:mb-0">
+              <h3 className="text-sm font-bold mb-1.5 inline-flex items-center gap-2 text-slate-900">
+                <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: b.branchColor }}/>
+                {b.branchName}
+              </h3>
+              <table className="w-full text-sm">
+                <tbody>
+                  {b.methods.map((m) => (
+                    <tr key={m.methodId} className="border-b print-soft-rule" style={{ borderColor: "#f1f5f9" }}>
+                      <td className="py-1.5 pr-3 text-slate-800">{m.title}</td>
+                      <td className="py-1.5 pr-3 mono text-[11px] print-muted text-slate-500 text-right whitespace-nowrap">{m.stats.attempted}/{m.stats.total}</td>
+                      <td className="py-1.5 text-right text-[11px] font-semibold whitespace-nowrap" style={{ color: TIER_META[m.tier].color }}>{TIER_META[m.tier].label}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </section>
 
-        <footer className="border-t border-slate-700 pt-4 mt-6 text-xs text-slate-400 leading-relaxed">
-          Tiers are derived from spaced-repetition data on the BioStat Quest platform.
-          "Mastered" requires ≥60% of a method's question bank to be held at long-interval recall (≥4 reviews, ≥21-day interval).
-          This statement reflects platform activity through {today}; it is not a clinical credential and does not substitute for accredited training or board certification.
+        {/* Issuer signature block */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-5 border-t print-rule mb-5" style={{ borderColor: "#cbd5e1" }}>
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.2em] print-muted text-slate-500 mb-1.5">Issued by</div>
+            <div className="text-sm font-semibold text-slate-900">Selçuk Korkmaz, PhD</div>
+            <div className="text-[11px] print-muted text-slate-500">Author &amp; maintainer · BioStat Quest</div>
+          </div>
+          <div className="sm:text-right">
+            <div className="text-[10px] uppercase tracking-[0.2em] print-muted text-slate-500 mb-1.5">Verify</div>
+            <div className="text-[11px] text-slate-700 leading-relaxed">
+              biostatquest.com/verify
+              <div className="mono text-slate-500 mt-0.5">{docId} · {isoDate}</div>
+            </div>
+          </div>
+        </section>
+
+        {/* Methodology + disclaimer footer */}
+        <footer className="text-[10px] print-muted text-slate-500 leading-relaxed">
+          <p className="mb-1">
+            <span className="font-semibold text-slate-700">Methodology.</span> Tiers are derived from FSRS-6 spaced-repetition data.
+            <span className="mx-1">·</span>
+            <span className="text-slate-700">Familiar</span> ≥1 graded review.
+            <span className="text-slate-700"> Practiced</span> ≥3 reviews and ≥7-day interval on ≥30% of items.
+            <span className="text-slate-700"> Proficient</span> ≥4 reviews, ≥14-day interval on ≥50%.
+            <span className="text-slate-700"> Mastered</span> ≥4 reviews, ≥21-day interval on ≥60%.
+          </p>
+          <p>
+            <span className="font-semibold text-slate-700">Disclaimer.</span> This statement reflects platform activity through {today}.
+            It is supplementary CV evidence, not a clinical credential, and does not substitute for accredited training or board certification.
+          </p>
         </footer>
       </div>
     </>
