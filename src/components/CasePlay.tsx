@@ -113,19 +113,23 @@ function HintPanel({ method, isPro, onHintRevealed }) {
   );
 }
 
-// F15 — AskTutor: scoped, single-turn AI explainer that opens a modal
-// from the reveal panel. POSTs the bounded question context to
-// /api/ai/explain and renders the reply. Disabled for guests; the
-// server enforces quota for free-tier users.
+// F15 — AskTutor: scoped AI explainer that opens a modal from the reveal
+// panel. POSTs the bounded question context to /api/ai/explain and renders
+// a visible conversation thread. Each turn is a fresh single-shot request
+// (server-side: no multi-turn context, no jailbreak surface, quota still
+// 1 unit per turn) — the thread only accumulates client-side for visibility.
+type ChatTurn = { role: "user" | "assistant"; content: string };
+
 function AskTutor({ step, current, caseId }) {
   const [open, setOpen] = useState(false);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
-  const [reply, setReply] = useState("");
+  const [thread, setThread] = useState<ChatTurn[]>([]);
   const [err, setErr] = useState("");
   const [quotaHit, setQuotaHit] = useState(false);
   const [quotaInfo, setQuotaInfo] = useState(null); // { used, limit, remaining }
   const [isPro, setIsPro] = useState(() => effectivelyPro(undefined));
+  const threadEndRef = React.useRef<HTMLDivElement>(null);
 
   const signedIn = !!(window as any).BQAuth?.getUser?.();
 
@@ -143,10 +147,21 @@ function AskTutor({ step, current, caseId }) {
     return () => { alive = false; };
   }, []);
 
+  // Auto-scroll the thread to the latest turn whenever it grows or busy flips.
+  useEffect(() => {
+    if (threadEndRef.current) {
+      threadEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+  }, [thread.length, busy]);
+
   async function ask(overrideMessage?: string) {
     const message = (overrideMessage ?? msg).trim();
     if (!message) return;
-    setBusy(true); setErr(""); setReply(""); setQuotaHit(false);
+    // Append the user turn immediately so the thread updates before the
+    // network round-trip; clear the composer.
+    setThread(t => [...t, { role: "user", content: message }]);
+    if (!overrideMessage) setMsg("");
+    setBusy(true); setErr(""); setQuotaHit(false);
     try {
       const token = await getSupabaseAccessToken();
       if (!token) throw new Error("Please sign in first.");
@@ -174,7 +189,8 @@ function AskTutor({ step, current, caseId }) {
       } else if (!r.ok) {
         setErr(j?.error || `Request failed (${r.status})`);
       } else {
-        setReply(String(j.reply || "").trim() || "(no reply)");
+        const reply = String(j.reply || "").trim() || "(no reply)";
+        setThread(t => [...t, { role: "assistant", content: reply }]);
         // Server includes quota state on success now, so trust it.
         // Pro users get nulls → keep quotaInfo null and the line stays hidden.
         if (j?.remaining != null && j?.quota != null) {
@@ -192,7 +208,7 @@ function AskTutor({ step, current, caseId }) {
     <>
       <div className="mt-3 flex items-center gap-2 flex-wrap">
         <button
-          onClick={() => { setOpen(true); setMsg(""); setReply(""); setErr(""); setQuotaHit(false); }}
+          onClick={() => { setOpen(true); setMsg(""); setThread([]); setErr(""); setQuotaHit(false); }}
           className="px-3.5 py-2 rounded-lg text-xs inline-flex items-center gap-2 font-semibold transition border bg-amber-950/30 border-amber-700/40 text-amber-100 hover:bg-amber-900/40 hover:border-amber-600/60"
           title={signedIn ? "Ask a one-question AI tutor (free tier limited)" : "Sign in to use the AI tutor"}>
           <span className="text-amber-300"><Ico name="sparkles" size={14}/></span>
@@ -209,8 +225,8 @@ function AskTutor({ step, current, caseId }) {
 
       {open && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{background: "rgba(2,6,23,0.7)"}}>
-          <div className="card premium-border rounded-2xl max-w-lg w-full p-6" onClick={e=>e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
+          <div className="card premium-border rounded-2xl max-w-lg w-full p-6 max-h-[90vh] flex flex-col" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3 shrink-0">
               <h3 className="text-lg font-bold text-white inline-flex items-center gap-2"><span className="text-amber-300"><Ico name="sparkles" size={18}/></span> AI tutor</h3>
               <button onClick={()=>setOpen(false)} className="text-slate-400 hover:text-white inline-flex items-center"><Ico name="close" size={16}/></button>
             </div>
@@ -222,27 +238,88 @@ function AskTutor({ step, current, caseId }) {
               </div>
             ) : (
               <>
-                <p className="text-xs text-slate-400 mb-2 leading-relaxed">
-                  Scoped to <span className="mono text-slate-300">{step.qid}</span>.{" "}
-                  <span className="text-amber-300/90">AI-generated — may be imperfect; verify critical claims.</span>{" "}
-                  Off-topic questions will be declined.
+                <p className="text-[11px] text-slate-500 mb-3 leading-relaxed shrink-0">
+                  Scoped to <span className="mono text-slate-400">{step.qid}</span>. Each turn is independent — no multi-turn memory.{" "}
+                  <span className="text-amber-300/80">AI-generated; verify critical claims.</span>
                   {!isPro && quotaInfo && (
                     <span className="block mt-1 text-amber-300/90">
                       Free tier: {quotaInfo.remaining ?? 0}/{quotaInfo.limit} questions left this week.
                     </span>
                   )}
                 </p>
-                <textarea
-                  value={msg}
-                  onChange={e => setMsg(e.target.value.slice(0, 500))}
-                  rows={3}
-                  placeholder="e.g. why is the CI not a probability about the parameter?"
-                  className="w-full p-3 rounded-lg bg-slate-950/60 border border-slate-700 text-slate-100 text-sm placeholder-slate-500"
-                  disabled={busy}/>
-                <div className="text-[10px] text-slate-500 mono text-right mt-1">{msg.length}/500</div>
+
+                {/* Conversation thread — accumulates client-side for visibility.
+                    Empty state shows a one-line prompt nudge. */}
+                <div className="flex-1 overflow-y-auto -mx-1 px-1 mb-3 min-h-[120px] max-h-[50vh]">
+                  {thread.length === 0 && !busy && !err && (
+                    <div className="text-xs text-slate-500 italic py-4 text-center">
+                      Ask anything about this question.
+                    </div>
+                  )}
+                  <div className="space-y-3">
+                    {thread.map((turn, i) => (
+                      turn.role === "user" ? (
+                        <div key={i} className="flex justify-end">
+                          <div className="max-w-[85%] p-2.5 rounded-lg rounded-br-sm bg-slate-800/70 border border-slate-700 text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">
+                            {turn.content}
+                          </div>
+                        </div>
+                      ) : (
+                        <div key={i} className="flex justify-start">
+                          <div className="max-w-[90%] p-3 rounded-lg rounded-bl-sm bg-cyan-950/30 border border-cyan-700/40">
+                            <div className="text-[10px] uppercase tracking-widest text-cyan-300 font-bold mb-1 inline-flex items-center gap-1.5">
+                              <Ico name="sparkles" size={10}/> AI tutor
+                            </div>
+                            <div className="text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">{turn.content}</div>
+                          </div>
+                        </div>
+                      )
+                    ))}
+                    {busy && (
+                      <div className="flex justify-start">
+                        <div className="max-w-[90%] p-3 rounded-lg rounded-bl-sm bg-cyan-950/20 border border-cyan-700/30">
+                          <div className="text-xs text-cyan-300/70 inline-flex items-center gap-2">
+                            <span className="inline-flex gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/70 animate-pulse" style={{animationDelay:"0ms"}}/>
+                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/70 animate-pulse" style={{animationDelay:"150ms"}}/>
+                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/70 animate-pulse" style={{animationDelay:"300ms"}}/>
+                            </span>
+                            <span>Thinking…</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div ref={threadEndRef}/>
+                  </div>
+                </div>
+
+                {/* Quick re-asks: only show after at least one assistant turn so
+                    they look like contextual follow-ups, not initial prompts. */}
+                {thread.some(t => t.role === "assistant") && !busy && (
+                  <div className="flex flex-wrap gap-1.5 mb-2 shrink-0">
+                    <button
+                      onClick={() => ask("Same question — explain at an intern (junior level): short sentences, fewer technical terms, plain language.")}
+                      disabled={busy}
+                      className="btn btn-ghost px-2.5 py-1 rounded-md text-[11px] disabled:opacity-40">
+                      Explain simpler
+                    </button>
+                    <button
+                      onClick={() => ask("Same question — give one concrete clinical or research example that illustrates this exact concept in 2–3 sentences.")}
+                      disabled={busy}
+                      className="btn btn-ghost px-2.5 py-1 rounded-md text-[11px] disabled:opacity-40">
+                      Give an example
+                    </button>
+                    <button
+                      onClick={() => ask("Same question — show the relevant formula(s) and explain what each symbol means. Keep it tight.")}
+                      disabled={busy}
+                      className="btn btn-ghost px-2.5 py-1 rounded-md text-[11px] disabled:opacity-40">
+                      Show the formula
+                    </button>
+                  </div>
+                )}
 
                 {err && (
-                  <div className={`text-xs mt-2 ${quotaHit ? "text-amber-300" : "text-red-400"}`}>
+                  <div className={`text-xs mb-2 shrink-0 ${quotaHit ? "text-amber-300" : "text-red-400"}`}>
                     {err}
                     {quotaHit && (
                       <span className="ml-1 text-slate-400">
@@ -252,48 +329,35 @@ function AskTutor({ step, current, caseId }) {
                   </div>
                 )}
 
-                {reply && (
-                  <>
-                    <div className="mt-4 p-3 rounded-lg bg-cyan-950/30 border border-cyan-700/40">
-                      <div className="text-[10px] uppercase tracking-widest text-cyan-300 font-bold mb-1">AI tutor</div>
-                      <div className="text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">{reply}</div>
-                    </div>
-                    {/* Templated quick re-asks. Each one fires a fresh single-shot
-                        request (consumes 1 quota unit) — no multi-turn context,
-                        no jailbreak surface. The system prompt already has the
-                        question + canonical explanation, so the AI re-explains
-                        the same item with the requested angle. */}
-                    <div className="mt-2 flex flex-wrap gap-2">
+                {/* Composer — Enter sends, Shift+Enter newline. */}
+                <div className="shrink-0">
+                  <textarea
+                    value={msg}
+                    onChange={e => setMsg(e.target.value.slice(0, 500))}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && !e.shiftKey && msg.trim() && !busy) {
+                        e.preventDefault();
+                        ask();
+                      }
+                    }}
+                    rows={2}
+                    placeholder={thread.length === 0
+                      ? "e.g. why is the CI not a probability about the parameter?"
+                      : "Ask a follow-up…"}
+                    className="w-full p-3 rounded-lg bg-slate-950/60 border border-slate-700 text-slate-100 text-sm placeholder-slate-500 resize-none"
+                    disabled={busy}/>
+                  <div className="flex items-center justify-between gap-2 mt-1.5">
+                    <span className="text-[10px] text-slate-500 mono">{msg.length}/500 · Enter to send</span>
+                    <div className="flex gap-2">
+                      <button onClick={()=>setOpen(false)} className="btn btn-ghost px-3 py-1.5 rounded-lg text-xs">Close</button>
                       <button
-                        onClick={() => ask("Same question — explain at an intern (junior level): short sentences, fewer technical terms, plain language.")}
-                        disabled={busy}
-                        className="btn btn-ghost px-2.5 py-1 rounded-md text-[11px] disabled:opacity-40">
-                        Explain simpler
-                      </button>
-                      <button
-                        onClick={() => ask("Same question — give one concrete clinical or research example that illustrates this exact concept in 2–3 sentences.")}
-                        disabled={busy}
-                        className="btn btn-ghost px-2.5 py-1 rounded-md text-[11px] disabled:opacity-40">
-                        Give an example
-                      </button>
-                      <button
-                        onClick={() => ask("Same question — show the relevant formula(s) and explain what each symbol means. Keep it tight.")}
-                        disabled={busy}
-                        className="btn btn-ghost px-2.5 py-1 rounded-md text-[11px] disabled:opacity-40">
-                        Show the formula
+                        onClick={() => ask()}
+                        disabled={busy || !msg.trim()}
+                        className="btn btn-primary px-4 py-1.5 rounded-lg text-xs disabled:opacity-40">
+                        {busy ? "Sending…" : "Send"}
                       </button>
                     </div>
-                  </>
-                )}
-
-                <div className="flex gap-2 mt-4">
-                  <button onClick={()=>setOpen(false)} className="btn btn-ghost px-4 py-2 rounded-lg text-sm flex-1">Close</button>
-                  <button
-                    onClick={() => ask()}
-                    disabled={busy || !msg.trim()}
-                    className="btn btn-primary px-4 py-2 rounded-lg text-sm flex-1 disabled:opacity-40">
-                    {busy ? "Asking…" : reply ? "Ask again" : "Ask"}
-                  </button>
+                  </div>
                 </div>
               </>
             )}
