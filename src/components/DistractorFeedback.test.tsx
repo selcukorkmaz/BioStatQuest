@@ -71,20 +71,24 @@ describe("DistractorFeedback (F1 — distractor-aware misconception feedback)", 
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders nothing when the question has no per-option metadata", () => {
-    const { container } = render(
-      <DistractorFeedback step={vanillaMcq} correct={false} current={1} />,
-    );
-    expect(container.firstChild).toBeNull();
+  it("renders the plain-pick fallback when the question has no per-option metadata", () => {
+    // 94.6% of questions are in this state — show a quiet acknowledgment of
+    // the user's pick that defers to the canonical explanation, instead of
+    // rendering nothing at all.
+    render(<DistractorFeedback step={vanillaMcq} correct={false} current={1} />);
+    expect(screen.getByText(/your pick · B/i)).toBeTruthy();
+    expect(screen.getByText(/correct answer is/i)).toBeTruthy();
+    // No misconception claim — we don't have a tag to back one.
+    expect(screen.queryByText("Common misconception")).toBeNull();
   });
 
-  it("renders nothing when the picked wrong option has no authored entry", () => {
+  it("renders the plain-pick fallback when the picked wrong option has no authored entry", () => {
     // Trim the question down so option 2 has no optionExplanations / tag.
     const partial = { ...mcqQuestion, optionExplanations: { 0: "only zero is documented" }, misconceptionTag: undefined };
-    const { container } = render(
-      <DistractorFeedback step={partial} correct={false} current={2} />,
-    );
-    expect(container.firstChild).toBeNull();
+    render(<DistractorFeedback step={partial} correct={false} current={2} />);
+    // Plain-pick fallback engages because option 2 has neither explain nor tag.
+    expect(screen.getByText(/your pick · C/i)).toBeTruthy();
+    expect(screen.queryByText("Common misconception")).toBeNull();
   });
 
   it("surfaces the explanation for the picked wrong distractor (mcq)", () => {

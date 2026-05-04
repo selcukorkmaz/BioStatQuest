@@ -601,8 +601,9 @@ const REPEAT_THRESHOLD = 3;
 
 export function DistractorFeedback({ step, correct, current, misconceptionCounts = {} }) {
   if (correct) return null;
-  if (!step.optionExplanations && !step.misconceptionTag) return null;
 
+  // Tagged: full red panel with per-option explanation and optional
+  // "common misconception" + repeat-offender chips.
   const tagged = (idx) => {
     const why = step.optionExplanations?.[idx];
     const tag = step.misconceptionTag?.[idx];
@@ -629,14 +630,37 @@ export function DistractorFeedback({ step, correct, current, misconceptionCounts
     );
   };
 
+  // Plain-pick fallback: 94.6% of questions lack per-option explanations.
+  // Rather than rendering nothing, acknowledge the user's pick in a quieter
+  // slate panel that defers to the canonical explanation shown above.
+  // No misconception claim — we don't know the reason without a tag.
+  const plainPick = (idx, correctIdx) => {
+    if (typeof idx !== "number" || idx === correctIdx) return null;
+    const yourLetter = String.fromCharCode(65 + idx);
+    const correctLetter = typeof correctIdx === "number" ? String.fromCharCode(65 + correctIdx) : null;
+    return (
+      <div key={`plain-${idx}`} className="mb-3 rounded-lg border border-slate-700/60 bg-slate-900/40 p-3">
+        <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mono mb-1">
+          Your pick · {yourLetter}
+        </div>
+        <div className="text-xs text-slate-400 leading-relaxed">
+          {correctLetter
+            ? <>The correct answer is <span className="text-slate-200 font-semibold">{correctLetter}</span> — see the explanation above.</>
+            : <>See the explanation above for the reasoning.</>}
+        </div>
+      </div>
+    );
+  };
+
   if (step.type === "mcq" && typeof current === "number") {
-    return tagged(current);
+    return tagged(current) || plainPick(current, step.answer);
   }
   if (step.type === "multi" && Array.isArray(current)) {
-    const ans = step.answer;
-    // Show feedback for any option the learner checked that isn't in the answer.
+    const ans = Array.isArray(step.answer) ? step.answer : [];
     const wronglyChecked = current.filter((i) => !ans.includes(i));
-    const items = wronglyChecked.map(tagged).filter(Boolean);
+    const items = wronglyChecked
+      .map((i) => tagged(i) || plainPick(i, ans[0]))
+      .filter(Boolean);
     return items.length ? <div>{items}</div> : null;
   }
   return null;
