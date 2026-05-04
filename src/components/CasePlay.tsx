@@ -57,13 +57,39 @@ function HintPanel({ method, isPro, onHintRevealed }) {
     }
   }
 
+  // Available layers — only those with content count toward the "X / N" header.
+  const availableLayers = [1, 2, 3].filter((l) => (hint as any)[`layer${l}`]);
+  const totalLayers = availableLayers.length;
+  const layerColor = (l: number) => l === 1 ? "text-cyan-300" : l === 2 ? "text-purple-300" : "text-amber-300";
+  const layerLabel = (l: number) => l === 1 ? "Orienting" : l === 2 ? "Structural" : "Partial walkthrough";
+
   return (
     <div className="mt-4 rounded-xl border border-slate-700/60 bg-slate-900/40 p-3">
-      <div className="flex items-center justify-between gap-2 mb-2">
+      <div className="flex items-center justify-between gap-2 mb-2.5">
         <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold inline-flex items-center gap-1.5">
-          <Ico name="orb" size={11}/> Hint
+          <Ico name="sparkles" size={11}/> Hint
         </div>
-        <div className="text-[10px] text-slate-600 mono">layered · pro unlocks deeper layers</div>
+        {/* Layer dots: filled for revealed, outlined for available, padlock for Pro-locked */}
+        <div className="inline-flex items-center gap-1">
+          {availableLayers.map((l) => {
+            const revealed = shown >= l;
+            const locked = !isPro && l >= 2;
+            return (
+              <span
+                key={l}
+                title={`Layer ${l} — ${layerLabel(l)}${locked ? " (Pro)" : ""}`}
+                className={`text-[9px] font-bold mono px-1.5 py-0.5 rounded border transition ${
+                  revealed
+                    ? `${layerColor(l)} border-current bg-current/10`
+                    : locked
+                      ? "text-amber-700/80 border-amber-800/50"
+                      : "text-slate-600 border-slate-700"
+                }`}>
+                L{l}{locked && !revealed ? "·" : ""}
+              </span>
+            );
+          })}
+        </div>
       </div>
 
       {shown === 0 ? (
@@ -76,19 +102,19 @@ function HintPanel({ method, isPro, onHintRevealed }) {
         <div className="space-y-2 text-sm text-slate-200">
           {shown >= 1 && hint.layer1 && (
             <div className="leading-relaxed">
-              <span className="text-[10px] uppercase tracking-widest text-cyan-300 mr-2">L1</span>
+              <span className="text-[10px] uppercase tracking-widest text-cyan-300 mr-2">L1 · {layerLabel(1)}</span>
               {hint.layer1}
             </div>
           )}
           {shown >= 2 && hint.layer2 && (
             <div className="leading-relaxed">
-              <span className="text-[10px] uppercase tracking-widest text-purple-300 mr-2">L2</span>
+              <span className="text-[10px] uppercase tracking-widest text-purple-300 mr-2">L2 · {layerLabel(2)}</span>
               {hint.layer2}
             </div>
           )}
           {shown >= 3 && hint.layer3 && (
             <div className="leading-relaxed">
-              <span className="text-[10px] uppercase tracking-widest text-amber-300 mr-2">L3</span>
+              <span className="text-[10px] uppercase tracking-widest text-amber-300 mr-2">L3 · {layerLabel(3)}</span>
               {hint.layer3}
             </div>
           )}
@@ -98,12 +124,26 @@ function HintPanel({ method, isPro, onHintRevealed }) {
             isPro ? (
               <button
                 onClick={() => reveal((shown + 1) as any)}
-                className="btn btn-ghost px-3 py-1.5 rounded-lg text-xs mt-2">
-                Show layer {shown + 1} →
+                className={`px-3 py-1.5 rounded-lg text-xs mt-2 inline-flex items-center gap-1.5 font-semibold transition border ${
+                  shown + 1 >= 2
+                    ? "bg-amber-950/30 border-amber-700/40 text-amber-100 hover:bg-amber-900/40"
+                    : "btn btn-ghost"
+                }`}>
+                {shown + 1 >= 2 && <span className="text-amber-300"><Ico name="sparkles" size={11}/></span>}
+                Show layer {shown + 1} · {layerLabel(shown + 1)} →
               </button>
             ) : (
-              <div className="mt-2 text-[11px] text-slate-500 italic">
-                Layer {shown + 1} (and beyond) is a Pro feature — structural and partial-walkthrough hints.
+              <div className="mt-2 p-2.5 rounded-lg border border-amber-700/30 bg-amber-950/20 text-[11px] text-amber-100/90 leading-relaxed">
+                <div className="inline-flex items-center gap-1.5 font-semibold text-amber-200 mb-0.5">
+                  <Ico name="sparkles" size={11}/> Layer {shown + 1} · {layerLabel(shown + 1)}
+                </div>
+                <div className="text-slate-400">
+                  {shown + 1 === 2
+                    ? "Names the structural component you're missing without giving the answer."
+                    : "Walks you partway through the reasoning."}
+                  {" "}
+                  <a href="/upgrade" className="text-amber-300 hover:text-amber-200 underline underline-offset-2 decoration-amber-700/50">Pro unlocks the deeper layers →</a>
+                </div>
               </div>
             )
           )}
