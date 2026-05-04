@@ -521,11 +521,11 @@ const CASES: Case[] = [
       options:["RR scale","Log(RR) scale","Linear SE","Square-root scale"], answer:1,
       explain:"RR is approximately normal on the log scale; CI built there then back-transformed.", method:"ci" },
     { q: "A standard error is most correctly described as:", type:"mcq", standalone:true,
-      options:["The spread of raw data","The SD of an estimator's","A bias","A confidence level"], answer:1,
+      options:["The spread of raw data","The SD of an estimator's sampling distribution","A bias","A confidence level"], answer:1,
       explain:"SE quantifies estimator variability; distinct from SD of data.", method:"clt_sampling" },
     { q: "A CI that barely excludes the null:", type:"mcq",
       scenario:"A cardiology trial's primary endpoint just clears the threshold: HR = 0.83 for MACE, 95% CI (0.69, 0.99), p = 0.043. The press release declares 'significant benefit'.",
-      options:["Is strong evidence","Is borderline and should be","Proves the alternative","Shows the effect is large"], answer:1,
+      options:["Is strong evidence","Is borderline and should be replicated","Proves the alternative","Shows the effect is large"], answer:1,
       explain:"When the upper CI bound is near the null (0.99 for an HR), evidence is borderline — warrants replication, sensitivity analyses, and scrutiny of secondary endpoints. Significance is a threshold crossing, not a quality score.", method:"ci",
       optionExplanations: {
         0: "Significance is a threshold (a CI excludes the null OR it doesn't), not a quality score. An interval whose upper bound is 0.99 is one trial fluctuation away from straddling 1; future evidence could plausibly nudge it the other way. 'Significant' ≠ 'strong'.",
@@ -538,7 +538,7 @@ const CASES: Case[] = [
         3: "size_confused_with_significance"
       } },
     { q: "For proportions near 0 or 1, Wald CIs can:", type:"mcq", standalone:true,
-      options:["Be exact","Undercover true","Be Bayesian","Be symmetric"], answer:1,
+      options:["Be exact","Undercover the true proportion","Be Bayesian","Be symmetric"], answer:1,
       explain:"Use Wilson or Clopper-Pearson for small p or extreme proportions.", method:"ci" },
     { q: "Meta-analytic summary CI narrows as more studies pool because:", type:"mcq", standalone:true,
       options:["Between-study variance vanishes","Sampling variability of the pooled estimate decreases","Studies become identical","Bias disappears"], answer:1,
