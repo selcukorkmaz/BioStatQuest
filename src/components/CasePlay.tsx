@@ -38,8 +38,13 @@ async function getSupabaseAccessToken(): Promise<string | null> {
 // (structural / partial walkthrough) are Pro-only and degrade to a
 // soft upgrade prompt for free users. Calling `onHintRevealed()` once
 // per question lets the parent flag hint_used=true on telemetry.
-function HintPanel({ method, isPro, onHintRevealed }) {
-  const hint = React.useMemo(() => getHint(method), [method]);
+function HintPanel({ method, question, isPro, onHintRevealed }) {
+  // Prefer the question (so per-question hint overrides win); fall back
+  // to the bare method id for callers that don't have the question handy.
+  const hint = React.useMemo(
+    () => getHint(question ? { method, hint: question.hint } : method),
+    [method, question?.hint],
+  );
   const [shown, setShown] = useState(0);   // 0 = none, 1/2/3 = layers shown
   const [pinged, setPinged] = useState(false);
 
@@ -938,6 +943,7 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
         {!showExplain && step.method && (
           <HintPanel
             method={step.method}
+            question={step}
             isPro={isPro}
             onHintRevealed={() => setHintUsedThisQ(true)}/>
         )}

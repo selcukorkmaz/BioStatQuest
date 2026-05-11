@@ -33,6 +33,14 @@ export type Question = {
   // and, later, per-learner misconception ledger telemetry (F8).
   misconceptionTag?: Record<number, string>;
   method: string;
+  // Optional per-question hint override. Most questions inherit a
+  // method-level orienting hint from src/lib/methodHints.ts, but for
+  // questions where the method-level hint is too generic (e.g., a
+  // skewness-magnitude question under the "descriptive" method gets a
+  // generic "summarise a sample" hint), set `hint` here to a focused
+  // orienting nudge specific to this question. Pass a string for L1
+  // only, or an object to override deeper Pro layers as well.
+  hint?: string | { layer1?: string; layer2?: string; layer3?: string };
   output?: string;
   outputLang?: string;
 };
@@ -226,13 +234,16 @@ const CASES: Case[] = [
       explain:"Poisson is the workhorse for count data: hospital admissions per day, cases per week, etc.", method:"prob_dist" },
     { q: "In a Poisson distribution, the mean equals:", type:"mcq", standalone:true,
       options:["SD","Variance","Median","Mode × 2"], answer:1,
+      hint:"Poisson is parameterised by a single rate λ. What does that imply about how mean and spread relate?",
       explain:"The Poisson distribution is parameterized by a single rate λ, and uniquely mean = variance = λ. This equality is WHY overdispersion (variance > mean) is a red flag in real count data — it signals your data don't fit a simple Poisson, and you may need negative binomial or quasi-Poisson instead.", method:"prob_dist" },
     { q: "A binomial distribution arises from:", type:"mcq", standalone:true,
       options:["Continuous measurement values","Fixed n independent Bernoulli trials","Time-to-event survival data","Paired before-after comparisons"], answer:1,
       explain:"Binomial = number of successes in n independent trials with constant p.", method:"prob_dist" },
     { q: "For a binomial with n=100, p=0.3, the expected number of successes is:", type:"numeric", standalone:true, answer:30, tol:0,
+      hint:"For a binomial, E(X) is a simple product of the two parameters.",
       explain:"E(X) = np = 100 × 0.3 = 30.", method:"prob_dist" },
     { q: "For the same binomial (n=100, p=0.3), the variance is:", type:"numeric", standalone:true, answer:21, tol:1,
+      hint:"Binomial variance has three factors and is maximised at p = 0.5.",
       explain:"Var = np(1−p) = 100 × 0.3 × 0.7 = 21.", method:"prob_dist" },
     { q: "A z-score of 2.0 means the value is:", type:"mcq", standalone:true,
       options:["Below the mean","Equal to mean","2 SD above the mean","In the 2nd percentile"], answer:2,
@@ -241,18 +252,22 @@ const CASES: Case[] = [
       explain:"~2.5% in the upper tail beyond 1.96, which is why 1.96 appears in 95% CIs.", method:"normal_zscore" },
     { q: "Exponential distributions typically model:", type:"mcq", standalone:true,
       options:["Counts","Proportions","Time-to-event","Ranked data"], answer:2,
+      hint:"Exponential is the continuous partner of the Poisson — what does Poisson count, and what's the natural quantity between two of those counts?",
       explain:"Exponential models the time between events in a Poisson process.", method:"prob_dist" },
     { q: "A 'heavy-tailed' distribution:", type:"mcq", standalone:true,
       options:["Has more extreme values than normal","Has no finite variance at all","Is always perfectly symmetric","Cannot be visualized on a plot"], answer:0,
+      hint:"Compare the rate at which the density decays in the tails to the normal — extreme observations are how much more common?",
       explain:"Heavy tails produce extreme observations more often than a normal would.", method:"prob_dist" },
     { q: "Bimodal histograms usually suggest:", type:"mcq", standalone:true,
       options:["A single homogeneous population","Two overlapping subpopulations","Measurement error only","Too small a sample"], answer:1,
       explain:"Two peaks commonly indicate a mixture of two groups (e.g., men & women).", method:"descriptive" },
     { q: "Skewness of +0 to +0.5 indicates:", type:"mcq", standalone:true,
       options:["Strong left skew","Approximately symmetric","Extreme right skew","Bimodal"], answer:1,
+      hint:"Skewness sign tells direction (negative = left tail, positive = right tail). Magnitude has rough conventional thresholds — what does a small positive value imply?",
       explain:"Absolute skewness < 0.5 is generally considered approximately symmetric.", method:"descriptive" },
     { q: "Kurtosis > 3 (excess > 0) indicates:", type:"mcq", standalone:true,
       options:["Heavier tails than normal","Lighter tails","No variance","Perfectly normal"], answer:0,
+      hint:"Kurtosis = 3 is the normal benchmark. Values above 3 (excess > 0) mean the distribution behaves how relative to the normal in the tails?",
       explain:"High kurtosis (leptokurtic) means heavier tails and sharper peak than normal.", method:"prob_dist" },
     { q: "A QQ-plot is used to:", type:"mcq", standalone:true,
       options:["Show correlation","Check distributional fit","Estimate the median","Compute a p-value"], answer:1,
@@ -262,6 +277,7 @@ const CASES: Case[] = [
       explain:"If log(X) ~ Normal(μ,σ²), X is lognormal — common for concentrations, incomes.", method:"prob_dist" },
     { q: "Negative binomial is often preferred over Poisson for counts when:", type:"mcq", standalone:true,
       options:["Mean = variance","Variance > mean","Counts are zero","Data are continuous"], answer:1,
+      hint:"Poisson constrains variance to equal the mean. When real data violate that — and which direction usually breaks first?",
       explain:"NB allows variance > mean via an extra dispersion parameter.", method:"prob_dist" },
     { q: "Uniform(0,1) distribution has mean:", type:"numeric", standalone:true, answer:0.5, tol:0.01,
       explain:"Mean of Uniform(a,b) = (a+b)/2 = 0.5.", method:"descriptive" },
@@ -273,6 +289,7 @@ const CASES: Case[] = [
       explain:"The t-distribution has heavier tails than N(0,1) because you're also estimating σ from the data. As df grows, that extra uncertainty vanishes — by df ≈ 30, t(df) is visually indistinguishable from the standard normal. This is why t-tests and z-tests converge in large samples.", method:"normal_zscore" },
     { q: "The chi-square distribution is always:", type:"mcq", standalone:true,
       options:["Symmetric","Right-skewed","Discrete","Normal"], answer:1,
+      hint:"Chi-square is built from a sum of squared standard normals. What does squaring imply about its support and shape?",
       explain:"Sum of squared standard normals → right-skewed, positive-valued.", method:"prob_dist" },
   ])
 },

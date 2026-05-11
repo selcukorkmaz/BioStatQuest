@@ -102,11 +102,38 @@ function fallbackLayer1(methodId: string): string | undefined {
   return trimmed;
 }
 
-export function getHint(methodId: string | null | undefined): Hint {
-  if (!methodId) return {};
-  const curated = CURATED[methodId] || {};
-  const layer1 = curated.layer1 ?? fallbackLayer1(methodId);
-  return { layer1, layer2: curated.layer2, layer3: curated.layer3 };
+// Question shape that may carry a per-question hint override. Only the
+// keys we touch — keeps the type loose so we don't fight cases.ts.
+type QWithHint = {
+  method?: string | null;
+  hint?: Partial<Hint> | string;
+};
+
+export function getHint(methodOrQuestion: string | QWithHint | null | undefined): Hint {
+  if (!methodOrQuestion) return {};
+
+  // Resolve question vs. plain methodId. When called with a question, the
+  // question's own hint (if any) takes priority — this is how authors
+  // override a too-generic method-level hint for a specific question.
+  let methodId: string | null | undefined = null;
+  let qHint: Partial<Hint> | undefined;
+  if (typeof methodOrQuestion === "string") {
+    methodId = methodOrQuestion;
+  } else {
+    methodId = methodOrQuestion.method;
+    if (typeof methodOrQuestion.hint === "string") {
+      qHint = { layer1: methodOrQuestion.hint };
+    } else if (methodOrQuestion.hint && typeof methodOrQuestion.hint === "object") {
+      qHint = methodOrQuestion.hint;
+    }
+  }
+
+  const curated: Partial<Hint> = (methodId && CURATED[methodId]) || {};
+  // Priority per layer: question override → curated method → fallback.
+  const layer1 = qHint?.layer1 ?? curated.layer1 ?? (methodId ? fallbackLayer1(methodId) : undefined);
+  const layer2 = qHint?.layer2 ?? curated.layer2;
+  const layer3 = qHint?.layer3 ?? curated.layer3;
+  return { layer1, layer2, layer3 };
 }
 
 // Tier mapping: Layer 1 is always free; Layers 2 and 3 are Pro.

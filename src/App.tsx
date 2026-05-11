@@ -784,7 +784,9 @@ function DiagnosticPromptCard({ state, setState, onStart }) {
 
   return (
     <div className="card rounded-2xl p-5 sm:p-6 border-l-4 border-violet-500/50">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      {/* Stack vertically on mobile so the title doesn't get crushed into a
+          one-word-per-line column next to the wide CTA. Side-by-side on sm+. */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="text-[10px] uppercase tracking-widest text-violet-300 font-bold mb-1">New here?</div>
           <div className="text-base font-semibold text-white mb-1">Take a 6-minute diagnostic for a personalized study path.</div>
@@ -792,7 +794,7 @@ function DiagnosticPromptCard({ state, setState, onStart }) {
             Eight short questions across the core branches. We'll pick the right cases for you to start with — and explain why.
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 sm:shrink-0 flex-wrap">
           <button onClick={dismiss} className="btn btn-ghost px-3 py-2 rounded-lg text-xs">
             Maybe later
           </button>
