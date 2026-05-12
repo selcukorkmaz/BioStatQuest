@@ -60,3 +60,47 @@ describe("methodHints — tier gating", () => {
     expect(isHintLayerFree(3)).toBe(false);
   });
 });
+
+describe("methodHints — per-question overrides", () => {
+  it("question with no `hint` field falls back to the method-level hint", () => {
+    const result = getHint({ method: "ci", hint: undefined });
+    const baseline = getHint("ci");
+    expect(result.layer1).toBe(baseline.layer1);
+  });
+
+  it("question with a `hint` string overrides Layer 1 only", () => {
+    const result = getHint({ method: "ci", hint: "Skewness sign tells direction; magnitude has rough thresholds." });
+    const baseline = getHint("ci");
+    expect(result.layer1).toBe("Skewness sign tells direction; magnitude has rough thresholds.");
+    // Curated L2/L3 from `ci` should still come through
+    expect(result.layer2).toBe(baseline.layer2);
+    expect(result.layer3).toBe(baseline.layer3);
+  });
+
+  it("question with object hint can override multiple layers independently", () => {
+    const result = getHint({
+      method: "ci",
+      hint: { layer1: "Q-specific L1", layer3: "Q-specific L3" },
+    });
+    const baseline = getHint("ci");
+    expect(result.layer1).toBe("Q-specific L1");
+    expect(result.layer2).toBe(baseline.layer2);  // unchanged
+    expect(result.layer3).toBe("Q-specific L3");
+  });
+
+  it("question hint works even when the method has no curated entry (uses fallback for non-overridden layers)", () => {
+    const result = getHint({ method: "prob_dist", hint: "Specific L1 for this q" });
+    expect(result.layer1).toBe("Specific L1 for this q");
+    // prob_dist has no curated layer1/2/3 in the registry — but L1 is overridden,
+    // and L2/L3 should be undefined (no curated, no override)
+    expect(result.layer2).toBeUndefined();
+    expect(result.layer3).toBeUndefined();
+  });
+
+  it("question with no method id returns empty hint", () => {
+    const result = getHint({ method: undefined, hint: "ignored" });
+    // No method means no curated baseline, but the override should still surface for L1
+    expect(result.layer1).toBe("ignored");
+    expect(result.layer2).toBeUndefined();
+  });
+});
