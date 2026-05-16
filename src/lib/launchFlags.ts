@@ -20,12 +20,34 @@
 // exactly twice in its life.
 export const OPEN_BETA_PRO: boolean = true;
 
+// Sentinel user_type that opts a specific account OUT of the open-beta
+// override. Used to test the paywall + Lemon Squeezy purchase flow
+// against a real account without affecting any other beta user. After
+// a successful test purchase, the LS webhook flips user_type to 'pro';
+// on cancellation it flips back to 'free' — at which point the
+// sentinel is lost and must be re-applied for another test round.
+//
+// Apply manually in Supabase SQL editor:
+//   update public.user_progress
+//     set user_type='force_free_test'
+//     where email='<your-test-email>';
+//
+// Remove when no longer needed (just set back to 'free' or 'pro' as
+// appropriate) — there's nothing else in the system that consumes this
+// value other than the short-circuit below.
+export const FORCE_FREE_TEST_USER_TYPE = "force_free_test";
+
 // "Effectively Pro" — the truth source for client-side feature gating.
 // Centralises the check so future tier additions (e.g. educator)
 // land in one file. During open beta, ANY signed-in user is treated as
 // Pro (callers must still verify the user is signed in before relying
 // on this — anonymous users get nothing regardless of beta).
+//
+// The sentinel `force_free_test` short-circuits BEFORE the open-beta
+// override so a test account can hit the paywall while everyone else
+// keeps full beta access. Order matters here.
 export function effectivelyPro(userType: string | undefined | null): boolean {
+  if (userType === FORCE_FREE_TEST_USER_TYPE) return false;
   if (userType === "pro" || userType === "institutional") return true;
   if (OPEN_BETA_PRO) return true;
   return false;
