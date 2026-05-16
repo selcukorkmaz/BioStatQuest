@@ -16,10 +16,14 @@ export const LS_VARIANT_YEARLY  = () => process.env.LEMONSQUEEZY_VARIANT_PRO_YEA
 // explicitly. Set LEMONSQUEEZY_TEST_MODE=true in Vercel while running
 // pre-live smoke tests, and unset (or set to false) when going live.
 //
-// Returns true when the env value is the literal string "true" — be
-// strict here so an accidental "True" or "1" doesn't silently leave us
-// charging real cards.
-export const LS_TEST_MODE = () => process.env.LEMONSQUEEZY_TEST_MODE === "true";
+// Accepts "true" / "1" / "yes" (case-insensitive, whitespace-tolerant)
+// as truthy — Vercel env editor sometimes preserves whitespace from
+// paste, and a stricter `=== "true"` check would silently leave us in
+// live mode if the value was "True" or " true ".
+export const LS_TEST_MODE = () => {
+  const v = String(process.env.LEMONSQUEEZY_TEST_MODE || "").toLowerCase().trim();
+  return v === "true" || v === "1" || v === "yes";
+};
 
 type LsCreateCheckoutOpts = {
   variantId: string;
@@ -34,6 +38,13 @@ type LsCreateCheckoutOpts = {
 export async function lsCreateCheckout(opts: LsCreateCheckoutOpts): Promise<string> {
   const key = LS_API_KEY();
   if (!key) throw new Error("LEMONSQUEEZY_API_KEY not set");
+  // Diagnostic — log what we're about to send so Vercel logs show
+  // exactly what test_mode evaluated to + the raw env-var value as
+  // the function actually sees it. Safe to leave in; no secrets.
+  const rawEnv = process.env.LEMONSQUEEZY_TEST_MODE;
+  console.log(
+    `[ls] checkout create: variant=${opts.variantId} test_mode=${LS_TEST_MODE()} raw_env=${JSON.stringify(rawEnv)}`,
+  );
   const body = {
     data: {
       type: "checkouts",
