@@ -5,12 +5,6 @@
 
 const LS_API = "https://api.lemonsqueezy.com/v1";
 
-export const LS_API_KEY        = () => process.env.LEMONSQUEEZY_API_KEY        || "";
-export const LS_STORE_ID       = () => process.env.LEMONSQUEEZY_STORE_ID       || "";
-export const LS_WEBHOOK_SECRET = () => process.env.LEMONSQUEEZY_WEBHOOK_SECRET || "";
-export const LS_VARIANT_MONTHLY = () => process.env.LEMONSQUEEZY_VARIANT_PRO_MONTHLY || "";
-export const LS_VARIANT_YEARLY  = () => process.env.LEMONSQUEEZY_VARIANT_PRO_YEARLY  || "";
-
 // Test-mode toggle. The LS dashboard's Test/Live switch controls UI
 // only; checkouts created via the API must carry `test_mode: true`
 // explicitly. Set LEMONSQUEEZY_TEST_MODE=true in Vercel while running
@@ -24,6 +18,25 @@ export const LS_TEST_MODE = () => {
   const v = String(process.env.LEMONSQUEEZY_TEST_MODE || "").toLowerCase().trim();
   return v === "true" || v === "1" || v === "yes";
 };
+
+// LS separates test-mode and live-mode resources completely: API keys,
+// variants, and webhook signing secrets all live in different universes.
+// To keep test↔live transitions clean (and to never require swapping
+// env vars on the live cutover), we read `_TEST`-suffixed vars in test
+// mode and unsuffixed vars in live mode. Falls back to unsuffixed when
+// `_TEST` isn't set so single-mode setups keep working.
+function envOr(testKey: string, liveKey: string): string {
+  if (LS_TEST_MODE()) {
+    return process.env[testKey] || process.env[liveKey] || "";
+  }
+  return process.env[liveKey] || "";
+}
+
+export const LS_API_KEY         = () => envOr("LEMONSQUEEZY_API_KEY_TEST",         "LEMONSQUEEZY_API_KEY");
+export const LS_STORE_ID        = () => envOr("LEMONSQUEEZY_STORE_ID_TEST",        "LEMONSQUEEZY_STORE_ID");
+export const LS_WEBHOOK_SECRET  = () => envOr("LEMONSQUEEZY_WEBHOOK_SECRET_TEST",  "LEMONSQUEEZY_WEBHOOK_SECRET");
+export const LS_VARIANT_MONTHLY = () => envOr("LEMONSQUEEZY_VARIANT_PRO_MONTHLY_TEST", "LEMONSQUEEZY_VARIANT_PRO_MONTHLY");
+export const LS_VARIANT_YEARLY  = () => envOr("LEMONSQUEEZY_VARIANT_PRO_YEARLY_TEST",  "LEMONSQUEEZY_VARIANT_PRO_YEARLY");
 
 type LsCreateCheckoutOpts = {
   variantId: string;
