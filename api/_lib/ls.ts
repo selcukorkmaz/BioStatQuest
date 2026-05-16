@@ -85,6 +85,13 @@ export async function lsCreateCheckout(opts: LsCreateCheckoutOpts): Promise<stri
   }
   const json = await r.json() as any;
   const url = json?.data?.attributes?.url;
+  // Diagnostic — surface what LS actually built. test_mode in the
+  // response should mirror what we sent; if it does, the issue is
+  // store-side (live-only product, missing bank, etc.); if it doesn't,
+  // LS dropped our flag and we need to escalate the request shape.
+  console.log(
+    `[ls] checkout response: id=${json?.data?.id} test_mode=${json?.data?.attributes?.test_mode} url=${url}`,
+  );
   if (!url) throw new Error("LS checkout response missing url");
   return url as string;
 }
