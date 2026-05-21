@@ -143,18 +143,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     switch (eventName) {
+      // Subscription-state events. The `data` resource is a SUBSCRIPTION,
+      // so `attributes.status` is one of LS's documented subscription
+      // statuses: 'on_trial' | 'active' | 'paused' | 'past_due' | 'unpaid'
+      // | 'cancelled' | 'expired'. These are the only events from which
+      // we should write the subscription-state row.
       case "subscription_created":
       case "subscription_updated":
       case "subscription_resumed":
       case "subscription_unpaused":
       case "subscription_paused":
       case "subscription_cancelled":
-      case "subscription_expired":
-      case "subscription_payment_success":
-      case "subscription_payment_failed": {
+      case "subscription_expired": {
         if (subscriptionId) {
           await applySubscription(subscriptionId, attrs, supabaseUserId);
         }
+        break;
+      }
+      // Payment events. The `data` resource is a SUBSCRIPTION-INVOICE,
+      // NOT a subscription. attributes.status here is 'paid' / 'refunded' /
+      // 'void' / 'failed' — completely different vocabulary, and there's
+      // no renews_at field. If we routed these through applySubscription
+      // (as a previous iteration did) the payment-success event arriving
+      // AFTER subscription_created would clobber the subscription row
+      // with status='paid' and user_type='free' (paid not being a 'pro'
+      // status). Log only — the subscription_created/_updated events
+      // already carry the right state.
+      case "subscription_payment_success":
+      case "subscription_payment_failed": {
+        console.log(`[ls/webhook] ${eventName} invoice_id=${subscriptionId} status=${attrs.status} — ignored (subscription_* events carry the canonical state)`);
         break;
       }
       // order_created fires for one-off purchases — ignore for now (we only
