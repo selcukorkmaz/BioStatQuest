@@ -107,10 +107,10 @@ export function SubscriptionPanel() {
   const status = sub?.status;
   const periodEnd = sub?.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null;
 
-  // During open beta, free users have temporary Pro access. Surface this
-  // explicitly so the account panel doesn't look empty / paid-tier
-  // doesn't look hidden — both would suggest "you have nothing" when
-  // they actually have everything.
+  // Open-beta override block — only renders when OPEN_BETA_PRO=true in
+  // launchFlags.ts. Currently false (post-2026-05-21 paid launch); the
+  // branch is dead code but kept in place so re-enabling open beta for
+  // a future cohort is a one-line flag flip with no UI surgery.
   if (OPEN_BETA_PRO && userType === "free") {
     return (
       <div className="rounded-xl bg-emerald-950/30 border border-emerald-700/40 p-4 mb-4">

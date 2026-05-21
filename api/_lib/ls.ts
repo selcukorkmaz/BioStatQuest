@@ -51,13 +51,6 @@ type LsCreateCheckoutOpts = {
 export async function lsCreateCheckout(opts: LsCreateCheckoutOpts): Promise<string> {
   const key = LS_API_KEY();
   if (!key) throw new Error("LEMONSQUEEZY_API_KEY not set");
-  // Diagnostic — log what we're about to send so Vercel logs show
-  // exactly what test_mode evaluated to + the raw env-var value as
-  // the function actually sees it. Safe to leave in; no secrets.
-  const rawEnv = process.env.LEMONSQUEEZY_TEST_MODE;
-  console.log(
-    `[ls] checkout create: variant=${opts.variantId} test_mode=${LS_TEST_MODE()} raw_env=${JSON.stringify(rawEnv)}`,
-  );
   const body = {
     data: {
       type: "checkouts",
@@ -98,13 +91,6 @@ export async function lsCreateCheckout(opts: LsCreateCheckoutOpts): Promise<stri
   }
   const json = await r.json() as any;
   const url = json?.data?.attributes?.url;
-  // Diagnostic — surface what LS actually built. test_mode in the
-  // response should mirror what we sent; if it does, the issue is
-  // store-side (live-only product, missing bank, etc.); if it doesn't,
-  // LS dropped our flag and we need to escalate the request shape.
-  console.log(
-    `[ls] checkout response: id=${json?.data?.id} test_mode=${json?.data?.attributes?.test_mode} url=${url}`,
-  );
   if (!url) throw new Error("LS checkout response missing url");
   return url as string;
 }
@@ -126,14 +112,6 @@ export async function lsCustomerPortalUrl(customerId: string): Promise<string> {
   }
   const json = await r.json() as any;
   const url = json?.data?.attributes?.urls?.customer_portal;
-  // Diagnostic — surface the exact portal URL LS returned. Reported a
-  // case where "Manage billing" landed on the merchant dashboard rather
-  // than the customer portal; this log will reveal whether LS is
-  // returning the wrong URL or the browser is following a merchant-
-  // session redirect.
-  console.log(
-    `[ls] customer portal url for customer=${customerId}: ${url}`,
-  );
   if (!url) throw new Error("LS customer has no customer_portal url");
   return url as string;
 }

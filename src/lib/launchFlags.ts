@@ -12,13 +12,17 @@
 // remove) and redeploy. The DB state never changes; this is purely a
 // client/server gate override.
 
-// Hardcoded for the launch window. Flip to `false` and redeploy when
-// paid plans go live (that's the entire teardown — no DB change, no
-// env-var dance). Env-driven version was tried first but Vercel's
-// build pipeline didn't reliably inline VITE_ envs in our setup;
-// hardcoded constant is friction-free for a flag that's meant to flip
-// exactly twice in its life.
-export const OPEN_BETA_PRO: boolean = true;
+// Hardcoded for the launch window. Flipped to `false` on 2026-05-21
+// when paid plans went live via Lemon Squeezy. Existing engaged beta
+// users were grandfathered to 6 months of Pro via SQL backfill (see
+// docs/grandfather-beta-users.sql) so the cutover wasn't a hostile
+// rug-pull. Net effect: anyone who signed up + did work pre-live
+// keeps Pro for free until 2026-11-21; everyone else (zero-progress
+// stale accounts + new signups) hits the paywall like normal.
+//
+// To re-enable open beta later (unlikely): flip back to `true` and
+// redeploy. Existing paid subscriptions are unaffected.
+export const OPEN_BETA_PRO: boolean = false;
 
 // Sentinel user_type that opts a specific account OUT of the open-beta
 // override. Used to test the paywall + Lemon Squeezy purchase flow
