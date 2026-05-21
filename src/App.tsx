@@ -574,7 +574,29 @@ function TopBar({ state, setState, onReset, onNav, current }) {
             </div>
             <div className="bar w-32 sm:w-40 mt-1.5 ml-auto"><div style={{width: pct+"%"}}></div></div>
           </div>
-          {!isProNow && (
+          {isProNow ? (
+            // Pro identity chip. Sits in the slot the Upgrade button
+            // occupies for free users, so the right rail keeps a stable
+            // width regardless of plan. Gradient + gold-stroke ring sells
+            // "premium tier" — same visual language we use on Pro-only
+            // surfaces (paywall, statement of competency, etc).
+            <span
+              aria-label="Pro subscriber"
+              title="You're on BioStat Quest Pro"
+              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-extrabold tracking-wider uppercase whitespace-nowrap shrink-0 select-none"
+              style={{
+                background: "linear-gradient(135deg, rgba(251,191,36,0.22), rgba(245,158,11,0.10) 70%, rgba(217,119,6,0.08))",
+                border: "1px solid rgba(251,191,36,0.55)",
+                color: "#fde68a",
+                boxShadow: "0 4px 14px -6px rgba(251,191,36,0.35), inset 0 1px 0 rgba(255,255,255,0.08)",
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 2 L 14.5 8.5 L 21.5 9.2 L 16.2 13.8 L 17.9 21 L 12 17.3 L 6.1 21 L 7.8 13.8 L 2.5 9.2 L 9.5 8.5 z"/>
+              </svg>
+              <span>Pro</span>
+            </span>
+          ) : (
             <button
               onClick={()=>onNav("upgrade")}
               aria-label="Upgrade to Pro"
