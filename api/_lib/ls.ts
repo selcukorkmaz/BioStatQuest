@@ -126,6 +126,14 @@ export async function lsCustomerPortalUrl(customerId: string): Promise<string> {
   }
   const json = await r.json() as any;
   const url = json?.data?.attributes?.urls?.customer_portal;
+  // Diagnostic — surface the exact portal URL LS returned. Reported a
+  // case where "Manage billing" landed on the merchant dashboard rather
+  // than the customer portal; this log will reveal whether LS is
+  // returning the wrong URL or the browser is following a merchant-
+  // session redirect.
+  console.log(
+    `[ls] customer portal url for customer=${customerId}: ${url}`,
+  );
   if (!url) throw new Error("LS customer has no customer_portal url");
   return url as string;
 }
