@@ -137,3 +137,52 @@ export async function lsCustomerPortalUrl(customerId: string): Promise<string> {
   if (!url) throw new Error("LS customer has no customer_portal url");
   return url as string;
 }
+
+// Cancel a subscription via LS API. Per LS docs:
+//   DELETE /v1/subscriptions/{id}
+// Sets the subscription's `cancelled` flag to true. The status stays
+// 'active' until the end of the current billing period; at that point
+// LS fires subscription_expired and status becomes 'expired'.
+//
+// That's the standard SaaS UX: the customer keeps access until the
+// period they already paid for runs out, then loses access.
+//
+// Returns the updated subscription resource so callers can surface
+// ends_at to the user ("cancelled — access until <date>").
+export type LsCancelledSubscription = {
+  id: string;
+  status: string | null;
+  cancelled: boolean;
+  endsAt: string | null;
+  renewsAt: string | null;
+};
+
+export async function lsCancelSubscription(subscriptionId: string): Promise<LsCancelledSubscription> {
+  const key = LS_API_KEY();
+  if (!key) throw new Error("LEMONSQUEEZY_API_KEY not set");
+  const r = await fetch(`${LS_API}/subscriptions/${subscriptionId}`, {
+    method: "DELETE",
+    headers: {
+      Accept: "application/vnd.api+json",
+      Authorization: `Bearer ${key}`,
+    },
+  });
+  if (!r.ok) {
+    const txt = await r.text().catch(() => "");
+    throw new Error(`LS cancel failed: ${r.status} ${txt}`);
+  }
+  const json = await r.json() as any;
+  const attrs = json?.data?.attributes || {};
+  // Log so we can correlate a cancel call with the resulting
+  // subscription_updated webhook in production debugging.
+  console.log(
+    `[ls] cancel subscription=${subscriptionId} status=${attrs.status} cancelled=${attrs.cancelled} ends_at=${attrs.ends_at}`,
+  );
+  return {
+    id: String(json?.data?.id ?? subscriptionId),
+    status: attrs.status ?? null,
+    cancelled: !!attrs.cancelled,
+    endsAt: attrs.ends_at ?? null,
+    renewsAt: attrs.renews_at ?? null,
+  };
+}

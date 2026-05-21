@@ -65,6 +65,15 @@ function portalPath(provider: BillingProvider): string {
     : "/api/stripe/portal";
 }
 
+function cancelPath(provider: BillingProvider): string {
+  return provider === "lemonsqueezy"
+    ? "/api/lemonsqueezy/cancel"
+    : "/api/stripe/cancel"; // Stripe cancel endpoint not yet shipped — caller
+                            // should route by billing_provider so this branch
+                            // only fires for legacy Stripe customers once we
+                            // build the equivalent endpoint there.
+}
+
 async function startCheckout(
   plan: "monthly" | "yearly",
   provider: BillingProvider = DEFAULT_PROVIDER,
@@ -85,4 +94,24 @@ async function openPortal(
   window.location.href = url;
 }
 
-export const billing = { startCheckout, openPortal, DEFAULT_PROVIDER };
+// In-app cancel — bypasses the LS hosted portal entirely. Server-side
+// calls LS's DELETE /v1/subscriptions/{id}; the subscription is marked
+// cancelled but the user keeps Pro until the period they've paid for
+// expires. The subsequent `subscription_updated` / `subscription_expired`
+// webhook drives the user_type flip in our DB; the UI just shows a
+// confirmation immediately so the user knows the action took effect.
+//
+// Returns the LS endsAt timestamp so SubscriptionPanel can render
+// "Cancelled — access until <date>". Throws on network / auth / LS
+// errors; callers should catch and render the message.
+async function cancelSubscription(
+  provider: BillingProvider = DEFAULT_PROVIDER,
+): Promise<{ endsAt: string | null; alreadyCancelled?: boolean }> {
+  const json = await post(cancelPath(provider), {});
+  return {
+    endsAt: json?.endsAt ?? null,
+    alreadyCancelled: !!json?.alreadyCancelled,
+  };
+}
+
+export const billing = { startCheckout, openPortal, cancelSubscription, DEFAULT_PROVIDER };
