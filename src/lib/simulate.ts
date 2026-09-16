@@ -64,6 +64,11 @@ export type ColliderResult = {
 
 export type SimResult = CltResult | CoverageResult | MultiplicityResult | ColliderResult;
 
+export const SIM_KINDS = ["clt", "ci_coverage", "multiplicity", "collider"] as const;
+export const isSimSpec = (v: unknown): v is SimSpec =>
+  !!v && typeof v === "object" &&
+  (SIM_KINDS as readonly string[]).includes((v as { kind?: string }).kind ?? "");
+
 // ------------------------------------------------------------
 // Small numeric helpers
 // ------------------------------------------------------------
@@ -194,6 +199,12 @@ export function runSimulation(spec: SimSpec): SimResult {
       hits: pvals.filter((p) => p < spec.alpha).length,
       expected: spec.m * spec.alpha,
     };
+  }
+
+  if (spec.kind !== "collider") {
+    // Falling through to the collider branch on an unrecognised kind would draw
+    // a confident, entirely unrelated picture. Fail instead.
+    throw new Error(`[simulate] unknown simulation kind: ${(spec as { kind: string }).kind}`);
   }
 
   // collider: x and y are generated INDEPENDENTLY, then we keep only the cases

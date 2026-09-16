@@ -5,7 +5,7 @@
 // pure and seeded — this file only turns numbers into shapes.
 
 import * as React from "react";
-import { runSimulation, type SimSpec, type Bin } from "../lib/simulate";
+import { runSimulation, isSimSpec, type SimSpec, type Bin } from "../lib/simulate";
 
 const C = {
   pop: "#94a3b8",
@@ -56,7 +56,10 @@ function Stat({ label, value, color }: { label: string; value: string; color: st
 }
 
 export function SimulationReveal({ spec }: { spec: SimSpec }) {
-  const result = React.useMemo(() => runSimulation(spec), [JSON.stringify(spec)]);
+  // A spec can arrive from persisted state written by an older build. Degrade to
+  // no picture rather than taking the whole question down with it.
+  const result = React.useMemo(() => (isSimSpec(spec) ? runSimulation(spec) : null), [JSON.stringify(spec)]);
+  if (!result) return null;
 
   let body: React.ReactNode = null;
 

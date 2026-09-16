@@ -9,7 +9,6 @@ import { Confetti } from "./components/Confetti";
 import { AuthButton, SignInCard } from "./components/AuthButton";
 import { DeepDive } from "./components/DeepDive";
 import { CasePlay } from "./components/CasePlay";
-import { TeachView } from "./components/TeachView";
 import { JoinView } from "./components/JoinView";
 import { MyClassesBand } from "./components/MyClassesBand";
 import { hasAnyInstructorRole } from "./lib/classesApi";
@@ -34,13 +33,14 @@ import { composeRun } from "./lib/runComposition";
 import { BRANCHES } from "./data/branches";
 import { METHODS, METHOD_BRANCH } from "./data/methods";
 import { CASES } from "./data/cases";
-import { FAMILIES, familiesForMethods, drawFamilyQuestion, isFamilyQid, FAMILY_BY_ID } from "./data/generators";
+// Lazy façade: metadata (fid/method/title) resolves synchronously from the
+// manifest, while the ~57 KB of generator code arrives in its own chunk.
+// Every path below that actually DRAWS awaits ensureGenerators() first.
+import { FAMILIES, familiesForMethods, drawFamilyQuestion, isFamilyQid, FAMILY_BY_ID,
+         ensureGenerators, warmGenerators } from "./data/generators/lazy";
 import { DIAGNOSTIC } from "./data/diagnostic";
 import { getNarrative, getNarrativeQids, getActForQid } from "./data/caseNarratives";
 import { GLOSSARY, GLOSSARY_BY_ID, GLOSSARY_KIND_META, normalizeGlossaryText } from "./data/glossary";
-import { MyMisconceptions } from "./views/MyMisconceptions";
-import { Exam } from "./views/Exam";
-import { Competency } from "./views/Competency";
 import { fmtNumber, fmtDate, fmtDateTime, fmtTime } from "./lib/format";
 import { buildStudyPath, recommendedDifficultyFromBand, bandLabel } from "./lib/diagnostic";
 import { useUrlPath } from "./lib/useUrlPath";
@@ -403,7 +403,7 @@ function scoreDiagnostic(answers) {
 // finishDiagnostic still calls it locally).
 
 // ============================================================
-// GENERATED ITEMS — see src/data/generators.ts
+// GENERATED ITEMS — see src/data/generators/ (lazy façade in ./lazy.ts)
 // ============================================================
 // A case "claims" an item family when that family's method already appears
 // in its bank, so nothing has to be re-tagged by hand. Generated instances
@@ -5174,6 +5174,20 @@ import {
 // at build time; users who never open the route never download the JS.
 // Wrap the route render with <Suspense fallback={…}> below.
 const SkillTreeLazy = React.lazy(() => import("./views/SkillTree"));
+// Route-level views the median session never opens: Teach is instructor-only,
+// and Exam / Competency / Misconceptions are deliberate detours from the case
+// loop. Splitting them keeps their code out of the first paint's payload.
+const TeachViewLazy = React.lazy(() =>
+  import("./components/TeachView").then((m) => ({ default: m.TeachView })));
+const ExamLazy = React.lazy(() => import("./views/Exam"));
+const CompetencyLazy = React.lazy(() => import("./views/Competency"));
+const MyMisconceptionsLazy = React.lazy(() => import("./views/MyMisconceptions"));
+
+// Shared fallback: these swap in fast enough that a spinner would flash, so
+// it's a quiet line of text in the same slot the view will occupy.
+function ViewLoading({ label }) {
+  return <div className="max-w-7xl mx-auto p-6 text-slate-500 text-sm">Loading {label}…</div>;
+}
 
 // --- small primitives ---
 function Slider({ label, value, min, max, step, onChange, suffix, color="#8b5cf6" }) {
@@ -7502,6 +7516,11 @@ function App() {
     } catch {}
   }, []);
 
+  // Fetch the generator chunk while the app is idle, so the first "start a
+  // case" click doesn't pay for it. Purely an optimisation — the awaits above
+  // are what guarantee correctness.
+  useEffect(() => { warmGenerators(); }, []);
+
   useEffect(() => saveState(state), [state]);
 
   // Existing users with progress but no onboarding decision: mark them as
@@ -7616,7 +7635,11 @@ function App() {
     });
   };
 
-  const beginPlay = (id, diff) => {
+  const beginPlay = async (id, diff) => {
+    // Generated items are part of run composition, so the chunk has to be in
+    // memory before pickQuestions runs. Warmed at mount, so this is normally
+    // an already-resolved promise and the click feels synchronous.
+    await ensureGenerators();
     const c = CASES.find(x=>x.id===id);
     const qs = pickQuestions(c, state.seenQuestions[id] || [], state.srs);
     setActiveCase(id); setActiveDiff(diff); setActiveQuestions(qs); setView("play");
@@ -7660,8 +7683,9 @@ function App() {
     });
   }, []);
 
-  const replay = () => {
+  const replay = async () => {
     if (activeCase === REVIEW_CASE_ID) { beginReview(); return; }
+    await ensureGenerators();
     // Pick a fresh set of questions
     const c = CASES.find(x=>x.id===activeCase);
     const seen = state.seenQuestions[activeCase] || [];
@@ -7671,6 +7695,9 @@ function App() {
   };
 
   const beginReview = async () => {
+    // Families schedule at the family level and are redrawn fresh below, so
+    // the generator chunk must be loaded before either branch runs.
+    await ensureGenerators();
     // Signed-in users: pull due qids from server-backed FSRS. Guests: fall
     // back to the local SM-2 (in state.srs) so everyone gets a review loop.
     let qs = [];
@@ -7892,11 +7919,27 @@ function App() {
       {view === "play"     && <CasePlay caseId={activeCase} difficulty={activeDiff} questions={activeQuestions} onFinish={finishCase} onExit={()=>setView("home")} srs={state.srs} onOpenGlossary={openGlossary}/>}
       {view === "result"   && <CaseResult result={lastResult} onHome={()=>setView("home")} onReplay={replay} onNext={(id)=>{setActiveCase(id); setView("select");}} onShare={(a)=>setSharePending(a)} srs={state.srs} state={state} onOpenGlossary={openGlossary}/>}
       {view === "admin"    && <AdminReports onHome={()=>setView("home")}/>}
-      {view === "teach"    && <TeachView onHome={()=>setView("home")}/>}
+      {view === "teach"    && (
+        <React.Suspense fallback={<ViewLoading label="Teach"/>}>
+          <TeachViewLazy onHome={()=>setView("home")}/>
+        </React.Suspense>
+      )}
       {view === "join"     && <JoinView/>}
-      {view === "misconceptions" && <MyMisconceptions onExit={()=>setView("home")} onOpenGlossary={openGlossary} onStartCase={startCaseSelect}/>}
-      {view === "exam"           && <Exam onExit={()=>setView("home")}/>}
-      {view === "competency"     && <Competency state={state} onExit={()=>setView("home")}/>}
+      {view === "misconceptions" && (
+        <React.Suspense fallback={<ViewLoading label="misconceptions"/>}>
+          <MyMisconceptionsLazy onExit={()=>setView("home")} onOpenGlossary={openGlossary} onStartCase={startCaseSelect}/>
+        </React.Suspense>
+      )}
+      {view === "exam"           && (
+        <React.Suspense fallback={<ViewLoading label="Exam"/>}>
+          <ExamLazy onExit={()=>setView("home")}/>
+        </React.Suspense>
+      )}
+      {view === "competency"     && (
+        <React.Suspense fallback={<ViewLoading label="Competency"/>}>
+          <CompetencyLazy state={state} onExit={()=>setView("home")}/>
+        </React.Suspense>
+      )}
       </main>
       {sharePending && (
         <ShareCardModal
