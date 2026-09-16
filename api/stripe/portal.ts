@@ -7,10 +7,13 @@
 // checkout.session.completed webhook). Returns { url } on success.
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { rejectIfPaymentsDisabled } from "../_lib/payments";
 import { stripe } from "../_lib/stripe";
 import { supabaseAdmin } from "../_lib/supabaseAdmin";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Paid plans withdrawn — this route is intentionally gone.
+  if (rejectIfPaymentsDisabled(req, res)) return;
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   try {
     const authHeader = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");

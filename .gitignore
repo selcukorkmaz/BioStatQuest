@@ -15,3 +15,7 @@ dist
 
 # Office lockfiles
 ~$*
+
+# One-off broadcast send log (scripts/send-outage-email.mjs)
+.outage-sent.log
+recipients.csv

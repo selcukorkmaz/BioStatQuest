@@ -12,6 +12,31 @@
 // remove) and redeploy. The DB state never changes; this is purely a
 // client/server gate override.
 
+// ============================================================
+// PAYMENTS KILL SWITCH — single source of truth.
+//
+// Flipped to `false` on 2026-09-17: paid Pro plans, every checkout /
+// pricing surface, and the institutional (per-seat) offer were withdrawn
+// from the product. Nobody had an active paid subscription at the time,
+// so there was no migration to run.
+//
+// While this is `false`:
+//   • `effectivelyPro()` returns true for everyone — no case, hint layer,
+//     exam, AI-tutor quota, competency statement or misconception tag is
+//     gated. There is no paywall, because there is nothing to buy.
+//   • The Upgrade page, the paywall modal and the TopBar upgrade/Pro
+//     affordances are not rendered or routed.
+//   • /api/{stripe,lemonsqueezy}/{checkout,portal,cancel} answer 410
+//     (see api/_lib/payments.ts — the server is the real enforcement
+//     point; the UI removal is convenience, not security).
+//
+// To re-open sales: flip this to `true`, flip PAYMENTS_ENABLED in
+// api/_lib/payments.ts to match, restore the pricing sections in
+// index.html / for-educators.html from git history, and re-add the
+// "upgrade" route in src/lib/viewRoutes.ts + App.tsx.
+// ============================================================
+export const PAYMENTS_ENABLED: boolean = false;
+
 // Hardcoded for the launch window. Flipped to `false` on 2026-05-21
 // when paid plans went live via Lemon Squeezy. Existing engaged beta
 // users were grandfathered to 6 months of Pro via SQL backfill (see
@@ -51,6 +76,11 @@ export const FORCE_FREE_TEST_USER_TYPE = "force_free_test";
 // override so a test account can hit the paywall while everyone else
 // keeps full beta access. Order matters here.
 export function effectivelyPro(userType: string | undefined | null): boolean {
+  // Payments withdrawn → every feature is free for everyone. This check
+  // comes first, ahead of even the force_free_test sentinel: with no
+  // checkout to reach, a "locked" user would be stuck with no way out,
+  // which is exactly the state this flag exists to prevent.
+  if (!PAYMENTS_ENABLED) return true;
   if (userType === FORCE_FREE_TEST_USER_TYPE) return false;
   if (userType === "pro" || userType === "institutional") return true;
   if (OPEN_BETA_PRO) return true;

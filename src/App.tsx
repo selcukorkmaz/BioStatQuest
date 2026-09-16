@@ -4,8 +4,6 @@ import * as ReactDOM from "react-dom";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import "./lib/auth";
 import { gradeCard as srsGradeCard, getDueCount as srsGetDueCount, getDueQids as srsGetDueQids, getMasteryByMethod as srsGetMasteryByMethod } from "./lib/srs";
-import { billing } from "./lib/billing";
-import { SubscriptionPanel, useSubscription } from "./components/SubscriptionPanel";
 import { NAV_ICON, BRANCH_ICON, LESSON_ICON, UI_ICON, ICON_MARKUP, renderIconMarkup, iconSvgFragment, Ico, BranchGlyph } from "./components/Icons";
 import { Confetti } from "./components/Confetti";
 import { AuthButton, SignInCard } from "./components/AuthButton";
@@ -19,32 +17,29 @@ import { levelFromXP, xpForLevel } from "./lib/xp";
 import { DIFFICULTIES, REVIEW_CASE_ID } from "./lib/difficulty";
 import { getMethodMastery } from "./lib/mastery";
 import { adaptiveOrder } from "./lib/adaptive";
-import { effectivelyPro, OPEN_BETA_PRO } from "./lib/launchFlags";
+import { updateSeenQuestions } from "./lib/seen";
 
 // ============================================================
-// BILLING / GATING (Phase 3a — consumer Pro tier)
-// Free tier: first FREE_CASES_LIMIT cases in catalog order.
-// Pro tier (and institutional): all 50 cases.
-// Admin gets Pro by default too (so you can test gated content).
+// GATING
+// Paid plans were withdrawn on 2026-09-17 (see PAYMENTS_ENABLED in
+// src/lib/launchFlags.ts). Every feature is free for everyone, so there
+// are no tier constants, no prices and no paywall left in this file.
+// The per-case gate still lives in src/lib/access.ts — it simply never
+// reports a lock while payments are off.
 // ============================================================
-const FREE_CASES_LIMIT = 20;
-const PRO_PRICE_MONTHLY_USD = 9;
-const PRO_PRICE_YEARLY_USD = 60;
-
-// isCaseLockedForUser moved to src/lib/access.ts. Re-imported below.
 
 // Hook: current subscription state. Returns null while loading. Auto-refreshes
-// on auth change and when the app refocuses (covers the Stripe-return roundtrip).
+// on auth change and when the app refocuses.
 import { BRANCHES } from "./data/branches";
-import { METHODS } from "./data/methods";
+import { METHODS, METHOD_BRANCH } from "./data/methods";
 import { CASES } from "./data/cases";
+import { FAMILIES, familiesForMethods, drawFamilyQuestion, isFamilyQid, FAMILY_BY_ID } from "./data/generators";
 import { DIAGNOSTIC } from "./data/diagnostic";
 import { getNarrative, getNarrativeQids, getActForQid } from "./data/caseNarratives";
 import { GLOSSARY, GLOSSARY_BY_ID, GLOSSARY_KIND_META, normalizeGlossaryText } from "./data/glossary";
 import { MyMisconceptions } from "./views/MyMisconceptions";
 import { Exam } from "./views/Exam";
 import { Competency } from "./views/Competency";
-import { Upgrade } from "./views/Upgrade";
 import { fmtNumber, fmtDate, fmtDateTime, fmtTime } from "./lib/format";
 import { buildStudyPath, recommendedDifficultyFromBand, bandLabel } from "./lib/diagnostic";
 import { useUrlPath } from "./lib/useUrlPath";
@@ -365,6 +360,17 @@ function getDueQuestionsAcrossCases(srs, limit = 20) {
       }
     }
   }
+  // Families schedule at the family level (qid === fid), so a due card here
+  // means "this skill is due" — we redraw it with fresh numbers rather than
+  // replaying the instance they saw last time.
+  for (const fam of FAMILIES) {
+    const s = srs[fam.fid];
+    if (!s || s.due > now) continue;
+    const inst = drawFamilyQuestion(fam.fid);
+    if (!inst) continue;
+    const host = hostCaseForFamily(fam);
+    due.push({ ...inst, _caseId: host ? host.id : null, _branch: host ? host.branch : METHOD_BRANCH[fam.method], _due: s.due });
+  }
   due.sort((a, b) => a._due - b._due);
   return due.slice(0, limit);
 }
@@ -394,6 +400,31 @@ function scoreDiagnostic(answers) {
 // src/lib/diagnostic.ts for testability and are imported at the top of
 // this file. scoreDiagnostic kept in-place above for now (App.tsx's
 // finishDiagnostic still calls it locally).
+
+// ============================================================
+// GENERATED ITEMS — see src/data/generators.ts
+// ============================================================
+// A case "claims" an item family when that family's method already appears
+// in its bank, so nothing has to be re-tagged by hand. Generated instances
+// are then slotted in AHEAD of already-answered bank items and behind unseen
+// ones: the run only changes once the authored bank is exhausted, which is
+// exactly the point at which a learner used to start seeing repeats.
+const FAMILIES_BY_CASE = new Map();
+function familiesForCase(caseObj) {
+  if (!caseObj) return [];
+  if (!FAMILIES_BY_CASE.has(caseObj.id)) {
+    FAMILIES_BY_CASE.set(
+      caseObj.id,
+      familiesForMethods((caseObj.bank || []).map(q => q.method).filter(Boolean)),
+    );
+  }
+  return FAMILIES_BY_CASE.get(caseObj.id);
+}
+
+// The case a generated item is shown under, for branch attribution in review.
+function hostCaseForFamily(fam) {
+  return CASES.find(c => familiesForCase(c).some(f => f.fid === fam.fid)) || null;
+}
 
 function pickQuestions(caseObj, seenArr, srs) {
   const n = caseObj.qPerRun;
@@ -427,7 +458,16 @@ function pickQuestions(caseObj, seenArr, srs) {
   const unseen = adaptiveOrder(unseenRaw, srsMap);
   // Priority 3: not-yet-due seen items (fillers)
   const rest = shuf(bank.filter(q => !unseenSet.has(q.qid) && !(srsMap[q.qid] && srsMap[q.qid].due <= now)));
-  let picked = [...due, ...unseen, ...rest].slice(0, n);
+  // Generated instances. A family that is due outranks unseen bank items
+  // (same rule as Priority 1); an undue family is a filler that displaces a
+  // repeat. Fresh numbers every draw, so neither case can ever be a rerun.
+  const famDue = [], famFresh = [];
+  for (const fam of familiesForCase(caseObj)) {
+    const inst = drawFamilyQuestion(fam.fid);
+    if (!inst) continue;
+    (srsMap[fam.fid] && srsMap[fam.fid].due <= now ? famDue : famFresh).push(inst);
+  }
+  let picked = [...due, ...shuf(famDue), ...unseen, ...shuf(famFresh), ...rest].slice(0, n);
   if (picked.length < n) picked = shuf(bank.slice()).slice(0, n);
   return picked.map(shuffleQuestionOptions);
 }
@@ -469,24 +509,10 @@ function TopBar({ state, setState, onReset, onNav, current }) {
     return () => { cancelled = true; };
   }, []);
 
-  // Pro tier visibility — hide the "Upgrade" nav button for users who
-  // already have Pro (or institutional) so the chrome stays clean.
-  const [isProNow, setIsProNow] = React.useState(() => effectivelyPro(undefined));
-  React.useEffect(() => {
-    let cancelled = false;
-    const check = async () => {
-      try {
-        const s = await window.BQAuth?.fetchSubscription?.();
-        if (!cancelled) setIsProNow(effectivelyPro(s?.user_type));
-      } catch { /* leave as false */ }
-    };
-    check();
-    if (window.BQAuth?.onAuthChange) {
-      const off = window.BQAuth.onAuthChange(check);
-      return () => { cancelled = true; off?.(); };
-    }
-    return () => { cancelled = true; };
-  }, []);
+  // The Pro-tier probe that used to live here (fetchSubscription on mount
+  // + on every auth change) is gone with the paid tier: nothing in the
+  // chrome branches on plan any more, so it was a round-trip per mount
+  // for a value nobody read.
   return (
     <div className="sticky top-0 z-40 backdrop-blur-xl bg-slate-950/70 border-b border-purple-900/30">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 flex-wrap">
@@ -560,8 +586,7 @@ function TopBar({ state, setState, onReset, onNav, current }) {
         </a>
         {/* Nav: primary items always visible; secondary items collapse into
             a "More ▾" dropdown to keep the chrome from feeling like a
-            kitchen sink. Upgrade moved to the right-side account block
-            (Pro CTA deserves prominence next to identity). */}
+            kitchen sink. */}
         <NavBar current={current} onNav={onNav} isInstructorNow={isInstructorNow} isAdminNow={isAdminNow} />
         <div className="order-2 md:order-3 flex items-center gap-2 sm:gap-3 min-w-0">
           {/* Single compact progress block: Lv · XP. Accuracy moved off the
@@ -574,47 +599,11 @@ function TopBar({ state, setState, onReset, onNav, current }) {
             </div>
             <div className="bar w-32 sm:w-40 mt-1.5 ml-auto"><div style={{width: pct+"%"}}></div></div>
           </div>
-          {isProNow ? (
-            // Pro identity chip. Sits in the slot the Upgrade button
-            // occupies for free users, so the right rail keeps a stable
-            // width regardless of plan. Gradient + gold-stroke ring sells
-            // "premium tier" — same visual language we use on Pro-only
-            // surfaces (paywall, statement of competency, etc).
-            <span
-              aria-label="Pro subscriber"
-              title="You're on BioStat Quest Pro"
-              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-extrabold tracking-wider uppercase whitespace-nowrap shrink-0 select-none"
-              style={{
-                background: "linear-gradient(135deg, rgba(251,191,36,0.22), rgba(245,158,11,0.10) 70%, rgba(217,119,6,0.08))",
-                border: "1px solid rgba(251,191,36,0.55)",
-                color: "#fde68a",
-                boxShadow: "0 4px 14px -6px rgba(251,191,36,0.35), inset 0 1px 0 rgba(255,255,255,0.08)",
-              }}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M12 2 L 14.5 8.5 L 21.5 9.2 L 16.2 13.8 L 17.9 21 L 12 17.3 L 6.1 21 L 7.8 13.8 L 2.5 9.2 L 9.5 8.5 z"/>
-              </svg>
-              <span>Pro</span>
-            </span>
-          ) : (
-            <button
-              onClick={()=>onNav("upgrade")}
-              aria-label="Upgrade to Pro"
-              title="Upgrade — see what Pro unlocks"
-              aria-current={current==="upgrade" ? "page" : undefined}
-              className={`hidden sm:inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold transition border whitespace-nowrap shrink-0 ${current==="upgrade"
-                ? "bg-amber-500/30 border-amber-400 text-amber-100"
-                : "bg-amber-500/15 border-amber-500/40 text-amber-200 hover:bg-amber-500/25 hover:border-amber-400"}`}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M12 4 L 12 14"/>
-                <path d="M8 8 L 12 4 L 16 8"/>
-                <path d="M5 18 L 12 14 L 19 18 L 17 21 L 12 19 L 7 21 z" fill="currentColor" stroke="none"/>
-              </svg>
-              {/* Text only at lg+ — keeps the right block tight on mid-widths
-                  so the AuthButton's username doesn't push the nav into a wrap. */}
-              <span className="hidden lg:inline">Upgrade</span>
-            </button>
-          )}
+          {/* The Upgrade CTA and the "Pro" identity chip both lived in this
+              slot. Paid plans were withdrawn (PAYMENTS_ENABLED=false), so
+              there is no tier to advertise and no plan to display — the
+              slot is left empty rather than showing a badge that no longer
+              means anything. */}
           <AuthButton state={state} setState={setState} />
           <button onClick={onReset} className="text-xs text-slate-600 hover:text-red-400 transition hidden sm:inline">Reset</button>
         </div>
@@ -623,28 +612,10 @@ function TopBar({ state, setState, onReset, onNav, current }) {
   );
 }
 
-// Slim launch banner shown beneath the TopBar while open-beta mode is on.
-// Visible to everyone (signed-in or guest); the message owns expectations
-// during the window before paid plans go live. Disappears the moment
-// VITE_OPEN_BETA_PRO is unset/false in env.
-function OpenBetaBanner() {
-  if (!OPEN_BETA_PRO) return null;
-  return (
-    <div className="bg-gradient-to-r from-emerald-900/50 via-emerald-800/40 to-emerald-900/50 border-b border-emerald-700/40">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-1.5 text-xs text-emerald-100 flex items-center justify-center gap-2 text-center flex-wrap">
-        <span className="font-semibold">🎉 Open beta</span>
-        <span className="text-emerald-200/80">—</span>
-        <span>All Pro features are free for signed-in users while paid plans launch.</span>
-        <a href="/upgrade" className="underline hover:text-white whitespace-nowrap">See what's included →</a>
-      </div>
-    </div>
-  );
-}
-
 // Primary nav items (always visible) + secondary in a "More ▾" dropdown.
 // Reordering is fine; the order here defines what surfaces first to a
 // new visitor. Five primary keeps the bar visually clean while leaving
-// breathing room for Upgrade on the right and the more dropdown.
+// breathing room for the account block on the right and the more dropdown.
 const PRIMARY_NAV: Array<[string, string]> = [
   ["home",       "Home"],
   ["tree",       "Skill Tree"],
@@ -833,7 +804,7 @@ function Home({ state, setState, onStartCase, onNav, onOpenBranch, onReview }) {
   const level = levelFromXP(state.xp);
   const title = level < 3 ? "Intern" : level < 6 ? "Resident" : level < 10 ? "Fellow" : "Principal Investigator";
   const srs = state.srs || {};
-  const dueByCase = CASES.map(c => ({ c, due: countDueSRS(srs, c.bank.map(q=>q.qid)) }));
+  const dueByCase = CASES.map(c => ({ c, due: countDueSRS(srs, [...c.bank.map(q=>q.qid), ...familiesForCase(c).map(f=>f.fid)]) }));
   const localDue = dueByCase.reduce((s,x)=>s+x.due, 0);
   const completed = state.completed || [];
 
@@ -2908,112 +2879,6 @@ function InfoPill({ label, value, color }) {
     </div>
   );
 }
-
-// Paywall modal. Shown when a free-tier user tries to open a Pro-only case,
-// or when they hit an in-app "Upgrade" affordance. Hosted Stripe Checkout
-// handles the actual payment UI — we just present pricing and hand off.
-function PaywallModal({ reason, onClose, caseTitle }) {
-  const [plan, setPlan] = React.useState("yearly"); // default yearly — better LTV + saves money for user
-  const [busy, setBusy] = React.useState(false);
-  const [err, setErr] = React.useState("");
-  const signedIn = !!(window.BQAuth && window.BQAuth.getUser && window.BQAuth.getUser());
-  // Phase 5.7 — focus trap + Esc to close. Restores focus to whatever
-  // the user clicked to open this on close.
-  const dialogRef = useFocusTrap<HTMLDivElement>(true, onClose);
-
-  async function subscribe() {
-    setBusy(true); setErr("");
-    try {
-      await billing.startCheckout(plan);
-      // billing.startCheckout redirects — we won't return here on success.
-    } catch (e) {
-      setErr(e?.message || "Could not start checkout.");
-      setBusy(false);
-    }
-  }
-
-  const monthly = PRO_PRICE_MONTHLY_USD;
-  const yearly = PRO_PRICE_YEARLY_USD;
-  const yearlyPerMonth = (yearly / 12).toFixed(2);
-  const savings = Math.max(0, monthly * 12 - yearly);
-
-  return ReactDOM.createPortal((
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 fade-in" style={{background: "rgba(2,6,23,0.78)"}} role="dialog" aria-modal="true" aria-labelledby="paywall-title" onClick={onClose}>
-      <div ref={dialogRef} tabIndex={-1} className="card premium-border rounded-2xl max-w-lg w-full p-6 sm:p-8 max-h-[90vh] overflow-y-auto outline-none" onClick={(e)=>e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div className="min-w-0">
-            <div className="tag text-amber-300 mb-1">Pro — unlock everything</div>
-            <h3 id="paywall-title" className="text-xl sm:text-2xl font-extrabold text-white tracking-tight leading-tight">
-              {reason === "locked_case" && caseTitle
-                ? <>This case — <span className="gold-text">{caseTitle}</span> — is part of Pro.</>
-                : "Unlock all 50 cases."}
-            </h3>
-          </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-white shrink-0 inline-flex items-center" aria-label="Close"><Ico name="close" size={18}/></button>
-        </div>
-
-        <p className="text-sm text-slate-300 leading-relaxed mb-5">
-          Free for the first {FREE_CASES_LIMIT} cases. Pro unlocks the remaining {CASES.length - FREE_CASES_LIMIT} — including advanced regression, survival analysis, causal inference, Bayesian methods, and every future case we ship. The FSRS-6 scheduler works across all of them.
-        </p>
-
-        <div className="space-y-3 mb-5">
-          <button onClick={() => setPlan("yearly")} className={`w-full rounded-xl p-4 text-left transition border ${plan === "yearly" ? "border-cyan-500/60 bg-cyan-950/30" : "border-slate-700 bg-slate-900/40 hover:bg-slate-900/70"}`}>
-            <div className="flex items-center justify-between gap-3 mb-1">
-              <div className="flex items-center gap-2">
-                <div className={`w-4 h-4 rounded-full border-2 ${plan === "yearly" ? "border-cyan-400 bg-cyan-400" : "border-slate-500"}`}/>
-                <span className="text-white font-semibold">Yearly</span>
-                {savings > 0 && <span className="chip text-[10px] bg-emerald-900/40 text-emerald-300">Save ${savings}/yr</span>}
-              </div>
-              <div className="text-right">
-                <div className="text-white font-bold">${yearly}<span className="text-xs text-slate-400 font-normal">/yr</span></div>
-                <div className="text-[11px] text-slate-500">≈ ${yearlyPerMonth}/mo</div>
-              </div>
-            </div>
-          </button>
-          <button onClick={() => setPlan("monthly")} className={`w-full rounded-xl p-4 text-left transition border ${plan === "monthly" ? "border-cyan-500/60 bg-cyan-950/30" : "border-slate-700 bg-slate-900/40 hover:bg-slate-900/70"}`}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <div className={`w-4 h-4 rounded-full border-2 ${plan === "monthly" ? "border-cyan-400 bg-cyan-400" : "border-slate-500"}`}/>
-                <span className="text-white font-semibold">Monthly</span>
-              </div>
-              <div className="text-right">
-                <div className="text-white font-bold">${monthly}<span className="text-xs text-slate-400 font-normal">/mo</span></div>
-              </div>
-            </div>
-          </button>
-        </div>
-
-        <ul className="text-xs text-slate-400 space-y-1.5 mb-5">
-          <li className="flex items-start gap-2"><span className="text-emerald-400 shrink-0 inline-flex items-center mt-0.5"><Ico name="check" size={14}/></span> All 50 cases unlocked — advanced regression, survival, causal, Bayesian</li>
-          <li className="flex items-start gap-2"><span className="text-emerald-400 shrink-0 inline-flex items-center mt-0.5"><Ico name="check" size={14}/></span> FSRS-6 scheduling across every card</li>
-          <li className="flex items-start gap-2"><span className="text-emerald-400 shrink-0 inline-flex items-center mt-0.5"><Ico name="check" size={14}/></span> Per-method mastery analytics</li>
-          <li className="flex items-start gap-2"><span className="text-emerald-400 shrink-0 inline-flex items-center mt-0.5"><Ico name="check" size={14}/></span> All future content included</li>
-          <li className="flex items-start gap-2"><span className="text-emerald-400 shrink-0 inline-flex items-center mt-0.5"><Ico name="check" size={14}/></span> Cancel anytime from your account — no long-term lock-in</li>
-        </ul>
-
-        {err && <div className="text-xs text-red-400 mb-3">{err}</div>}
-        {!signedIn ? (
-          <div className="text-sm text-slate-300 bg-slate-900/60 rounded-lg p-3 mb-3">
-            Please sign in first — then we can sync your subscription across devices.
-          </div>
-        ) : null}
-
-        <div className="flex flex-col sm:flex-row gap-2">
-          <button onClick={onClose} className="btn btn-ghost w-full sm:w-auto px-5 py-3 rounded-xl text-sm">Not now</button>
-          <button onClick={subscribe} disabled={busy || !signedIn} className="btn btn-primary flex-1 py-3 rounded-xl text-sm disabled:opacity-40">
-            {busy ? "Opening Stripe…" : `Subscribe — $${plan === "yearly" ? yearly + "/yr" : monthly + "/mo"}`}
-          </button>
-        </div>
-        <p className="text-[11px] text-slate-500 text-center mt-3">
-          Payments securely handled by Stripe. We never see your card number.
-        </p>
-      </div>
-    </div>
-  ), document.body);
-}
-
-
-
 
 function SoftWallModal({ state, totalXP, onClose }) {
   const authConfigured = window.BQAuth && window.BQAuth.enabled;
@@ -5295,7 +5160,6 @@ function Glossary({ state, onStartCase, onOpenBranch, request }) {
 // Math helpers — extracted to src/lib/stats.ts for testability and to
 // shrink App.tsx. Same numerical implementations, re-imported here.
 import { erf, pnorm, dnorm, qnorm, lgamma, dbeta } from "./lib/stats";
-import { isCaseLockedForUser } from "./lib/access";
 import {
   GLOSSARY_HASH_PREFIX,
   glossaryHashForId,
@@ -6181,12 +6045,25 @@ function Lab({ onVisit } = {}) {
 
 // Resolve a qid to its full question payload (q / options / answer / explain /
 // case title) so the admin can triage in context without leaving the page.
-function findQuestionByQid(qid) {
+function findQuestionByQid(qid, seed) {
   if (!qid) return null;
   for (const c of CASES) {
     for (const q of c.bank || []) {
       if (q.qid === qid) return { q, caseTitle: c.title, caseId: c.id, branch: c.branch };
     }
+  }
+  // Generated item: regenerate the exact instance when the report carried a
+  // seed, otherwise show a representative draw so triage still has context.
+  if (isFamilyQid(qid)) {
+    const fam = FAMILY_BY_ID.get(qid);
+    const q = drawFamilyQuestion(qid, seed);
+    const host = hostCaseForFamily(fam);
+    if (q) return {
+      q,
+      caseTitle: `${fam.title} — generated${seed === undefined ? " (sample draw)" : ` (seed ${q._seed})`}`,
+      caseId: host ? host.id : null,
+      branch: host ? host.branch : METHOD_BRANCH[fam.method],
+    };
   }
   return null;
 }
@@ -7540,6 +7417,13 @@ function App() {
       // Intent-to-sign-in (e.g. landing page "Sign in" → ?auth=1) should mount
       // the TopBar so AuthButton can open its modal; skip onboarding for now.
       if (qs.get("auth") === "1") return "home";
+      // /upgrade was the paid-plan page; it was withdrawn along with the
+      // paid tier. Old bookmarks and marketing links land here, so rewrite
+      // the URL to home rather than leaving a dead path in the address bar.
+      if (window.location.pathname === "/upgrade") {
+        try { window.history.replaceState(null, "", "/biostat-quest"); } catch {}
+        return "home";
+      }
       // Honor an explicit URL path. /teach, /admin, /glossary, etc. all
       // route here without query-param hacks.
       const fromUrl = viewFromPath(window.location.pathname);
@@ -7599,25 +7483,20 @@ function App() {
   });
   // Phase 3: which achievement (if any) is currently being shared.
   const [sharePending, setSharePending] = useState(null);
-  // Phase 3a billing: subscription state + paywall modal trigger.
-  const { sub, reload: reloadSub } = useSubscription();
-  const [paywall, setPaywall] = useState(null); // null | { reason, caseTitle? }
+  // The subscription probe, the paywall modal and the post-checkout
+  // "Welcome to Pro" toast that used to live here all went with the paid
+  // tier — nothing in this component branches on plan any more.
 
-  // Welcome-back banner after a successful Stripe checkout. Also re-pulls
-  // subscription state so the UI reflects the new plan immediately.
-  const [billingToast, setBillingToast] = useState(null); // null | 'success' | 'cancelled'
+  // Stale ?billing=... links (old receipts, bookmarks) shouldn't leave a
+  // dangling query param in the URL — strip it, silently.
   useEffect(() => {
     try {
       const qs = new URLSearchParams(window.location.search);
-      const b = qs.get("billing");
-      if (b === "success" || b === "cancelled" || b === "portal-return") {
-        if (b === "success") setBillingToast("success");
-        reloadSub();
-        // Clean the URL so reloads don't re-fire the banner.
+      if (qs.get("billing")) {
         window.history.replaceState(null, "", window.location.pathname);
       }
     } catch {}
-  }, [reloadSub]);
+  }, []);
 
   useEffect(() => saveState(state), [state]);
 
@@ -7699,12 +7578,9 @@ function App() {
     setView("glossary");
   };
 
+  // No lock check: with paid plans withdrawn every case is open to
+  // everyone (see isCaseLockedForUser, which now always reports false).
   const startCaseSelect = (id) => {
-    if (isCaseLockedForUser(id, sub?.user_type)) {
-      const c = CASES.find((x) => x.id === id);
-      setPaywall({ reason: "locked_case", caseTitle: c?.title });
-      return;
-    }
     setActiveCase(id); setView("select");
   };
 
@@ -7737,11 +7613,6 @@ function App() {
   };
 
   const beginPlay = (id, diff) => {
-    if (isCaseLockedForUser(id, sub?.user_type)) {
-      const c = CASES.find((x) => x.id === id);
-      setPaywall({ reason: "locked_case", caseTitle: c?.title });
-      return;
-    }
     const c = CASES.find(x=>x.id===id);
     const qs = pickQuestions(c, state.seenQuestions[id] || [], state.srs);
     setActiveCase(id); setActiveDiff(diff); setActiveQuestions(qs); setView("play");
@@ -7811,6 +7682,14 @@ function App() {
               if (qidSet.has(q.qid)) qs.push({ ...q, _caseId: c.id, _branch: c.branch });
             }
           }
+          // Family qids live outside the bank — redraw them fresh.
+          for (const fid of dueQids) {
+            if (!isFamilyQid(fid)) continue;
+            const inst = drawFamilyQuestion(fid);
+            if (!inst) continue;
+            const host = hostCaseForFamily(FAMILY_BY_ID.get(fid));
+            qs.push({ ...inst, _caseId: host ? host.id : null, _branch: host ? host.branch : METHOD_BRANCH[FAMILY_BY_ID.get(fid).method] });
+          }
           qs.sort((a, b) => (order.get(a.qid) ?? 0) - (order.get(b.qid) ?? 0));
         }
       } catch {}
@@ -7835,12 +7714,9 @@ function App() {
     const completedBefore = [...state.completed];
 
     // Update seen questions — per case in normal play; per-question attribution in review.
-    const newSeen = { ...state.seenQuestions };
+    let newSeen = { ...state.seenQuestions };
     if (!isReview) {
-      const curSeen = new Set(newSeen[caseId] || []);
-      answers.forEach(a => curSeen.add(a.qid));
-      if (curSeen.size >= c.bank.length) newSeen[caseId] = [];
-      else newSeen[caseId] = [...curSeen];
+      newSeen = updateSeenQuestions(newSeen, caseId, answers.map(a => a.qid), c.bank.length, isFamilyQid);
     }
 
     // Streak
@@ -7869,6 +7745,8 @@ function App() {
         // but answers array only has qid — look up via CASES).
         let branch = null;
         for (const k of CASES) for (const q of k.bank) if (q.qid === a.qid) { branch = k.branch; break; }
+        // Generated items aren't in any bank — resolve via the family's method.
+        if (!branch && isFamilyQid(a.qid)) branch = METHOD_BRANCH[FAMILY_BY_ID.get(a.qid).method] || null;
         if (!branch) return;
         br[branch] = br[branch] || { answered: 0, correct: 0 };
         br[branch] = { answered: br[branch].answered + 1, correct: br[branch].correct + (a.correct ? 1 : 0) };
@@ -7920,7 +7798,7 @@ function App() {
           qid: a.qid,
           caseId,
           method: a.method,
-          data: { timedOut: !!a.timedOut, difficulty },
+          data: { timedOut: !!a.timedOut, difficulty, seed: a.seed },
         });
       });
       window.BQAuth?.logEvent?.("case_complete", {
@@ -7964,7 +7842,6 @@ function App() {
       {view !== "onboarding" && view !== "diagnostic" && view !== "results" && view !== "join" && (
         <>
           <TopBar state={state} setState={setState} onReset={resetProgress} onNav={(v)=>{ if(v==="tree") setInitialBranch(null); setView(v); }} current={view}/>
-          <OpenBetaBanner/>
         </>
       )}
       <main id="main-content" tabIndex={-1} className="outline-none">
@@ -8016,7 +7893,6 @@ function App() {
       {view === "misconceptions" && <MyMisconceptions onExit={()=>setView("home")} onOpenGlossary={openGlossary} onStartCase={startCaseSelect}/>}
       {view === "exam"           && <Exam onExit={()=>setView("home")}/>}
       {view === "competency"     && <Competency state={state} onExit={()=>setView("home")}/>}
-      {view === "upgrade"        && <Upgrade onExit={()=>setView("home")}/>}
       </main>
       {sharePending && (
         <ShareCardModal
@@ -8025,25 +7901,6 @@ function App() {
           onClose={()=>setSharePending(null)}
           onDismiss={markShared}
         />
-      )}
-      {paywall && (
-        <PaywallModal
-          reason={paywall.reason}
-          caseTitle={paywall.caseTitle}
-          onClose={() => setPaywall(null)}
-        />
-      )}
-      {billingToast === "success" && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[120] card premium-border rounded-xl px-5 py-3 max-w-md w-[92vw] fade-in" style={{background: "linear-gradient(145deg, rgba(16,185,129,0.15), rgba(22,28,54,0.85))"}}>
-          <div className="flex items-center gap-3">
-            <span className="text-emerald-300 inline-flex items-center"><Ico name="check" size={20}/></span>
-            <div className="flex-1 min-w-0">
-              <div className="text-white font-semibold text-sm">Welcome to Pro.</div>
-              <div className="text-xs text-slate-300">All 50 cases unlocked. Your receipt is in your inbox.</div>
-            </div>
-            <button onClick={() => setBillingToast(null)} className="text-slate-400 hover:text-white inline-flex items-center"><Ico name="close" size={14}/></button>
-          </div>
-        </div>
       )}
       <div className="text-center py-8 text-xs text-slate-600 mono">
         BioStat Quest · Progress saved locally

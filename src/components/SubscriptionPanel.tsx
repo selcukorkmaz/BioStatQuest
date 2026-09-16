@@ -1,11 +1,17 @@
-// Subscription block inside the account card. Shows current plan, next
-// billing date (if Pro), and the right affordance (Upgrade / Manage billing).
-// Deliberately separate from the auth UI — keeps the panel single-purpose.
+// Plan block inside the account card.
+//
+// This used to show the current plan, the next billing date, and the
+// Upgrade / Manage billing / Cancel affordances. Paid plans were withdrawn
+// on 2026-09-17 (PAYMENTS_ENABLED=false in ../lib/launchFlags.ts), so there
+// is no plan to display and nothing to bill: the panel is now a one-line
+// reassurance that everything is unlocked, with no money-moving controls.
+//
+// `useSubscription` below is unchanged and still used elsewhere
+// (SkillTree) — the user_progress row carries more than plan.
 
 import * as React from "react";
-import { billing, type BillingProvider } from "../lib/billing";
-import { fmtDate } from "../lib/format";
-import { OPEN_BETA_PRO } from "../lib/launchFlags";
+import { type BillingProvider } from "../lib/billing";
+import { PAYMENTS_ENABLED } from "../lib/launchFlags";
 
 type Sub = {
   user_type?: "free" | "pro" | "institutional";
@@ -50,172 +56,39 @@ export function useSubscription() {
 }
 
 export function SubscriptionPanel() {
-  const { sub, loading, reload } = useSubscription();
-  const [busy, setBusy] = React.useState(false);
-  const [err, setErr] = React.useState("");
-  // Two-stage cancel: first click → confirm mode, second click → fires.
-  // Avoids an accidental one-click cancel and avoids an OS-level confirm()
-  // dialog (which is jarring inside our modal).
-  const [confirmCancel, setConfirmCancel] = React.useState(false);
-  // Local "just cancelled" state — the webhook will update the DB within a
-  // few seconds, but until then the cached `sub` would still say "renews".
-  // This holds the LS-confirmed ends_at so we can show "access until X"
-  // immediately, before the next remote fetch.
-  const [cancelledEndsAt, setCancelledEndsAt] = React.useState<string | null>(null);
-
-  async function openPortal() {
-    setBusy(true); setErr("");
-    try {
-      // Route to the same provider that issued this subscription so legacy
-      // Stripe customers don't get sent to the Lemon Squeezy portal.
-      const provider = (sub?.provider ?? billing.DEFAULT_PROVIDER) as BillingProvider;
-      await billing.openPortal(provider);
-    } catch (e: any) {
-      setErr(e?.message || "Could not open billing portal."); setBusy(false);
-    }
-  }
-
-  async function cancel() {
-    setBusy(true); setErr("");
-    try {
-      const provider = (sub?.provider ?? billing.DEFAULT_PROVIDER) as BillingProvider;
-      const result = await billing.cancelSubscription(provider);
-      // LS confirmed the cancel. Show the "access until" message right
-      // away — the webhook-driven reload will catch up within seconds.
-      setCancelledEndsAt(result.endsAt);
-      setConfirmCancel(false);
-      // Trigger a remote refetch in the background so SubscriptionPanel
-      // converges on whatever the webhook wrote (which may add more
-      // info like a final ends_at).
-      setTimeout(() => { reload(); }, 1500);
-    } catch (e: any) {
-      setErr(e?.message || "Could not cancel subscription.");
-    } finally {
-      setBusy(false);
-    }
-  }
+  const { loading } = useSubscription();
 
   if (loading) {
     return (
       <div className="rounded-xl bg-slate-800/40 border border-slate-700 p-4 mb-4 text-sm text-slate-500">
-        Loading subscription…
+        Loading plan…
       </div>
     );
   }
 
-  const userType = sub?.user_type || "free";
-  const status = sub?.status;
-  const periodEnd = sub?.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null;
-
-  // Open-beta override block — only renders when OPEN_BETA_PRO=true in
-  // launchFlags.ts. Currently false (post-2026-05-21 paid launch); the
-  // branch is dead code but kept in place so re-enabling open beta for
-  // a future cohort is a one-line flag flip with no UI surgery.
-  if (OPEN_BETA_PRO && userType === "free") {
+  // Defensive: if payments are ever switched back on, this panel is one of
+  // the surfaces that must be rebuilt first. Fail loud in dev rather than
+  // silently telling a paying customer their subscription doesn't exist.
+  if (PAYMENTS_ENABLED) {
     return (
-      <div className="rounded-xl bg-emerald-950/30 border border-emerald-700/40 p-4 mb-4">
-        <div className="flex items-center justify-between gap-3 mb-1">
-          <div className="font-semibold text-white text-sm">Plan</div>
-          <span className="chip text-[10px] bg-emerald-900/40 text-emerald-200">Open beta · Pro</span>
-        </div>
-        <p className="text-xs text-slate-400 leading-relaxed">
-          All Pro features are unlocked while we finish payment-processor activation.
-          Paid plans launching shortly — early-beta users get a launch discount.
-        </p>
+      <div className="rounded-xl bg-slate-800/40 border border-slate-700 p-4 mb-4 text-sm text-slate-400">
+        Billing is enabled but this panel has not been restored — see
+        git history for the paid version of SubscriptionPanel.
       </div>
     );
   }
 
-  if (userType === "institutional") {
-    return (
-      <div className="rounded-xl bg-cyan-950/30 border border-cyan-700/40 p-4 mb-4">
-        <div className="flex items-center justify-between gap-3 mb-1">
-          <div className="font-semibold text-white text-sm">Plan</div>
-          <span className="chip text-[10px] bg-cyan-900/40 text-cyan-200">Institutional</span>
-        </div>
-        <p className="text-xs text-slate-400 leading-relaxed">All content unlocked. Managed by your institution — contact your admin for billing.</p>
+  return (
+    <div className="rounded-xl bg-emerald-950/30 border border-emerald-700/40 p-4 mb-4">
+      <div className="flex items-center justify-between gap-3 mb-1">
+        <div className="font-semibold text-white text-sm">Plan</div>
+        <span className="chip text-[10px] bg-emerald-900/40 text-emerald-200">Free · everything unlocked</span>
       </div>
-    );
-  }
-
-  if (userType === "pro") {
-    // After an in-app cancel, the LS endsAt overrides the cached period
-    // end so the UI reflects "access until X" immediately, before the
-    // background webhook-driven refetch lands.
-    const effectivePeriodEnd = cancelledEndsAt
-      ? new Date(cancelledEndsAt)
-      : periodEnd;
-    // "Cancelled but still has access" — true if either:
-    //   • we just clicked cancel and got an endsAt back from LS, OR
-    //   • the DB row already shows a cancellation
-    //     (LS sends both 'canceled' (Stripe) and 'cancelled' (British);
-    //      Stripe customers see 'canceled', LS customers see 'cancelled'.)
-    const isCancelled =
-      !!cancelledEndsAt
-      || status === "cancelled"
-      || status === "canceled";
-
-    return (
-      <div className="rounded-xl bg-amber-950/20 border border-amber-700/30 p-4 mb-4">
-        <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
-          <div className="font-semibold text-white text-sm flex items-center gap-2">Plan <span className="chip text-[10px] bg-amber-900/40 text-amber-300">Pro</span></div>
-          {status && <span className="text-[11px] text-slate-400 mono">status: {status}</span>}
-        </div>
-        {effectivePeriodEnd && (
-          <div className="text-xs text-slate-400 mb-3">
-            {isCancelled ? "Access until" : "Renews on"}{" "}
-            <span className="text-slate-200">{fmtDate(effectivePeriodEnd)}</span>
-            {isCancelled && (
-              <span className="block text-[11px] text-amber-300/80 mt-1">
-                Cancelled — your subscription won't renew. You keep Pro access until the date above.
-              </span>
-            )}
-          </div>
-        )}
-        {err && <div className="text-xs text-red-400 mb-2">{err}</div>}
-
-        {/* Action row. When already cancelled we hide the cancel button
-            (nothing to do) but keep Manage billing for receipts / payment
-            method updates. When NOT cancelled, show both — Manage billing
-            for buyers who prefer the LS-hosted UI, in-app Cancel for
-            buyers who just want to stop the renewal without leaving the
-            app. */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={openPortal} disabled={busy} className="btn btn-ghost px-3 py-2 rounded-lg text-xs disabled:opacity-40">
-            {busy ? "…" : "Manage billing →"}
-          </button>
-          {!isCancelled && !confirmCancel && (
-            <button
-              onClick={() => setConfirmCancel(true)}
-              disabled={busy}
-              className="btn btn-ghost px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-red-300 disabled:opacity-40"
-            >
-              Cancel subscription
-            </button>
-          )}
-          {confirmCancel && !isCancelled && (
-            <div className="inline-flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] text-slate-400">Cancel renewal?</span>
-              <button
-                onClick={() => setConfirmCancel(false)}
-                disabled={busy}
-                className="btn btn-ghost px-2.5 py-1.5 rounded-md text-[11px]"
-              >
-                Keep
-              </button>
-              <button
-                onClick={cancel}
-                disabled={busy}
-                className="btn px-2.5 py-1.5 rounded-md text-[11px] bg-red-900/40 text-red-200 border border-red-800/60 hover:bg-red-900/60 disabled:opacity-40"
-              >
-                {busy ? "Cancelling…" : "Yes, cancel"}
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return null;
+      <p className="text-xs text-slate-400 leading-relaxed">
+        BioStat Quest is free. Every case, the full hint ladder, unlimited
+        exams, the AI tutor and the Statement of Competency are open to all
+        accounts — there's nothing to buy and no card on file.
+      </p>
+    </div>
+  );
 }

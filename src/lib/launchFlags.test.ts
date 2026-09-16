@@ -5,7 +5,7 @@
 // happens to be in the test environment).
 
 import { describe, it, expect } from "vitest";
-import { effectivelyPro, OPEN_BETA_PRO, FORCE_FREE_TEST_USER_TYPE } from "./launchFlags";
+import { effectivelyPro, OPEN_BETA_PRO, PAYMENTS_ENABLED, FORCE_FREE_TEST_USER_TYPE } from "./launchFlags";
 
 describe("launchFlags — effectivelyPro contract", () => {
   it("Pro users are always effectively Pro (regardless of flag)", () => {
@@ -16,7 +16,19 @@ describe("launchFlags — effectivelyPro contract", () => {
     expect(effectivelyPro("institutional")).toBe(true);
   });
 
+  it("everything is unlocked for everyone while payments are off", () => {
+    // The whole point of the kill switch: no checkout exists, so nobody
+    // may be left holding a locked feature.
+    if (!PAYMENTS_ENABLED) {
+      expect(effectivelyPro("free")).toBe(true);
+      expect(effectivelyPro(undefined)).toBe(true);
+      expect(effectivelyPro(null)).toBe(true);
+      expect(effectivelyPro(FORCE_FREE_TEST_USER_TYPE)).toBe(true);
+    }
+  });
+
   it("free / undefined / null behaviour follows the open-beta flag", () => {
+    if (!PAYMENTS_ENABLED) return; // superseded by the kill switch above
     if (OPEN_BETA_PRO) {
       expect(effectivelyPro("free")).toBe(true);
       expect(effectivelyPro(undefined)).toBe(true);
@@ -47,6 +59,9 @@ describe("launchFlags — effectivelyPro contract", () => {
     it("a force_free_test user is NEVER effectively Pro, even during open beta", () => {
       // This is the entire point of the sentinel — escape the open-beta
       // override so the paywall actually fires for the test account.
+      // Inert while payments are off: there is no paywall to test against,
+      // so the kill switch deliberately short-circuits ahead of it.
+      if (!PAYMENTS_ENABLED) return;
       expect(effectivelyPro(FORCE_FREE_TEST_USER_TYPE)).toBe(false);
       expect(effectivelyPro("force_free_test")).toBe(false);
     });

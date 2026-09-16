@@ -1,0 +1,58 @@
+SUBJECT LINE OPTIONS
+--------------------
+A (recommended)  We were down for two weeks. We're sorry.
+B                BioStat Quest is back online
+C                Sorry — you couldn't sign in. Here's what happened.
+
+PREHEADER
+---------
+BioStat Quest is back up. Your account, XP and progress are exactly
+where you left them.
+
+PLAIN-TEXT BODY
+---------------
+
+We're back online.
+
+For about two weeks, you couldn't sign in to BioStat Quest. That was our
+fault, we're sorry, and it's fixed.
+
+CURRENT STATUS: Everything is working. Sign-in, progress saving and every
+case are back to normal.
+
+WHAT HAPPENED
+
+A configuration problem on our end caused our database to be suspended by
+our hosting provider. Everything behind your account — signing in, saving
+progress, XP, streaks — stopped working.
+
+The public pages of the site stayed up the whole time, which made the
+outage easy to miss from the outside. That includes us, and that's the
+part we're least happy about.
+
+YOUR PROGRESS IS INTACT
+
+Nothing was lost. The database was suspended, not deleted — your account,
+XP, streaks, completed cases and badges are exactly as you left them.
+Sign in and you'll pick up from the same place.
+
+SO IT DOESN'T HAPPEN AGAIN
+
+We've added automated checks that test the actual sign-in path around the
+clock. If authentication ever breaks again, we'll know within minutes
+instead of days.
+
+Sign back in: https://www.biostatquest.com/biostat-quest.html
+
+If anything looks wrong when you get back in — missing progress, a badge
+that vanished, a sign-in that won't complete — just reply to this email.
+I read every one personally.
+
+Thanks for your patience,
+Selçuk
+BioStat Quest
+
+---
+You're receiving this because you have a BioStat Quest account and we
+thought you'd want to know why the site locked you out.
+biostatquest.com

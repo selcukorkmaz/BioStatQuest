@@ -34,7 +34,9 @@ export const PATH_TO_VIEW: Record<string, string> = {
   "/misconceptions": "misconceptions",
   "/exam": "exam",
   "/competency": "competency",
-  "/upgrade": "upgrade",
+  // "/upgrade" was the paid-plan page. Paid plans were withdrawn
+  // (PAYMENTS_ENABLED=false in launchFlags.ts) and the route with them;
+  // App.tsx rewrites stale /upgrade links to home on mount.
   "/admin": "admin",
   "/teach": "teach",
   "/join": "join",

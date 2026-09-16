@@ -9,10 +9,13 @@
 // Response: { url: "https://checkout.stripe.com/..." }
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { rejectIfPaymentsDisabled } from "../_lib/payments";
 import { stripe, STRIPE_PRICE_MONTHLY, STRIPE_PRICE_YEARLY } from "../_lib/stripe";
 import { supabaseAdmin } from "../_lib/supabaseAdmin";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Paid plans withdrawn — this route is intentionally gone.
+  if (rejectIfPaymentsDisabled(req, res)) return;
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: "Method not allowed" });

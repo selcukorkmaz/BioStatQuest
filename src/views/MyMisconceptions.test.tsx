@@ -11,6 +11,7 @@ import * as React from "react";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, waitFor } from "@testing-library/react";
 import { MyMisconceptions } from "./MyMisconceptions";
+import { PAYMENTS_ENABLED } from "../lib/launchFlags";
 
 // Project doesn't configure RTL auto-cleanup; do it explicitly.
 afterEach(() => cleanup());
@@ -99,25 +100,42 @@ describe("MyMisconceptions view", () => {
       };
     }
 
-    it("free user sees only top 3 tags + 'See Pro' upsell", async () => {
+    // Paid plans were withdrawn on 2026-09-17 (PAYMENTS_ENABLED=false), so
+    // a "free" account is no longer a lesser account: it sees the whole
+    // ledger and is never shown an upsell. The pre-withdrawal expectation
+    // (top 3 + "See Pro" CTA) is kept below the flag so re-opening sales
+    // restores the assertion instead of having to rewrite it.
+    it("a free account sees the full ledger and no upsell while payments are off", async () => {
       stubAuth({ user: { id: "u1", email: "u@e.com" }, userType: "free", fetchResult: fiveTags() });
       render(<MyMisconceptions onExit={() => {}} />);
       await waitFor(() => {
         expect(screen.getByText(/Ci as parameter probability/i)).toBeTruthy();
       });
-      // Top 3 visible
+
+      if (PAYMENTS_ENABLED) {
+        // Top 3 visible, the rest behind the paywall.
+        expect(screen.getByText(/P value inverted conditional/i)).toBeTruthy();
+        expect(screen.getByText(/Skew direction reversed/i)).toBeTruthy();
+        expect(screen.queryByText(/Odds confused with risk/i)).toBeNull();
+        expect(screen.queryByText(/Ratio inverted/i)).toBeNull();
+        expect(screen.getByText(/2 more misconceptions hidden/i)).toBeTruthy();
+        expect(screen.getByText(/See Pro/i)).toBeTruthy();
+        expect(screen.queryByText(/Show all my hits/i)).toBeNull();
+        expect(screen.getAllByText(/Pro unlocks per-tag history/i).length).toBeGreaterThan(0);
+        return;
+      }
+
+      // All 5 tags visible — no hidden remainder.
       expect(screen.getByText(/P value inverted conditional/i)).toBeTruthy();
       expect(screen.getByText(/Skew direction reversed/i)).toBeTruthy();
-      // Below threshold hidden
-      expect(screen.queryByText(/Odds confused with risk/i)).toBeNull();
-      expect(screen.queryByText(/Ratio inverted/i)).toBeNull();
-      // Hidden-count CTA visible
-      expect(screen.getByText(/2 more misconceptions hidden/i)).toBeTruthy();
-      expect(screen.getByText(/See Pro/i)).toBeTruthy();
-      // Pro-only "Show all my hits" button NOT shown for free
-      expect(screen.queryByText(/Show all my hits/i)).toBeNull();
-      // Pro-feature italic note IS shown
-      expect(screen.getAllByText(/Pro unlocks per-tag history/i).length).toBeGreaterThan(0);
+      expect(screen.getByText(/Odds confused with risk/i)).toBeTruthy();
+      expect(screen.getByText(/Ratio inverted/i)).toBeTruthy();
+      // No paywall surface of any kind.
+      expect(screen.queryByText(/misconceptions hidden/i)).toBeNull();
+      expect(screen.queryByText(/See Pro/i)).toBeNull();
+      expect(screen.queryByText(/Pro unlocks per-tag history/i)).toBeNull();
+      // The drill-down that used to be Pro-only is available to everyone.
+      expect(screen.getAllByText(/Show all my hits/i).length).toBeGreaterThan(0);
     });
 
     it("Pro user sees ALL tags + drill-down button on each", async () => {

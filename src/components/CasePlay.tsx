@@ -503,7 +503,7 @@ function AskTutor({ step, current, caseId }) {
 // Opens a modal where signed-in users can flag a question (wrong answer key,
 // wrong explanation, typo, ambiguous wording, other). Guests see a hint to sign in.
 // Writes to public.question_reports (RLS: users can only read their own).
-function ReportQuestionLink({ qid, caseId }) {
+function ReportQuestionLink({ qid, caseId, seed }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("wrong_answer");
   const [comment, setComment] = useState("");
@@ -515,8 +515,13 @@ function ReportQuestionLink({ qid, caseId }) {
   async function submit() {
     setBusy(true); setErr("");
     try {
-      await window.BQAuth.submitQuestionReport({ qid, caseId, reason, comment });
-      window.BQAuth?.logEvent?.("report_filed", { qid, caseId, data: { reason } });
+      // Generated items share one qid per family, so the seed is what makes a
+      // report actionable. question_reports has no seed column yet — until it
+      // does, carry it in the comment (which the admin reads) and in the event
+      // payload (which is a free-form blob).
+      const body = seed === undefined ? comment : `${comment}\n[generated instance — seed ${seed}]`;
+      await window.BQAuth.submitQuestionReport({ qid, caseId, reason, comment: body });
+      window.BQAuth?.logEvent?.("report_filed", { qid, caseId, data: { reason, seed } });
       setDone(true);
     } catch (e) {
       setErr((e && e.message) || "Could not send. Try again.");
@@ -697,6 +702,9 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
     catch { return `r_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,10)}`; }
   });
   const [shownAt, setShownAt] = useState(() => Date.now());
+  // Guards against a question being graded twice (e.g. the timer expiring in
+  // the same tick the learner submits). Holds the stepIdx already graded.
+  const gradedIdxRef = React.useRef(-1);
   // F8 — per-learner misconception counts loaded once on mount. Drives the
   // "× N times" repeat chip in DistractorFeedback. Empty map for guests or
   // fetch failures; the UI degrades silently (no chip) without it.
@@ -738,6 +746,8 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
   useEffect(() => { setTimeLeft(diff.time); setShownAt(Date.now()); }, [stepIdx]);
 
   const checkAnswer = (timedOut=false) => {
+    if (gradedIdxRef.current === stepIdx) return;
+    gradedIdxRef.current = stepIdx;
     let ok = false;
     if (!timedOut) {
       if (step.type === "mcq") ok = current === step.answer;
@@ -754,7 +764,7 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
     const bonusFromTime = ok ? Math.round(timeLeft / 3) : 0;
     setTotalTimeBonus(t => t + bonusFromTime);
     setStreak(ok ? streak+1 : 0);
-    setAnswers([...answers, { qid: step.qid, q: step.q, user: current, correct: ok, explain: step.explain, method: step.method, timedOut, timeBonus: bonusFromTime }]);
+    setAnswers([...answers, { qid: step.qid, q: step.q, user: current, correct: ok, explain: step.explain, method: step.method, seed: step._seed, timedOut, timeBonus: bonusFromTime }]);
 
     // F2 telemetry — fire-and-forget per-attempt log. Captures the picked
     // distractor's misconception tag (if any) so the misconception ledger
@@ -801,6 +811,11 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
         if (nextActInfo && nextActInfo.indexInAct === 0) showIntro = true;
       }
       setStepIdx(nextIdx); setCurrent(null); setShowExplain(false); setCorrect(null);
+      // Reset the clock here, not only in the [stepIdx] effect: effects run
+      // after render, so without this the timer effect would see the previous
+      // question's timeLeft (0 after a timeout) and instantly time out the
+      // next question too.
+      setTimeLeft(diff.time); setShownAt(Date.now());
       setShowActIntro(showIntro);
     }
   };
@@ -958,7 +973,7 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
             <div className="text-sm text-slate-200 leading-relaxed">{step.explain}</div>
             {step.method && <DeepDive methodId={step.method} srs={srs} onOpenGlossary={onOpenGlossary}/>}
             <AskTutor step={step} current={current} caseId={c.id}/>
-            <ReportQuestionLink qid={step.qid} caseId={c.id}/>
+            <ReportQuestionLink qid={step.qid} caseId={c.id} seed={step._seed}/>
           </div>
         )}
 

@@ -2,9 +2,16 @@
 // Pin the rule both surfaces (Skill Tree, case picker) depend on:
 // the first FREE_CASES_PER_BRANCH cases of each branch are free; the
 // rest require Pro. Pro/institutional users see everything.
+//
+// Paid plans were withdrawn on 2026-09-17 (PAYMENTS_ENABLED=false), which
+// makes every case free for everyone. The "is locked" assertions are kept
+// but made flag-aware rather than deleted: the free/Pro split is the thing
+// that comes back first if sales ever re-open, and silently dropping the
+// coverage would mean re-deriving it from scratch.
 
 import { describe, it, expect } from "vitest";
 import { CASES } from "../data/cases";
+import { PAYMENTS_ENABLED } from "./launchFlags";
 import {
   isCaseLockedForUser,
   isCaseInFreeTier,
@@ -32,7 +39,7 @@ describe("access — catalog gating", () => {
     }
   });
 
-  it("free user IS locked out of cases beyond the 3rd in their branch", () => {
+  it("cases beyond the 3rd in a branch are locked for free users iff payments are on", () => {
     const seen: Record<string, number> = {};
     let lockedAtLeastOne = false;
     for (const c of CASES) {
@@ -41,8 +48,8 @@ describe("access — catalog gating", () => {
       if (idx >= 3) {
         expect(
           isCaseLockedForUser(c.id, "free"),
-          `case ${c.id} (branch ${c.branch}, position ${idx}) should be locked`,
-        ).toBe(true);
+          `case ${c.id} (branch ${c.branch}, position ${idx}) should be ${PAYMENTS_ENABLED ? "locked" : "free (payments off)"}`,
+        ).toBe(PAYMENTS_ENABLED);
         lockedAtLeastOne = true;
       }
       seen[c.branch] = idx + 1;
@@ -71,8 +78,8 @@ describe("access — catalog gating", () => {
     expect(isCaseLockedForUser(some!.id, undefined)).toBe(false);
     expect(isCaseLockedForUser(some!.id, null)).toBe(false);
     if (someLocked) {
-      expect(isCaseLockedForUser(someLocked.id, undefined)).toBe(true);
-      expect(isCaseLockedForUser(someLocked.id, null)).toBe(true);
+      expect(isCaseLockedForUser(someLocked.id, undefined)).toBe(PAYMENTS_ENABLED);
+      expect(isCaseLockedForUser(someLocked.id, null)).toBe(PAYMENTS_ENABLED);
     }
   });
 
@@ -84,7 +91,7 @@ describe("access — catalog gating", () => {
   });
 
   it("unknown case id is locked for free users (defensive default)", () => {
-    expect(isCaseLockedForUser("__no_such_case__", "free")).toBe(true);
+    expect(isCaseLockedForUser("__no_such_case__", "free")).toBe(PAYMENTS_ENABLED);
     // But Pro can pass through (we don't second-guess them on unknown ids)
     expect(isCaseLockedForUser("__no_such_case__", "pro")).toBe(false);
   });

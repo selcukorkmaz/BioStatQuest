@@ -4,7 +4,8 @@
   "trailingSlash": false,
   "outputDirectory": "dist",
   "crons": [
-    { "path": "/api/cron/reengagement", "schedule": "0 10 * * *" }
+    { "path": "/api/cron/reengagement", "schedule": "0 10 * * *" },
+    { "path": "/api/cron/healthcheck", "schedule": "0 7 * * *" }
   ],
   "rewrites": [
     { "source": "/join", "destination": "/biostat-quest" },

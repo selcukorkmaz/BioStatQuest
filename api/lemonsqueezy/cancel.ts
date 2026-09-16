@@ -29,10 +29,13 @@
 //         cancelled, etc.); error message included verbatim from LS
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { rejectIfPaymentsDisabled } from "../_lib/payments.js";
 import { supabaseAdmin } from "../_lib/supabaseAdmin.js";
 import { lsCancelSubscription } from "../_lib/ls.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Paid plans withdrawn — this route is intentionally gone.
+  if (rejectIfPaymentsDisabled(req, res)) return;
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: "Method not allowed" });
