@@ -8,6 +8,11 @@
     { "path": "/api/cron/healthcheck", "schedule": "0 7 * * *" }
   ],
   "rewrites": [
+    { "source": "/api/stripe/checkout", "destination": "/api/billing/checkout" },
+    { "source": "/api/stripe/portal", "destination": "/api/billing/portal" },
+    { "source": "/api/lemonsqueezy/checkout", "destination": "/api/billing/checkout" },
+    { "source": "/api/lemonsqueezy/portal", "destination": "/api/billing/portal" },
+    { "source": "/api/lemonsqueezy/cancel", "destination": "/api/billing/cancel" },
     { "source": "/join", "destination": "/biostat-quest" },
     { "source": "/diagnostic", "destination": "/biostat-quest" },
     { "source": "/diagnostic/results", "destination": "/biostat-quest" },

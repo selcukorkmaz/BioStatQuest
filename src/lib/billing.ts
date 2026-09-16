@@ -1,6 +1,9 @@
 // DORMANT as of 2026-09-17. Paid plans were withdrawn (PAYMENTS_ENABLED
 // =false in ./launchFlags.ts): nothing in the UI calls these functions any
-// more, and the endpoints they point at answer 410 (api/_lib/payments.ts).
+// more. The provider-scoped paths below no longer have their own handlers —
+// vercel.json rewrites each one to api/billing/[action].ts, which answers
+// 410. The paths are left as-is so the provider-routing contract (and its
+// tests) stay intact for a restore.
 // The module and its tests are kept intact — the provider-routing contract
 // is the fiddly part to rebuild, and deleting it would cost more than
 // leaving it dormant. Do not wire it back into the UI without flipping

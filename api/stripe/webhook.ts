@@ -23,8 +23,8 @@
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import type Stripe from "stripe";
-import { stripe, STRIPE_WEBHOOK_SECRET } from "../_lib/stripe";
-import { supabaseAdmin } from "../_lib/supabaseAdmin";
+import { stripe, STRIPE_WEBHOOK_SECRET } from "../_lib/stripe.js";
+import { supabaseAdmin } from "../_lib/supabaseAdmin.js";
 
 export const config = {
   api: { bodyParser: false },   // hand Stripe the raw body for signature check
