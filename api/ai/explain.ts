@@ -89,12 +89,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .select("user_type")
     .eq("user_id", user.id)
     .maybeSingle();
-  // Open-beta override: hardcoded constant matched to the client-side
-  // src/lib/launchFlags.ts OPEN_BETA_PRO. Flip both to false and redeploy
-  // when paid plans launch. Single source of truth on each side; no env
-  // var dance.
-  const OPEN_BETA_PRO = true;
-  const isPro = OPEN_BETA_PRO
+  // Paid plans were withdrawn on 2026-09-17 (PAYMENTS_ENABLED=false in
+  // api/_lib/payments.ts and src/lib/launchFlags.ts), so the AI tutor is
+  // unlimited for everyone and the weekly free-tier quota below never
+  // applies. Kept as a local constant rather than an env var so the
+  // server's answer is readable in one place; flip it back to `false`
+  // together with PAYMENTS_ENABLED if the free/Pro split ever returns.
+  const UNLIMITED_FOR_EVERYONE = true;
+  const isPro = UNLIMITED_FOR_EVERYONE
     || progress?.user_type === "pro"
     || progress?.user_type === "institutional";
 

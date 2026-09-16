@@ -18,6 +18,8 @@ import {
 import { STUDY_DESIGN_FAMILY, BIAS_FAMILY } from "./design";
 import { CONFOUNDING_FAMILY, CAUSAL_ROLE_FAMILY } from "./causal";
 import { MISSING_MECHANISM_FAMILY, VALIDITY_FAMILY, KAPPA_FAMILY } from "./measurement";
+import { PVALUE_FAMILY, CHISQ_FAMILY, BOOTSTRAP_FAMILY } from "./inference";
+import { BAYES_ODDS_FAMILY, MULTIPLE_TESTING_FAMILY, POWER_FAMILY, CORRELATION_FAMILY } from "./advanced";
 import type { GeneratedQuestion } from "./core";
 
 export const FAMILIES: readonly QuestionFamily[] = [
@@ -46,8 +48,17 @@ export const FAMILIES: readonly QuestionFamily[] = [
   MISSING_MECHANISM_FAMILY,
   VALIDITY_FAMILY,
   KAPPA_FAMILY,
-  // Estimation & diagnostic accuracy
+  // Estimation & inference
   CI_FAMILY,
+  PVALUE_FAMILY,
+  CHISQ_FAMILY,
+  BOOTSTRAP_FAMILY,
+  // Advanced & Bayesian
+  BAYES_ODDS_FAMILY,
+  MULTIPLE_TESTING_FAMILY,
+  POWER_FAMILY,
+  CORRELATION_FAMILY,
+  // Diagnostic accuracy
   PPV_FAMILY,
 ];
 

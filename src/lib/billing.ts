@@ -1,3 +1,11 @@
+// DORMANT as of 2026-09-17. Paid plans were withdrawn (PAYMENTS_ENABLED
+// =false in ./launchFlags.ts): nothing in the UI calls these functions any
+// more, and the endpoints they point at answer 410 (api/_lib/payments.ts).
+// The module and its tests are kept intact — the provider-routing contract
+// is the fiddly part to rebuild, and deleting it would cost more than
+// leaving it dormant. Do not wire it back into the UI without flipping
+// PAYMENTS_ENABLED on both sides first.
+//
 // Client-side billing helpers. Routes to either /api/stripe/* (legacy
 // customers) or /api/lemonsqueezy/* (new buyers, default) depending on
 // the `provider` argument. Keys live server-side, not here.

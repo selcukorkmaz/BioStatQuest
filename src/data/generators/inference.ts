@@ -136,7 +136,7 @@ export const CHISQ_FAMILY: QuestionFamily = {
       return {
         _variant: variant, _params: { rows, cols, df },
         q: `How many degrees of freedom does the chi-square test of independence have?`,
-        scenario: `${c.setting[0].toUpperCase()}${c.setting.slice(1)} cross-tabulates ${rows} categories of exposure against ${cols} categories of outcome.`,
+        scenario: `${c.setting[0].toUpperCase()}${c.setting.slice(1)} cross-tabulates ${rows} categories of exposure against ${cols} categories of ${c.outcome}, in ${num(rng.int(4, 90) * 25)} patients.`,
         type: "numeric",
         answer: df,
         tol: 0,
@@ -228,8 +228,9 @@ export const BOOTSTRAP_FAMILY: QuestionFamily = {
   variants: ["percentile_index", "b_effect", "when"],
   gen: (rng) => {
     const variant = rng.pick(["percentile_index", "b_effect", "when"] as const);
-    const n = rng.int(3, 12) * 25;
-    const B = rng.pick([1000, 2000, 4000, 5000, 10000] as const);
+    const n = rng.int(3, 24) * 25;
+    const B = rng.int(2, 40) * 500;
+    const boot = rng.pick(BOOT_STATS);
 
     if (variant === "percentile_index") {
       const level = rng.pick([90, 95, 99] as const);
@@ -238,7 +239,7 @@ export const BOOTSTRAP_FAMILY: QuestionFamily = {
       return {
         _variant: variant, _params: { B, level, idx },
         q: `In the sorted vector of ${num(B)} bootstrap estimates, which position gives the LOWER limit of the ${level}% percentile interval?`,
-        scenario: `You bootstrap the median length of stay from a sample of n = ${n}, drawing B = ${num(B)} resamples and storing each resample's median.`,
+        scenario: `You bootstrap ${boot.stat} from a sample of n = ${n}, drawing B = ${num(B)} resamples and storing each resample's value.`,
         type: "numeric",
         answer: idx,
         tol: 0.5,
@@ -263,7 +264,7 @@ export const BOOTSTRAP_FAMILY: QuestionFamily = {
       return {
         _variant: variant, _params: { B, n },
         q: `What happens if you raise B from ${num(B)} to ${num(B * 5)}?`,
-        scenario: `You bootstrap the median length of stay from a sample of n = ${n}, currently using B = ${num(B)} resamples.`,
+        scenario: `You bootstrap ${boot.stat} from a sample of n = ${n}, currently using B = ${num(B)} resamples.`,
         type: "mcq",
         options, answer, optionExplanations, misconceptionTag,
         hint: "Two different uncertainties are in play: how much the data could have differed, and how much your computation could have differed. Only one of them depends on B.",
@@ -272,7 +273,7 @@ export const BOOTSTRAP_FAMILY: QuestionFamily = {
     }
 
     // when — the bootstrap's failure mode
-    const s = rng.pick(BOOT_STATS);
+    const s = boot;
     const { options, answer, optionExplanations, misconceptionTag } = assemble(rng, [
       s.ok
         ? { text: `Yes — the statistic is a smooth function of the data, which is where the bootstrap works well.`, correct: true }

@@ -18,6 +18,7 @@ import { DIFFICULTIES, REVIEW_CASE_ID } from "./lib/difficulty";
 import { getMethodMastery } from "./lib/mastery";
 import { adaptiveOrder } from "./lib/adaptive";
 import { updateSeenQuestions } from "./lib/seen";
+import { composeRun } from "./lib/runComposition";
 
 // ============================================================
 // GATING
@@ -467,7 +468,10 @@ function pickQuestions(caseObj, seenArr, srs) {
     if (!inst) continue;
     (srsMap[fam.fid] && srsMap[fam.fid].due <= now ? famDue : famFresh).push(inst);
   }
-  let picked = [...due, ...shuf(famDue), ...unseen, ...shuf(famFresh), ...rest].slice(0, n);
+  let picked = composeRun(
+    { bankDue: due, famDue: shuf(famDue), unseen, famFresh: shuf(famFresh), repeats: rest },
+    n,
+  );
   if (picked.length < n) picked = shuf(bank.slice()).slice(0, n);
   return picked.map(shuffleQuestionOptions);
 }

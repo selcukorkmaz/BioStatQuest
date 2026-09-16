@@ -873,6 +873,156 @@ function verify(q: GeneratedQuestion) {
       break;
     }
 
+    // ---------- inference: p-values ----------
+    case "gen_pvalue:meaning": {
+      expect(keyText(q)).toMatch(/IF the null hypothesis were true/);
+      break;
+    }
+    case "gen_pvalue:decision": {
+      const m = q.q.match(/α = (\d+\.\d+) and the trial reports p = (\d+\.\d+)/);
+      expect(m, `${where}: α/p not stated`).toBeTruthy();
+      const alpha = Number(m![1]), p = Number(m![2]);
+      expect(Math.abs(p - alpha), `${where}: p sits on the threshold`).toBeGreaterThan(0.005);
+      expect(keyText(q)).toMatch(p < alpha ? /^Reject the null/ : /^Do not reject the null/);
+      break;
+    }
+    case "gen_pvalue:errors": {
+      const power = Number(scenario.match(/with (\d+)% power/)![1]);
+      expect(Math.abs((q.answer as number) - (100 - power)), `${where}: key vs 1−power`)
+        .toBeLessThanOrEqual(q.tol!);
+      break;
+    }
+
+    // ---------- inference: chi-square ----------
+    case "gen_chisq:df": {
+      const m = scenario.match(/cross-tabulates (\d+) categories of exposure against (\d+) categories/);
+      expect(m, `${where}: table shape not stated`).toBeTruthy();
+      expect(q.answer, `${where}: key vs (r−1)(c−1)`).toBe((Number(m![1]) - 1) * (Number(m![2]) - 1));
+      break;
+    }
+    case "gen_chisq:expected":
+    case "gen_chisq:fisher": {
+      const m = scenario.match(
+        /Group sizes are ([\d,]+) and ([\d,]+); across both groups there were ([\d,]+) events and ([\d,]+) non-events/,
+      );
+      expect(m, `${where}: margins not stated`).toBeTruthy();
+      const [n1, n2, ev, nonEv] = m!.slice(1).map(toNum);
+      const N = n1 + n2;
+      expect(ev + nonEv, `${where}: margins must sum to N`).toBe(N);
+      if (q._variant === "expected") {
+        expect(Math.abs((q.answer as number) - (n1 * ev) / N), `${where}: key vs row×col/N`)
+          .toBeLessThanOrEqual(q.tol!);
+      } else {
+        // Rule of 5 applied to the smallest expected count, computed here.
+        const minExp = Math.min(n1, n2) * Math.min(ev, nonEv) / N;
+        expect(Math.abs(minExp - 5), `${where}: draw sits on the rule-of-5 boundary`).toBeGreaterThan(0.5);
+        expect(keyText(q)).toMatch(minExp < 5 ? /^Fisher's exact test/ : /^The chi-square test is fine/);
+      }
+      break;
+    }
+
+    // ---------- inference: bootstrap ----------
+    case "gen_bootstrap:percentile_index": {
+      const B = toNum(q.q.match(/sorted vector of ([\d,]+) bootstrap estimates/)![1]);
+      const level = Number(q.q.match(/the (\d+)% percentile interval/)![1]);
+      expect(Math.abs((q.answer as number) - (B * (100 - level)) / 200), `${where}: key vs B·tail`)
+        .toBeLessThanOrEqual(q.tol!);
+      break;
+    }
+    case "gen_bootstrap:b_effect": {
+      expect(keyText(q)).toMatch(/Monte-Carlo noise .+ falls/);
+      break;
+    }
+    case "gen_bootstrap:when": {
+      const extreme = /MAXIMUM observed value|minimum observed value/.test(scenario);
+      expect(keyText(q)).toMatch(extreme ? /^No — the statistic depends on an extreme/ : /^Yes — the statistic is a smooth/);
+      break;
+    }
+
+    // ---------- advanced: Bayes ----------
+    case "gen_bayes_odds:lr_from_sens_spec": {
+      const m = scenario.match(/sensitivity (\d+)% and specificity (\d+)%/);
+      expect(m, `${where}: sens/spec not stated`).toBeTruthy();
+      const se = Number(m![1]) / 100, sp = Number(m![2]) / 100;
+      expect(Math.abs((q.answer as number) - se / (1 - sp)), `${where}: key vs sens/(1−spec)`)
+        .toBeLessThanOrEqual(q.tol!);
+      break;
+    }
+    case "gen_bayes_odds:posterior": {
+      const m = scenario.match(/pre-test probability of .+? is (\d+)%.+?positive likelihood ratio of (\d+\.\d+)/s);
+      expect(m, `${where}: prior/LR not stated`).toBeTruthy();
+      const prior = Number(m![1]) / 100, lr = Number(m![2]);
+      const odds = (prior / (1 - prior)) * lr;
+      const want = (odds / (1 + odds)) * 100;
+      expect(Math.abs((q.answer as number) - want), `${where}: key vs odds·LR back-converted`)
+        .toBeLessThanOrEqual(q.tol!);
+      break;
+    }
+    case "gen_bayes_odds:credible_vs_ci": {
+      expect(keyText(q)).toMatch(/there is a 95% probability that the true value lies/);
+      break;
+    }
+
+    // ---------- advanced: multiplicity ----------
+    case "gen_multiple_testing:fwer": {
+      const m = scenario.match(/tests (\d+) independent .+? each at α = (\d+\.\d+)/);
+      expect(m, `${where}: m/α not stated`).toBeTruthy();
+      const want = (1 - Math.pow(1 - Number(m![2]), Number(m![1]))) * 100;
+      expect(Math.abs((q.answer as number) - want), `${where}: key vs 1−(1−α)^m`)
+        .toBeLessThanOrEqual(q.tol!);
+      break;
+    }
+    case "gen_multiple_testing:bonferroni": {
+      const m = scenario.match(/tests (\d+) .+? family-wise error rate of (\d+\.\d+)/s);
+      expect(m, `${where}: m/α not stated`).toBeTruthy();
+      expect(Math.abs((q.answer as number) - Number(m![2]) / Number(m![1])), `${where}: key vs α/m`)
+        .toBeLessThanOrEqual(q.tol!);
+      break;
+    }
+    case "gen_multiple_testing:fdr_vs_fwer": {
+      expect(keyText(q)).toMatch(/expected PROPORTION of the discoveries/);
+      break;
+    }
+
+    // ---------- advanced: power ----------
+    case "gen_power:n_scaling": {
+      const n0 = toNum(scenario.match(/with ([\d,]+) patients per arm/)![1]);
+      const k = Number(scenario.match(/difference (\d+) times SMALLER/)![1]);
+      expect(toNum(keyText(q).match(/([\d,]+)/)![1]), `${where}: key vs n·k²`).toBe(n0 * k * k);
+      break;
+    }
+    case "gen_power:beta_events": {
+      const m = scenario.match(/running (\d+) independent copies .+? powered at (\d+)%/s);
+      expect(m, `${where}: trials/power not stated`).toBeTruthy();
+      const want = (Number(m![1]) * (100 - Number(m![2]))) / 100;
+      expect(Math.abs((q.answer as number) - want), `${where}: key vs trials·(1−power)`)
+        .toBeLessThanOrEqual(q.tol!);
+      break;
+    }
+    case "gen_power:underpowered": {
+      const power = Number(scenario.match(/had (\d+)% power/)![1]);
+      expect(power <= 45 || power >= 85, `${where}: power ${power}% is ambiguous`).toBe(true);
+      expect(keyText(q)).toMatch(power >= 85 ? /^The trial had a good chance/ : /^The trial was unlikely to detect/);
+      break;
+    }
+
+    // ---------- advanced: correlation ----------
+    case "gen_correlation:r_squared": {
+      const r = Number(scenario.match(/r = (-?[\d.]+)/)![1]);
+      expect(Math.abs((q.answer as number) - r * r * 100), `${where}: key vs r²`)
+        .toBeLessThanOrEqual(q.tol!);
+      break;
+    }
+    case "gen_correlation:which_coefficient": {
+      const linear = /clean straight-line trend/.test(scenario);
+      expect(keyText(q)).toMatch(linear ? /^Pearson's r/ : /^Spearman's rho/);
+      break;
+    }
+    case "gen_correlation:interpret": {
+      expect(keyText(q)).toMatch(/Nothing about causation/);
+      break;
+    }
+
     default:
       throw new Error(`${where}: no verifier registered for this variant`);
   }
