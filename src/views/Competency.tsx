@@ -254,6 +254,13 @@ function StatementPage({ overview, user, onBack }) {
   return (
     <>
       <style>{`
+        /* Screen-only sheet presentation. Lives here rather than in a style
+           prop so the no-inline-rgba guard stays green, and so it sits next
+           to the @media print block that resets both of these. */
+        .print-page {
+          min-height: 10.5in;
+          box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.4);
+        }
         @media print {
           @page { margin: 0.5in; }
           .no-print { display: none !important; }
@@ -274,7 +281,7 @@ function StatementPage({ overview, user, onBack }) {
         <button onClick={() => { try { window.print(); } catch {} }} className="btn btn-primary px-4 py-2 rounded-lg text-sm">Print / Save as PDF</button>
       </div>
 
-      <div className="print-page max-w-4xl mx-auto p-8 sm:p-10 bg-white text-slate-900" style={{ minHeight: "10.5in", boxShadow: "0 10px 40px -10px rgba(0,0,0,0.4)" }}>
+      <div className="print-page max-w-4xl mx-auto p-8 sm:p-10 bg-white text-slate-900">
         {/* Header — name + monogram, with issue date and document ID */}
         <header className="flex items-start justify-between gap-6 pb-5 mb-7 border-b print-rule" style={{ borderColor: "#cbd5e1" }}>
           <div className="flex items-center gap-4">
