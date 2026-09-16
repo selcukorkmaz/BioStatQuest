@@ -40,10 +40,10 @@ export const CI_FAMILY: QuestionFamily = {
   title: "Confidence intervals — width, scaling and interpretation",
   method: "ci",
   diffMin: "resident",
-  variants: ["halfwidth", "scaling", "interpret"],
+  variants: ["halfwidth", "scaling", "interpret", "coverage"],
   gen: (rng) => {
     const ctx = rng.pick(CONT_CONTEXTS);
-    const variant = rng.pick(["halfwidth", "scaling", "interpret"] as const);
+    const variant = rng.pick(["halfwidth", "scaling", "interpret", "coverage"] as const);
 
     if (variant === "halfwidth") {
       const n = rng.pick(SQUARE_N);
@@ -61,6 +61,37 @@ export const CI_FAMILY: QuestionFamily = {
         tol: Math.max(0.02, +(half * 0.02).toFixed(3)),
         hint: "The SD describes how spread the PATIENTS are. The interval is about the MEAN — so divide by √n first.",
         explain: `SE = SD/√n = ${sd}/${Math.sqrt(n)} = ${(sd / Math.sqrt(n)).toFixed(3)} ${ctx.unit}. Half-width = 1.96 × SE ≈ ${half.toFixed(dp)} ${ctx.unit}, so the CI runs ${(mean - half).toFixed(dp)} to ${(mean + half).toFixed(dp)}. Using the SD (${sd}) directly would overstate the uncertainty in the mean by a factor of √${n} = ${Math.sqrt(n)}.`,
+      };
+    }
+
+    if (variant === "coverage") {
+      // The one claim about confidence intervals that a picture settles and a
+      // paragraph never does: what the 95% is actually counting.
+      const n = rng.pick(SQUARE_N);
+      const mu = drawRange(rng, ctx.mean, ctx.dec);
+      const sigma = drawRange(rng, ctx.sd, ctx.dec);
+      const { options, answer, optionExplanations, misconceptionTag } = assemble(rng, [
+        { text: "About 5 of the 100", correct: true },
+        { text: "None — a 95% interval is constructed to contain the true value",
+          tag: "confidence_interval_treated_as_a_guarantee",
+          explain: `If no interval ever missed, the procedure would be making a promise it cannot keep from a sample of ${n}. The 95% is a long-run hit rate, and a hit rate below 100% means misses — about 1 study in 20, each of which looks exactly like the others from the inside.` },
+        { text: "About 95 of the 100",
+          tag: "coverage_and_miss_rate_swapped",
+          explain: `95 is the number that CONTAIN the true mean. The question asks for the complement, which is the 5 that do not.` },
+        { text: "Impossible to say without knowing the true mean",
+          tag: "coverage_thought_to_require_the_unknown_truth",
+          explain: `You would need the true mean to say WHICH intervals missed — and in a real study you never can. But how MANY miss is a property of the procedure, fixed by the confidence level before a single patient is recruited.` },
+      ]);
+      return {
+        _variant: variant,
+        _params: { n, mu, sigma },
+        simulate: { kind: "ci_coverage", seed: rng.int(1, 1 << 29), n, reps: 100, mu, sigma },
+        q: `If you repeated this study 100 times, about how many of the 100 intervals would MISS the true mean?`,
+        scenario: `Imagine running ${ctx.setting} over and over. Each repetition draws a fresh sample of n = ${n} from the same population — whose true mean ${ctx.outcome} is ${mu} ${ctx.unit}, a number no real investigator would ever know — and reports a 95% confidence interval.`,
+        type: "mcq",
+        options, answer, optionExplanations, misconceptionTag,
+        hint: "The confidence level is a statement about the PROCEDURE's long-run hit rate. Read off what it implies about the misses.",
+        explain: `About 5 in 100. "95% confidence" names the proportion of intervals built this way that cover the truth across repeated studies — so roughly 1 in 20 misses, and nothing has gone wrong in those studies. The uncomfortable part is that the missing ones are indistinguishable from the rest: you get one interval, and no way to tell which kind you are holding.`,
       };
     }
 

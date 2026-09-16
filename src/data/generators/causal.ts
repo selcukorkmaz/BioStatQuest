@@ -255,6 +255,11 @@ export const CAUSAL_ROLE_FAMILY: QuestionFamily = {
     );
     return {
       _variant: variant, _params: { role: e.role },
+      // Only colliders get the reveal: it is the one case where adjustment
+      // creates an association from nothing, and a picture settles the argument.
+      ...(e.role === "collider"
+        ? { simulate: { kind: "collider" as const, seed: rng.int(1, 1 << 29), n: 500 } }
+        : {}),
       q: `What happens to your estimate if you DO adjust for this variable?`,
       scenario,
       type: "mcq",

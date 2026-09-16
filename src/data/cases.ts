@@ -1,4 +1,6 @@
 // Case bank — each case has a sequence of questions with exactly one correct option.
+import type { SimSpec } from "../lib/simulate";
+
 export type QuestionType = "mcq" | "numeric" | "multi";
 
 export type Question = {
@@ -43,6 +45,11 @@ export type Question = {
   hint?: string | { layer1?: string; layer2?: string; layer3?: string };
   output?: string;
   outputLang?: string;
+  // Predict-then-see. When present, CasePlay runs this simulation AFTER the
+  // learner has committed to an answer and draws the result in the feedback
+  // block. The question itself stays an ordinary mcq/numeric — the prediction
+  // is the answer, and the simulation is the reply.
+  simulate?: SimSpec;
 };
 
 export type Case = {

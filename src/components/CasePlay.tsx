@@ -17,6 +17,7 @@ import { getHint } from "../lib/methodHints";
 import { effectivelyPro } from "../lib/launchFlags";
 import { Ico } from "./Icons";
 import { DeepDive } from "./DeepDive";
+import { SimulationReveal } from "./SimulationReveal";
 
 // Reaches into the active Supabase session for the access token. We can't
 // pull from BQAuth (it doesn't expose getSession), so build a transient
@@ -970,7 +971,8 @@ export function CasePlay({ caseId, difficulty, questions, onFinish, onExit, srs,
               {correct && totalTimeBonus > 0 && <span className="ml-2 text-amber-400 text-sm">+{answers[answers.length-1]?.timeBonus||0} time bonus</span>}
             </div>
             <DistractorFeedback step={step} correct={correct} current={current} misconceptionCounts={misconceptionCounts} />
-            <div className="text-sm text-slate-200 leading-relaxed">{step.explain}</div>
+            {step.simulate && <SimulationReveal spec={step.simulate} />}
+            <div className="text-sm text-slate-200 leading-relaxed mt-3">{step.explain}</div>
             {step.method && <DeepDive methodId={step.method} srs={srs} onOpenGlossary={onOpenGlossary}/>}
             <AskTutor step={step} current={current} caseId={c.id}/>
             <ReportQuestionLink qid={step.qid} caseId={c.id} seed={step._seed}/>

@@ -117,6 +117,8 @@ export const MULTIPLE_TESTING_FAMILY: QuestionFamily = {
       if (fwer > 97) degenerate("family-wise error pinned at 100%");
       return {
         _variant: variant, _params: { m, alpha, fwer },
+        // After the learner commits to a number, run the family once for real.
+        simulate: { kind: "multiplicity", seed: rng.int(1, 1 << 29), m, alpha },
         q: `If every null hypothesis is in fact true, what is the probability of at least one false positive? Answer as a percentage.`,
         scenario: `${c.setting[0].toUpperCase()}${c.setting.slice(1)} in ${num(cohort)} patients tests ${m} independent ${c.what}, each at α = ${alpha}.`,
         type: "numeric",

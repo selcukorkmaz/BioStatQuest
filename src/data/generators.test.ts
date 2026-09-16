@@ -21,6 +21,7 @@ import {
 } from "./generators";
 import { VARIABLES, type VarKind } from "./generators/foundations";
 import { PROCESSES, GOALS, type DistName, type DesignName } from "./generators/probability";
+import { runSimulation } from "../lib/simulate";
 import { METHODS } from "./methods";
 import { CASES } from "./cases";
 
@@ -1023,6 +1024,18 @@ function verify(q: GeneratedQuestion) {
       break;
     }
 
+    case "gen_ci_width:coverage": {
+      const m = scenario.match(/true mean .+? is ([\d.]+) .+?, a number/);
+      expect(m, `${where}: true mean not stated`).toBeTruthy();
+      expect(keyText(q), `${where}: key must be the ~5-in-100 miss rate`).toBe("About 5 of the 100");
+      expect(q.simulate, `${where}: this variant exists to be simulated`).toBeTruthy();
+      expect(q.simulate!.kind).toBe("ci_coverage");
+      const spec = q.simulate as Extract<typeof q.simulate, { kind: "ci_coverage" }>;
+      expect(spec.reps, `${where}: the stem promises 100 repetitions`).toBe(100);
+      expect(spec.mu, `${where}: simulated mean must match the stem`).toBe(Number(m![1]));
+      break;
+    }
+
     default:
       throw new Error(`${where}: no verifier registered for this variant`);
   }
@@ -1084,6 +1097,15 @@ function checkStructure(fam: QuestionFamily, q: GeneratedQuestion) {
       expect(answerSet.has(idx), `${where}: ${label} targets the key`).toBe(false);
       expect((map as Record<number, string>)[idx].trim(), `${where}: blank ${label}`).toBeTruthy();
     }
+  }
+
+  // A simulation spec must be well formed and reproducible. Actually RUNNING
+  // it is expensive, so that happens in a sampled pass further down.
+  if (q.simulate) {
+    expect(["clt", "ci_coverage", "multiplicity", "collider"], `${where}: unknown sim kind`)
+      .toContain(q.simulate.kind);
+    expect(Number.isInteger(q.simulate.seed), `${where}: sim seed must be an integer`).toBe(true);
+    expect(q.simulate.seed, `${where}: sim seed must be positive`).toBeGreaterThan(0);
   }
 
   // No leaked template plumbing.
@@ -1266,5 +1288,96 @@ describe("seed-dependent keys actually flip", () => {
     const rarest = Math.min(...counts.values());
     expect(rarest / hits.length, `${fid}:${variant} rarest branch is ${rarest}/${hits.length}`)
       .toBeGreaterThan(0.02);
+  });
+});
+
+
+// ------------------------------------------------------------
+// Predict-then-see: the reveal must AGREE with the key.
+//
+// A simulation that contradicted the answer it follows would be worse than no
+// simulation at all — the learner would be told they were wrong and then shown
+// a picture proving them right. Running every instance's simulation would be
+// slow, so this samples a handful per variant and checks the agreement directly.
+// ------------------------------------------------------------
+describe("predict-then-see reveals agree with the key", () => {
+  const sample = (fid: string, variant: string, k = 12) => {
+    const fam = FAMILY_BY_ID.get(fid)!;
+    const out: GeneratedQuestion[] = [];
+    for (let i = 0; i < SEEDS && out.length < k; i++) {
+      const q = instantiate(fam, seedAt(i));
+      if (q._variant === variant && q.simulate) out.push(q);
+    }
+    return out;
+  };
+
+  it("gen_clt_se:shape — the simulated means look the way the key says they will", () => {
+    const qs = sample("gen_clt_se", "shape");
+    expect(qs.length, "no simulating instances found").toBeGreaterThan(5);
+    for (const q of qs) {
+      const r = runSimulation(q.simulate!);
+      if (r.kind !== "clt") throw new Error("wrong kind");
+      const saysNormal = /^Approximately normal/.test(keyText(q));
+      if (saysNormal) {
+        expect(Math.abs(r.meanSkew), `n=${r.n} keyed "approximately normal" but simulated skew ${r.meanSkew.toFixed(2)}`)
+          .toBeLessThan(0.8);
+      } else {
+        expect(r.meanSkew, `n=${r.n} keyed "still skewed" but simulated skew ${r.meanSkew.toFixed(2)}`)
+          .toBeGreaterThan(0.25);
+      }
+      // The population panel must stay skewed either way — that is the contrast.
+      expect(r.popSkew).toBeGreaterThan(1.2);
+    }
+  });
+
+  it("gen_ci_width:coverage — about 5 in 100 really do miss", () => {
+    const qs = sample("gen_ci_width", "coverage");
+    expect(qs.length).toBeGreaterThan(5);
+    const misses: number[] = [];
+    for (const q of qs) {
+      const r = runSimulation(q.simulate!);
+      if (r.kind !== "ci_coverage") throw new Error("wrong kind");
+      expect(r.intervals).toHaveLength(100);
+      misses.push(r.missed);
+      // No run may make the keyed answer look absurd in either direction.
+      expect(r.missed, `a run missing ${r.missed}/100 contradicts "about 5"`).toBeLessThan(16);
+    }
+    const avg = misses.reduce((a, b) => a + b, 0) / misses.length;
+    expect(avg, `mean misses across runs: ${avg.toFixed(1)}`).toBeGreaterThan(1.5);
+    expect(avg, `mean misses across runs: ${avg.toFixed(1)}`).toBeLessThan(9);
+  });
+
+  it("gen_multiple_testing:fwer — the simulated family matches the m and α in the stem", () => {
+    const qs = sample("gen_multiple_testing", "fwer");
+    expect(qs.length).toBeGreaterThan(5);
+    for (const q of qs) {
+      const stem = q.scenario ?? "";
+      const m = Number(stem.match(/tests (\d+) independent/)![1]);
+      const alpha = Number(stem.match(/α = (\d+\.\d+)/)![1]);
+      const r = runSimulation(q.simulate!);
+      if (r.kind !== "multiplicity") throw new Error("wrong kind");
+      expect(r.pvals).toHaveLength(m);
+      expect(r.alpha).toBe(alpha);
+      expect(r.hits).toBe(r.pvals.filter((p) => p < alpha).length);
+    }
+  });
+
+  it("gen_causal_role:consequence — only colliders get a reveal, and it shows the manufactured association", () => {
+    const fam = FAMILY_BY_ID.get("gen_causal_role")!;
+    const all = Array.from({ length: SEEDS }, (_, i) => instantiate(fam, seedAt(i)))
+      .filter((q) => q._variant === "consequence");
+    const withSim = all.filter((q) => q.simulate);
+    const isCollider = (q: GeneratedQuestion) => /spurious association appears/.test(keyText(q));
+    // Exactly the collider items, and nothing else, carry a simulation.
+    expect(withSim.length).toBeGreaterThan(5);
+    expect(withSim.every(isCollider), "a non-collider item carries a collider simulation").toBe(true);
+    expect(all.filter(isCollider).every((q) => !!q.simulate), "a collider item is missing its reveal").toBe(true);
+
+    for (const q of withSim.slice(0, 10)) {
+      const r = runSimulation(q.simulate!);
+      if (r.kind !== "collider") throw new Error("wrong kind");
+      expect(Math.abs(r.rAll), `unconditioned r = ${r.rAll.toFixed(2)} should be ~0`).toBeLessThan(0.15);
+      expect(r.rSel, `conditioned r = ${r.rSel.toFixed(2)} should be clearly negative`).toBeLessThan(-0.2);
+    }
   });
 });

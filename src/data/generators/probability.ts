@@ -189,6 +189,8 @@ export const CLT_SE_FAMILY: QuestionFamily = {
       ]);
       return {
         _variant: variant, _params: { n, big: big ? 1 : 0 },
+        // Predict first, then watch the same experiment run.
+        simulate: { kind: "clt", seed: rng.int(1, 1 << 29), population: "skewed", n, reps: 500 },
         q: `What does the sampling distribution of the MEAN look like?`,
         scenario: `You repeatedly draw samples of n = ${n} from a population of ${pop}, and each time record the sample mean.`,
         type: "mcq",
