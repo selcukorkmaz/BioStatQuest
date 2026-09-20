@@ -6325,6 +6325,154 @@ function NeedsAttention({ users, reports, events, onNavigate }) {
   );
 }
 
+// ---- Live now -------------------------------------------------------------
+// "Who is on the site right now" — the one thing the aggregate cards below
+// can't answer. Sessions are reconstructed from the events stream: every row
+// is keyed by user_id when signed in, else by visitor_id, so a guest who
+// signs up mid-session collapses into a single row once their events carry
+// a user_id.
+//
+// Two windows: ONLINE (last 5 min) is "on the page right now"; the rest of
+// the 30-minute window is "was here just now, probably reading." Events only
+// fire on discrete actions (open, start, answer, complete) — someone reading
+// a long case vignette emits nothing — so a 5-minute idle tolerance is the
+// floor for calling a session live.
+//
+// Signed-in users get a second liveness signal: user_progress.updated_at,
+// which bumps on every state save. That matters because event logging is
+// gated on analytics consent — a signed-in user who declined cookies emits
+// zero events but still saves progress, and would otherwise be invisible here.
+function LiveNow({ users, events }) {
+  const ONLINE = 5 * 60e3;
+  const WINDOW = 30 * 60e3;
+
+  // Re-render on a timer so "2m ago" ages even between data refreshes.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 20e3);
+    return () => clearInterval(id);
+  }, []);
+  const now = Date.now();
+
+  const sessions = new Map(); // key → session
+  const touch = (key, ts, patch) => {
+    const s = sessions.get(key) || { key, lastSeen: 0, events: 0, guest: true, label: null, last: null, ref: null };
+    if (ts > s.lastSeen) { s.lastSeen = ts; if (patch.last) s.last = patch.last; }
+    if (patch.countEvent) s.events += 1;
+    if (patch.label) s.label = patch.label;
+    if (patch.guest === false) s.guest = false;
+    if (patch.ref && !s.ref) s.ref = patch.ref;
+    sessions.set(key, s);
+    return s;
+  };
+
+  for (const e of events || []) {
+    const ts = new Date(e.created_at).getTime();
+    if (!(now - ts < WINDOW)) continue;
+    const key = e.user_id ? `u:${e.user_id}` : (e.visitor_id ? `v:${e.visitor_id}` : null);
+    if (!key) continue;
+    touch(key, ts, {
+      countEvent: true,
+      guest: e.user_id ? false : true,
+      label: e.user_id ? (e.user_email || "signed-in user") : `guest · ${String(e.visitor_id).slice(0, 6)}`,
+      last: { type: e.type, case_id: e.case_id, qid: e.qid },
+      ref: (e.data && (e.data.landingVariant || e.data.ref)) || null,
+    });
+  }
+
+  // Second signal for signed-in users: a progress save inside the window.
+  for (const u of users || []) {
+    const ts = new Date(u.updated_at).getTime();
+    if (!(now - ts < WINDOW)) continue;
+    touch(`u:${u.id}`, ts, { guest: false, label: u.email || "signed-in user", last: { type: "progress_save" } });
+  }
+
+  const rows = [...sessions.values()].sort((a, b) => b.lastSeen - a.lastSeen);
+  const online = rows.filter(r => now - r.lastSeen < ONLINE);
+  const onlineUsers  = online.filter(r => !r.guest).length;
+  const onlineGuests = online.filter(r =>  r.guest).length;
+
+  const ago = (ts) => {
+    const d = now - ts;
+    if (d < 60e3) return "just now";
+    return `${Math.round(d / 60e3)}m ago`;
+  };
+
+  const describe = (last) => {
+    if (!last) return "active";
+    switch (last.type) {
+      case "session_start":       return "opened the app";
+      case "guest_visit":         return "landed on the site";
+      case "signup":              return "signed up";
+      case "case_start":          return `started ${last.case_id || "a case"}`;
+      case "case_complete":       return `completed ${last.case_id || "a case"}`;
+      case "answer_correct":      return `answered ${last.qid || "a question"} · correct`;
+      case "answer_wrong":        return `answered ${last.qid || "a question"} · wrong`;
+      case "report_filed":        return `reported ${last.qid || "a question"}`;
+      case "diagnostic_complete": return "finished the diagnostic";
+      case "diagnostic_skipped":  return "skipped the diagnostic";
+      case "progress_save":       return "saved progress";
+      default:                    return last.type;
+    }
+  };
+
+  return (
+    <div className="card rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="relative flex w-2 h-2">
+            {online.length > 0 && <span className="absolute inline-flex w-full h-full rounded-full bg-emerald-400 opacity-60 animate-ping"/>}
+            <span className={`relative inline-flex w-2 h-2 rounded-full ${online.length > 0 ? "bg-emerald-400" : "bg-slate-600"}`}/>
+          </span>
+          <div className="text-[10px] uppercase tracking-widest text-slate-500">Live now · last 5 min</div>
+        </div>
+        <div className="text-xs mono text-slate-500">
+          <span className={online.length > 0 ? "text-emerald-300 font-semibold" : ""}>{online.length} online</span>
+          {" · "}{onlineUsers} signed in · {onlineGuests} guest{onlineGuests === 1 ? "" : "s"}
+          {rows.length > online.length && <> · {rows.length - online.length} idle (30m)</>}
+        </div>
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="text-sm text-slate-500">
+          Nobody active in the last 30 minutes.
+        </div>
+      ) : (
+        <div className="space-y-1">
+          {rows.map(r => {
+            const isOnline = now - r.lastSeen < ONLINE;
+            return (
+              <div key={r.key}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${
+                  isOnline ? "border-emerald-800/40 bg-emerald-950/15" : "border-slate-800 bg-slate-900/30"}`}>
+                <span className={`shrink-0 w-1.5 h-1.5 rounded-full ${isOnline ? "bg-emerald-400" : "bg-slate-600"}`}/>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-sm truncate ${r.guest ? "text-slate-300 mono text-xs" : "text-white font-semibold"}`}>{r.label}</span>
+                    {r.guest
+                      ? <span className="chip text-[10px] bg-slate-800 text-slate-400">guest</span>
+                      : <span className="chip text-[10px] bg-purple-900/40 text-purple-200">signed in</span>}
+                    {r.ref && <span className="chip text-[10px] bg-slate-800 text-slate-400 mono">{r.ref}</span>}
+                  </div>
+                  <div className="text-xs text-slate-400 mt-0.5 truncate">{describe(r.last)}</div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className={`text-xs mono ${isOnline ? "text-emerald-300" : "text-slate-500"}`}>{ago(r.lastSeen)}</div>
+                  {r.events > 0 && <div className="text-[10px] text-slate-600 mono">{r.events} event{r.events === 1 ? "" : "s"}</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="text-[11px] text-slate-500 mt-3 leading-relaxed">
+        Sessions are inferred from events (and, for signed-in users, progress saves). Visitors who declined analytics cookies emit no events and can't appear here.
+      </div>
+    </div>
+  );
+}
+
 function AdminOverview({ users, openReportsCount, events, reports, onNavigate }) {
   const now = Date.now();
   const DAY = 24 * 60 * 60 * 1000;
@@ -6406,6 +6554,7 @@ function AdminOverview({ users, openReportsCount, events, reports, onNavigate })
 
   return (
     <div className="space-y-4">
+      <LiveNow users={users} events={events}/>
       <NeedsAttention users={users} reports={reports} events={events} onNavigate={onNavigate}/>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {card("Total users", safe.length)}
@@ -7315,6 +7464,7 @@ function AdminReports({ onHome }) {
   const [allReports, setAllReports] = useState(null); // used by Content tab for qid/case aggregation
   const [events, setEvents] = useState(null);
   const [err, setErr] = useState("");
+  const [loadedAt, setLoadedAt] = useState(null);
 
   async function loadShared() {
     try {
@@ -7328,11 +7478,24 @@ function AdminReports({ onHome }) {
       setOpenReports(rc);
       setAllReports(rep || []);
       setEvents(ev || []);
+      setLoadedAt(Date.now());
     } catch (e) {
       setErr((e && e.message) || "Could not load admin data.");
     }
   }
   useEffect(() => { if (isAdmin) loadShared(); }, [isAdmin]);
+
+  // Keep the dashboard live. "Who is on the site right now" is only true if
+  // the data behind it is minutes old at worst, so poll every 60s — but skip
+  // the fetch while the tab is hidden so a backgrounded admin tab doesn't
+  // hammer Supabase all day. A refresh fires immediately on re-focus.
+  useEffect(() => {
+    if (!isAdmin) return;
+    const refreshIfVisible = () => { if (!document.hidden) loadShared(); };
+    const id = setInterval(refreshIfVisible, 60e3);
+    document.addEventListener("visibilitychange", refreshIfVisible);
+    return () => { clearInterval(id); document.removeEventListener("visibilitychange", refreshIfVisible); };
+  }, [isAdmin]);
 
   // While auth is still hydrating, render nothing — avoids a flash of
   // "page not found" for a real admin who deep-links into /?admin=1.
@@ -7371,6 +7534,7 @@ function AdminReports({ onHome }) {
           <p className="t-body text-slate-400 text-sm">Activity dashboard · signed in as <span className="text-slate-300">{window.BQAuth?.getUser?.()?.email}</span></p>
         </div>
         <div className="flex items-center gap-2">
+          {loadedAt && <span className="text-[11px] text-slate-500 mono">updated {fmtTime(new Date(loadedAt))}</span>}
           <button onClick={loadShared} className="btn btn-ghost px-3 py-2 rounded-lg text-sm">Refresh</button>
           <button onClick={onHome} className="btn btn-ghost px-3 py-2 rounded-lg text-sm">← Home</button>
         </div>
