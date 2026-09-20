@@ -114,7 +114,6 @@ BioStatQuest/
 ├── supabase_schema_v2.sql           # question_attempts, ai_chats, misconception + admin RPCs
 ├── supabase_schema_v3_statements.sql# statements (Statement of Competency)
 ├── supabase_schema_classes.sql      # institutions, classes, class_members, class_invites
-├── supabase_schema_billing_provider.sql  # billing_provider column on user_progress
 ├── vite.config.ts         # Multi-entry build (9 HTML pages) + manual vendor chunks
 ├── vercel.json            # Crons, clean URLs, SPA rewrites, headers, caching
 └── tsconfig*.json
@@ -208,7 +207,6 @@ Vercel auto-detects the Vite build and the `api/` functions. `vercel.json` sets 
    | `supabase_schema_v2.sql` | `question_attempts`, `ai_chats`, misconception RPCs, admin telemetry RPCs |
    | `supabase_schema_v3_statements.sql` | `statements` (Statement of Competency) |
    | `supabase_schema_classes.sql` | `institutions`, `classes`, `class_members`, `class_invites` |
-   | `supabase_schema_billing_provider.sql` | `billing_provider` column on `user_progress` |
    | `docs/admin-analytics-rpcs.sql` | Server-side admin analytics aggregation + `admin_emails()` |
 
 3. Project Settings → API → copy the **URL** and **anon public** key into `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`.
