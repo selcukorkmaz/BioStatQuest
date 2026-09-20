@@ -666,6 +666,83 @@ async function adminFetchQuestionStats(days = 30, minN = 5): Promise<QuestionSta
   }));
 }
 
+// ---- Server-side analytics aggregation -----------------------------------
+// The dashboard's traffic numbers used to be derived on the client from the
+// most recent 500 events, which meant every "30d" label silently degraded to
+// "however far back 500 rows happen to reach." These wrappers call the
+// aggregation RPCs in docs/admin-analytics-rpcs.sql instead, so a window means
+// what it says regardless of volume.
+//
+// Each returns null (rather than throwing) when the RPC isn't deployed yet, so
+// a dashboard running against a database without the migration falls back to
+// the old approximate path instead of erroring out.
+export type AdminTrafficSummary = {
+  visitors: number;
+  guestVisitors: number;
+  signups: number;
+  convertedVisitors: number;
+  eventsTotal: number;
+  firstEventAt: string | null;
+};
+export type AdminVariantRow  = { variant: string; visitors: number; signups: number };
+export type AdminCaseFunnelRow = { caseId: string; starts: number; completes: number };
+export type AdminCohortRow = { cohortStart: string; n: number; returned: number };
+
+// PostgREST reports an undeployed function as PGRST202; Postgres itself uses
+// 42883 (undefined_function). Treat either as "migration not applied yet."
+function isMissingRpc(error: any): boolean {
+  const code = String(error?.code || "");
+  if (code === "PGRST202" || code === "42883") return true;
+  return /could not find the function|does not exist/i.test(String(error?.message || ""));
+}
+
+async function adminFetchTrafficSummary(days = 30, excludeAdmin = true): Promise<AdminTrafficSummary | null> {
+  if (!enabled || !client) return null;
+  if (!isAdmin()) throw new Error("Admin only");
+  const { data, error } = await client.rpc("admin_analytics_summary", { p_days: days, p_exclude_admin: excludeAdmin });
+  if (error) { if (isMissingRpc(error)) return null; throw error; }
+  const row: any = Array.isArray(data) ? data[0] : data;
+  if (!row) return null;
+  return {
+    visitors:           Number(row.visitors) || 0,
+    guestVisitors:      Number(row.guest_visitors) || 0,
+    signups:            Number(row.signups) || 0,
+    convertedVisitors:  Number(row.converted_visitors) || 0,
+    eventsTotal:        Number(row.events_total) || 0,
+    firstEventAt:       row.first_event_at ?? null,
+  };
+}
+
+async function adminFetchVariantStats(days = 30, excludeAdmin = true): Promise<AdminVariantRow[] | null> {
+  if (!enabled || !client) return null;
+  if (!isAdmin()) throw new Error("Admin only");
+  const { data, error } = await client.rpc("admin_variant_stats", { p_days: days, p_exclude_admin: excludeAdmin });
+  if (error) { if (isMissingRpc(error)) return null; throw error; }
+  return (Array.isArray(data) ? data : []).map((r: any) => ({
+    variant: r.variant, visitors: Number(r.visitors) || 0, signups: Number(r.signups) || 0,
+  }));
+}
+
+async function adminFetchCaseFunnel(days = 30, excludeAdmin = true): Promise<AdminCaseFunnelRow[] | null> {
+  if (!enabled || !client) return null;
+  if (!isAdmin()) throw new Error("Admin only");
+  const { data, error } = await client.rpc("admin_case_funnel", { p_days: days, p_exclude_admin: excludeAdmin });
+  if (error) { if (isMissingRpc(error)) return null; throw error; }
+  return (Array.isArray(data) ? data : []).map((r: any) => ({
+    caseId: r.case_id, starts: Number(r.starts) || 0, completes: Number(r.completes) || 0,
+  }));
+}
+
+async function adminFetchRetentionCohorts(weeks = 8, excludeAdmin = true): Promise<AdminCohortRow[] | null> {
+  if (!enabled || !client) return null;
+  if (!isAdmin()) throw new Error("Admin only");
+  const { data, error } = await client.rpc("admin_retention_cohorts", { p_weeks: weeks, p_exclude_admin: excludeAdmin });
+  if (error) { if (isMissingRpc(error)) return null; throw error; }
+  return (Array.isArray(data) ? data : []).map((r: any) => ({
+    cohortStart: r.cohort_start, n: Number(r.n) || 0, returned: Number(r.returned) || 0,
+  }));
+}
+
 async function fetchAllUsers() {
   if (!enabled || !client) return null;
   if (!isAdmin()) throw new Error("Admin only");
@@ -786,6 +863,10 @@ export const BQAuth = {
   fetchMyExamCount30d,
   adminFetchTopMisconceptions,
   adminFetchQuestionStats,
+  adminFetchTrafficSummary,
+  adminFetchVariantStats,
+  adminFetchCaseFunnel,
+  adminFetchRetentionCohorts,
   isAdmin,
   fetchQuestionReports,
   updateQuestionReport,

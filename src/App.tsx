@@ -6186,7 +6186,7 @@ class AdminErrorBoundary extends React.Component {
 // should act on — low-accuracy questions, high-dropoff cases, overdue reports,
 // stuck users, and fresh signups. Each row calls onNavigate to jump to the
 // right tab; admins apply filters there (click-through deep linking is later).
-function NeedsAttention({ users, reports, events, onNavigate }) {
+function NeedsAttention({ users, reports, events, analytics, onNavigate }) {
   const now = Date.now();
   const HOUR = 3600e3;
   const DAY = 24 * HOUR;
@@ -6195,26 +6195,46 @@ function NeedsAttention({ users, reports, events, onNavigate }) {
   //    Threshold: ≥10 answers, <40% correct. 10 is a noise floor; under that
   //    one lucky streak flips the signal. The 40% cutoff is empirical — below
   //    that a 4-option MCQ is doing worse than random-plus-distractor-avoidance.
-  const accuracy = {};
-  for (const e of events || []) {
-    if (!e.qid) continue;
-    if (e.type !== "answer_correct" && e.type !== "answer_wrong") continue;
-    const b = accuracy[e.qid] || { correct: 0, total: 0 };
-    b.total += 1;
-    if (e.type === "answer_correct") b.correct += 1;
-    accuracy[e.qid] = b;
+  //
+  //    Source of truth is admin_question_stats — the same server-side
+  //    aggregation the Telemetry tab renders. This used to be recomputed here
+  //    from the client's 500-event buffer, so the two tabs could disagree
+  //    about the accuracy of the same question. Falls back to the event buffer
+  //    only when the RPC is unavailable.
+  const qstats = (analytics && analytics.qstats) || null;
+  let lowAcc;
+  if (qstats) {
+    lowAcc = qstats
+      .filter(r => r.n >= 10 && r.accuracy < 0.4)
+      .map(r => ({ qid: r.qid, pct: Math.round(r.accuracy * 100), n: r.n }))
+      .sort((a, b) => a.pct - b.pct);
+  } else {
+    const accuracy = {};
+    for (const e of events || []) {
+      if (!e.qid) continue;
+      if (e.type !== "answer_correct" && e.type !== "answer_wrong") continue;
+      const b = accuracy[e.qid] || { correct: 0, total: 0 };
+      b.total += 1;
+      if (e.type === "answer_correct") b.correct += 1;
+      accuracy[e.qid] = b;
+    }
+    lowAcc = Object.entries(accuracy)
+      .filter(([, b]) => b.total >= 10 && b.correct / b.total < 0.4)
+      .map(([qid, b]) => ({ qid, pct: Math.round((b.correct / b.total) * 100), n: b.total }))
+      .sort((a, b) => a.pct - b.pct);
   }
-  const lowAcc = Object.entries(accuracy)
-    .filter(([, b]) => b.total >= 10 && b.correct / b.total < 0.4)
-    .map(([qid, b]) => ({ qid, pct: Math.round((b.correct / b.total) * 100), n: b.total }))
-    .sort((a, b) => a.pct - b.pct);
 
   // 2) Cases with start→complete dropoff. Only fire if a case has ≥5 starts
   //    (small-n guard) AND completion rate <50%.
+  const funnel = (analytics && analytics.funnel) || null;
   const starts = {}, completes = {};
-  for (const e of events || []) {
-    if (e.type === "case_start" && e.case_id) starts[e.case_id] = (starts[e.case_id] || 0) + 1;
-    if (e.type === "case_complete" && e.case_id) completes[e.case_id] = (completes[e.case_id] || 0) + 1;
+  if (funnel) {
+    for (const r of funnel) { starts[r.caseId] = r.starts; completes[r.caseId] = r.completes; }
+  } else {
+    for (const e of events || []) {
+      if (e.type === "case_start" && e.case_id) starts[e.case_id] = (starts[e.case_id] || 0) + 1;
+      if (e.type === "case_complete" && e.case_id) completes[e.case_id] = (completes[e.case_id] || 0) + 1;
+    }
   }
   const dropoffCases = Object.entries(starts)
     .filter(([, n]) => n >= 5)
@@ -6474,7 +6494,7 @@ function LiveNow({ users, events }) {
   );
 }
 
-function AdminOverview({ users, openReportsCount, events, reports, onNavigate }) {
+function AdminOverview({ users, openReportsCount, events, reports, analytics, onNavigate }) {
   const now = Date.now();
   const DAY = 24 * 60 * 60 * 1000;
   const safe = users || [];
@@ -6490,11 +6510,21 @@ function AdminOverview({ users, openReportsCount, events, reports, onNavigate })
   const activatedUsers = safe.filter(u => (u.state?.completed?.length || 0) >= 1).length;
   const activationRate = safe.length ? Math.round((activatedUsers / safe.length) * 100) : 0;
 
-  // Retention glimpse: of users who signed up 7+ days ago, what % saved
-  // (opened the app) within the last 7 days? A first-cut Day-7 retention.
+  // Of users who signed up 7+ days ago, what share saved progress in the last
+  // 7 days? This was labelled "Day-7 retention", which it is not — it is a
+  // current-active share of everyone who has been around a while, and it can
+  // only fall as the user base ages. Kept (honestly named) as a liveness
+  // measure; real cohort retention comes from admin_retention_cohorts below.
   const cohort = safe.filter(u => new Date(u.created_at).getTime() <= now - 7 * DAY);
   const cohortRetained = cohort.filter(u => new Date(u.updated_at).getTime() >= now - 7 * DAY).length;
-  const d7Retention = cohort.length ? Math.round((cohortRetained / cohort.length) * 100) : null;
+  const activeShare = cohort.length ? Math.round((cohortRetained / cohort.length) * 100) : null;
+
+  // Real week-1 return rate, pooled across matured weekly signup cohorts:
+  // did a new user come back and do something 24h–7d after signing up?
+  const cohorts = (analytics && analytics.cohorts) || null;
+  const cohortN = (cohorts || []).reduce((t, c) => t + c.n, 0);
+  const cohortReturned = (cohorts || []).reduce((t, c) => t + c.returned, 0);
+  const week1Return = cohortN ? Math.round((cohortReturned / cohortN) * 100) : null;
 
   // 30-day signup histogram (one bar per day). Uses created_at from users.
   const buckets = Array.from({ length: 30 }, () => 0);
@@ -6510,40 +6540,63 @@ function AdminOverview({ users, openReportsCount, events, reports, onNavigate })
   const evs30d = evs.filter(e => new Date(e.created_at).getTime() >= now - 30 * DAY);
   const evMix = evs7d.reduce((acc, e) => { acc[e.type] = (acc[e.type] || 0) + 1; return acc; }, {});
 
-  // Anonymous activity — unique visitor_ids that haven't converted to a user.
-  const anonVisitors7d = new Set(evs7d.filter(e => !e.user_id && e.visitor_id).map(e => e.visitor_id));
-  const anonVisitors30d = new Set(evs30d.filter(e => !e.user_id && e.visitor_id).map(e => e.visitor_id));
+  // ---- Traffic -------------------------------------------------------------
+  // Server aggregates when the analytics RPCs are deployed; otherwise the old
+  // client-side derivation, which only ever saw the most recent 500 events and
+  // is therefore labelled "approx" in the UI rather than presented as a window.
+  const srv30 = (analytics && analytics.s30) || null;
+  const srv7  = (analytics && analytics.s7)  || null;
+  const serverBacked = !!(analytics && analytics.ready);
+
+  const fbGuest7  = new Set(evs7d.filter(e => !e.user_id && e.visitor_id).map(e => e.visitor_id)).size;
+  const fbGuest30 = new Set(evs30d.filter(e => !e.user_id && e.visitor_id).map(e => e.visitor_id)).size;
 
   // Landing-variant mix (30d): which referrer-aware hero variants fire most,
   // and what fraction of visitors from each convert to a signup. Reads data
   // from session_start / guest_visit events populated by auth.ts.
   const variantVisitors = new Map(); // key: variant → Set(visitor_id)
-  const variantSignups  = new Map(); // key: variant → Set(visitor_id) that later signed up
+  const variantSignups  = new Map(); // key: variant → Set(visitor_id) that signed up here
   for (const e of evs30d) {
     const vKey = (e.data && (e.data.landingVariant || e.data.ref)) || null;
     if (!vKey || !e.visitor_id) continue;
     if (!variantVisitors.has(vKey)) variantVisitors.set(vKey, new Set());
     variantVisitors.get(vKey).add(e.visitor_id);
-    if (e.user_id) {
+    // Credit a signup only on the actual signup event. Crediting any event
+    // carrying a user_id (the previous rule) counted every returning login as
+    // a fresh conversion and inflated this column badly.
+    if (e.type === "signup") {
       if (!variantSignups.has(vKey)) variantSignups.set(vKey, new Set());
       variantSignups.get(vKey).add(e.visitor_id);
     }
   }
-  const variantRows = [...variantVisitors.entries()]
-    .map(([key, vSet]) => {
-      const signed = variantSignups.get(key) || new Set();
-      const total = vSet.size;
-      const conv = total ? Math.round((signed.size / total) * 100) : 0;
-      return { key, visitors: total, signups: signed.size, conv };
-    })
-    .sort((a, b) => b.visitors - a.visitors);
+  const variantRows = (analytics && analytics.variants)
+    ? analytics.variants.map(r => ({
+        key: r.variant,
+        visitors: r.visitors,
+        signups: r.signups,
+        conv: r.visitors ? Math.round((r.signups / r.visitors) * 100) : 0,
+      }))
+    : [...variantVisitors.entries()]
+        .map(([key, vSet]) => {
+          const signed = variantSignups.get(key) || new Set();
+          const total = vSet.size;
+          const conv = total ? Math.round((signed.size / total) * 100) : 0;
+          return { key, visitors: total, signups: signed.size, conv };
+        })
+        .sort((a, b) => b.visitors - a.visitors);
 
-  // Guest → signup conversion. A visitor_id is "converted" if at some point
-  // it appears on an event with user_id set (i.e., they signed up AND the
-  // browser remembered its visitor_id through the transition).
-  const allVisitors30d = new Set(evs30d.filter(e => e.visitor_id).map(e => e.visitor_id));
-  const convertedVisitors30d = new Set(evs30d.filter(e => e.user_id && e.visitor_id).map(e => e.visitor_id));
-  const conversionRate = allVisitors30d.size ? Math.round((convertedVisitors30d.size / allVisitors30d.size) * 100) : null;
+  // Visitor → signup conversion. "Converted" means the browser fired a signup
+  // event inside the window. The old rule — any event carrying a user_id —
+  // scored a three-month-old account logging in as a new conversion.
+  const fbVisitors30  = new Set(evs30d.filter(e => e.visitor_id).map(e => e.visitor_id)).size;
+  const fbConverted30 = new Set(evs30d.filter(e => e.type === "signup" && e.visitor_id).map(e => e.visitor_id)).size;
+
+  const guest7      = srv7  ? srv7.guestVisitors      : fbGuest7;
+  const guest30     = srv30 ? srv30.guestVisitors     : fbGuest30;
+  const visitors30  = srv30 ? srv30.visitors          : fbVisitors30;
+  const converted30 = srv30 ? srv30.convertedVisitors : fbConverted30;
+  const conversionRate = visitors30 ? Math.round((converted30 / visitors30) * 100) : null;
+  const approx = serverBacked ? "" : " · approx";
 
   const card = (label, value, hint) => (
     <div className="card rounded-xl p-4">
@@ -6556,7 +6609,15 @@ function AdminOverview({ users, openReportsCount, events, reports, onNavigate })
   return (
     <div className="space-y-4">
       <LiveNow users={users} events={events}/>
-      <NeedsAttention users={users} reports={reports} events={events} onNavigate={onNavigate}/>
+      <NeedsAttention users={users} reports={reports} events={events} analytics={analytics} onNavigate={onNavigate}/>
+      {analytics && !serverBacked && (
+        <div className="rounded-xl p-3 text-xs text-amber-200 border border-amber-800/40 bg-amber-950/20 leading-relaxed">
+          <span className="font-semibold">Traffic figures are approximate.</span> They are derived from the {evs.length} most recent
+          events loaded in this browser, not a true 7/30-day window — so they under-report as soon as volume outgrows that buffer.
+          Run <code className="text-amber-100">docs/admin-analytics-rpcs.sql</code> in the Supabase SQL editor to switch to
+          server-side aggregation.
+        </div>
+      )}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {card("Total users", safe.length)}
         {card("Active today", active1d, `${active7d} past 7d · ${active30d} past 30d`)}
@@ -6566,16 +6627,20 @@ function AdminOverview({ users, openReportsCount, events, reports, onNavigate })
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {card("Diagnostic completed", diagnosticCompleters, `${safe.length ? Math.round(diagnosticCompleters/safe.length*100) : 0}% of users`)}
         {card("Activation (≥1 case)", `${activationRate}%`, `${activatedUsers} / ${safe.length} users`)}
-        {card("Day-7 retention", d7Retention === null ? "–" : `${d7Retention}%`, cohort.length ? `${cohortRetained} / ${cohort.length} 7d+ cohort active` : "no cohort yet")}
+        {cohorts
+          ? card("Week-1 return", week1Return === null ? "–" : `${week1Return}%`,
+              cohortN ? `${cohortReturned} / ${cohortN} new users came back in week 1` : "no matured cohort yet")
+          : card("Active share · 7d+", activeShare === null ? "–" : `${activeShare}%`,
+              cohort.length ? `${cohortRetained} / ${cohort.length} older users active this week` : "no cohort yet")}
         {card("Cases completed (all)", totalCasesCompleted, `${fmtNumber(totalXP)} total XP`)}
       </div>
 
       {/* Anonymous / guest funnel */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {card("Guest visitors (7d)", anonVisitors7d.size, `${anonVisitors30d.size} past 30d`)}
-        {card("Guest → Signup rate", conversionRate === null ? "–" : `${conversionRate}%`, allVisitors30d.size ? `${convertedVisitors30d.size} / ${allVisitors30d.size} visitors signed up (30d)` : "no traffic yet")}
-        {card("Total visitors (30d)", allVisitors30d.size, "unique browsers seen")}
-        {card("Unconverted (30d)", Math.max(0, allVisitors30d.size - convertedVisitors30d.size), "visitors who never signed up")}
+        {card("Guest visitors (7d)", guest7, `${guest30} past 30d${approx}`)}
+        {card("Visitor → Signup rate", conversionRate === null ? "–" : `${conversionRate}%`, visitors30 ? `${converted30} / ${visitors30} signed up in window${approx}` : "no traffic yet")}
+        {card("Total visitors (30d)", visitors30, `unique browsers seen${approx}`)}
+        {card("Didn't sign up (30d)", Math.max(0, visitors30 - converted30), `visitors with no signup in window${approx}`)}
       </div>
 
       {/* Landing-variant breakdown: which referrer-aware hero converts best */}
@@ -6606,6 +6671,38 @@ function AdminOverview({ users, openReportsCount, events, reports, onNavigate })
           <div className="text-[11px] text-slate-500 mt-3 leading-relaxed">
             Powered by <code className="text-slate-400">landingVariant</code> + <code className="text-slate-400">ref</code> in event data.
             Variant is chosen on <code className="text-slate-400">/</code> based on <code className="text-slate-400">document.referrer</code> or <code className="text-slate-400">?utm_source</code>; preview any variant with <code className="text-slate-400">?ref=usmle</code>.
+          </div>
+        </div>
+      )}
+
+      {/* Weekly signup cohorts — the real retention picture */}
+      {cohorts && cohorts.length > 0 && (
+        <div className="card rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[10px] uppercase tracking-widest text-slate-500">Week-1 return by signup cohort</div>
+            <div className="text-xs text-slate-500 mono">cohort · signups · returned</div>
+          </div>
+          <div className="space-y-2">
+            {cohorts.map(c => {
+              const pct = c.n ? Math.round((c.returned / c.n) * 100) : 0;
+              return (
+                <div key={c.cohortStart} className="grid grid-cols-12 gap-2 items-center text-sm">
+                  <div className="col-span-4 md:col-span-3 mono text-xs text-slate-400">week of {c.cohortStart}</div>
+                  <div className="col-span-5 md:col-span-7">
+                    <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-purple-600 to-cyan-400" style={{ width: `${pct}%` }}/>
+                    </div>
+                  </div>
+                  <div className="col-span-3 md:col-span-2 text-right mono text-xs text-slate-300">
+                    {c.n} · {c.returned} · <span className={pct >= 30 ? "text-emerald-300 font-semibold" : pct > 0 ? "text-slate-300" : "text-slate-600"}>{pct}%</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="text-[11px] text-slate-500 mt-3 leading-relaxed">
+            Share of each week's signups that came back and did something 24h–7d after signing up. Only cohorts older than 7 days appear.
+            {srv30?.firstEventAt && <> Event history begins {new Date(srv30.firstEventAt).toISOString().slice(0, 10)} — cohorts before that read 0%.</>}
           </div>
         </div>
       )}
@@ -6864,7 +6961,7 @@ function AdminUsers({ users, onRefresh }) {
 // questions in this case (from question_reports.case_id), (c) how many
 // events touch this case (from events.case_id). Click a case → drill into
 // questions, each with its own report count so problem items surface fast.
-function AdminContent({ users, reports, events }) {
+function AdminContent({ users, reports, events, analytics }) {
   const [expanded, setExpanded] = useState(null);
   const [q, setQ] = useState("");
   const [sortBy, setSortBy] = useState("reports"); // 'reports' | 'completions' | 'order'
@@ -6884,13 +6981,27 @@ function AdminContent({ users, reports, events }) {
     if (r.qid) reportsByQid[r.qid] = (reportsByQid[r.qid] || 0) + 1;
   }
 
+  // Prefer the server-side aggregates (full 30-day window) over the client's
+  // 500-event buffer, which made per-case completion rates depend on how busy
+  // the site had been in the past few hours.
   const startsByCase = {};
   const completesByCase = {};
   const accuracyByQid = {}; // { qid: { correct, total } }
+  const srvFunnel = (analytics && analytics.funnel) || null;
+  const srvQstats = (analytics && analytics.qstats) || null;
+
+  if (srvFunnel) {
+    for (const r of srvFunnel) { startsByCase[r.caseId] = r.starts; completesByCase[r.caseId] = r.completes; }
+  }
+  if (srvQstats) {
+    for (const r of srvQstats) {
+      accuracyByQid[r.qid] = { correct: Math.round(r.accuracy * r.n), total: r.n };
+    }
+  }
   for (const e of eventList) {
-    if (e.type === "case_start" && e.case_id) startsByCase[e.case_id] = (startsByCase[e.case_id] || 0) + 1;
-    if (e.type === "case_complete" && e.case_id) completesByCase[e.case_id] = (completesByCase[e.case_id] || 0) + 1;
-    if ((e.type === "answer_correct" || e.type === "answer_wrong") && e.qid) {
+    if (!srvFunnel && e.type === "case_start" && e.case_id) startsByCase[e.case_id] = (startsByCase[e.case_id] || 0) + 1;
+    if (!srvFunnel && e.type === "case_complete" && e.case_id) completesByCase[e.case_id] = (completesByCase[e.case_id] || 0) + 1;
+    if (!srvQstats && (e.type === "answer_correct" || e.type === "answer_wrong") && e.qid) {
       const bucket = accuracyByQid[e.qid] || { correct: 0, total: 0 };
       bucket.total += 1;
       if (e.type === "answer_correct") bucket.correct += 1;
@@ -7467,7 +7578,22 @@ function AdminReports({ onHome }) {
   const [err, setErr] = useState("");
   const [loadedAt, setLoadedAt] = useState(null);
 
-  async function loadShared() {
+  // Server-side aggregates (docs/admin-analytics-rpcs.sql). Null until loaded;
+  // `ready` false means the migration isn't deployed and the tabs should fall
+  // back to their old client-side approximations.
+  const [analytics, setAnalytics] = useState(null);
+
+  // The owner's own sessions swamp the numbers on a site this size, so the
+  // default is to leave them out. Persisted — an admin who turns it off is
+  // usually debugging their own traffic and wants it to stay off.
+  const [excludeAdmin, setExcludeAdmin] = useState(() => {
+    try { return window.localStorage.getItem("bq_admin_exclude_self") !== "0"; } catch { return true; }
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem("bq_admin_exclude_self", excludeAdmin ? "1" : "0"); } catch {}
+  }, [excludeAdmin]);
+
+  const loadShared = React.useCallback(async () => {
     try {
       const [u, rc, rep, ev] = await Promise.all([
         window.BQAuth.fetchAllUsers(),
@@ -7480,11 +7606,25 @@ function AdminReports({ onHome }) {
       setAllReports(rep || []);
       setEvents(ev || []);
       setLoadedAt(Date.now());
+
+      // Aggregates are best-effort: a failure here (or a database without the
+      // migration) degrades the dashboard to approximate numbers rather than
+      // blanking the whole page.
+      const [s30, s7, variants, funnel, qstats, cohorts] = await Promise.all([
+        window.BQAuth.adminFetchTrafficSummary(30, excludeAdmin).catch(() => null),
+        window.BQAuth.adminFetchTrafficSummary(7, excludeAdmin).catch(() => null),
+        window.BQAuth.adminFetchVariantStats(30, excludeAdmin).catch(() => null),
+        window.BQAuth.adminFetchCaseFunnel(30, excludeAdmin).catch(() => null),
+        window.BQAuth.adminFetchQuestionStats(30, 5).catch(() => null),
+        window.BQAuth.adminFetchRetentionCohorts(8, excludeAdmin).catch(() => null),
+      ]);
+      setAnalytics({ s30, s7, variants, funnel, qstats, cohorts, ready: !!s30 });
     } catch (e) {
       setErr((e && e.message) || "Could not load admin data.");
     }
-  }
-  useEffect(() => { if (isAdmin) loadShared(); }, [isAdmin]);
+  }, [excludeAdmin]);
+
+  useEffect(() => { if (isAdmin) loadShared(); }, [isAdmin, loadShared]);
 
   // Keep the dashboard live. "Who is on the site right now" is only true if
   // the data behind it is minutes old at worst, so poll every 60s — but skip
@@ -7496,7 +7636,7 @@ function AdminReports({ onHome }) {
     const id = setInterval(refreshIfVisible, 60e3);
     document.addEventListener("visibilitychange", refreshIfVisible);
     return () => { clearInterval(id); document.removeEventListener("visibilitychange", refreshIfVisible); };
-  }, [isAdmin]);
+  }, [isAdmin, loadShared]);
 
   // While auth is still hydrating, render nothing — avoids a flash of
   // "page not found" for a real admin who deep-links into /?admin=1.
@@ -7535,6 +7675,10 @@ function AdminReports({ onHome }) {
           <p className="t-body text-slate-400 text-sm">Activity dashboard · signed in as <span className="text-slate-300">{window.BQAuth?.getUser?.()?.email}</span></p>
         </div>
         <div className="flex items-center gap-2">
+          <label className="flex items-center gap-1.5 text-[11px] text-slate-400 cursor-pointer select-none" title="Drop events from admin accounts (and from any browser that has signed in as one) from the analytics figures.">
+            <input type="checkbox" checked={excludeAdmin} onChange={e => setExcludeAdmin(e.target.checked)} className="accent-purple-500"/>
+            exclude my traffic
+          </label>
           {loadedAt && <span className="text-[11px] text-slate-500 mono">updated {fmtTime(new Date(loadedAt))}</span>}
           <button onClick={loadShared} className="btn btn-ghost px-3 py-2 rounded-lg text-sm">Refresh</button>
           <button onClick={onHome} className="btn btn-ghost px-3 py-2 rounded-lg text-sm">← Home</button>
@@ -7559,9 +7703,9 @@ function AdminReports({ onHome }) {
       {err && <div className="card rounded-xl p-4 mb-4 text-sm text-red-400">{err}</div>}
 
       <AdminErrorBoundary>
-        {tab === "overview" && <AdminOverview users={users} openReportsCount={openReports} events={events} reports={allReports} onNavigate={setTab}/>}
+        {tab === "overview" && <AdminOverview users={users} openReportsCount={openReports} events={events} reports={allReports} analytics={analytics} onNavigate={setTab}/>}
         {tab === "users"    && (users === null ? <div className="text-slate-500 text-sm">Loading…</div> : <AdminUsers users={users} onRefresh={loadShared}/>)}
-        {tab === "content"  && <AdminContent users={users} reports={allReports} events={events}/>}
+        {tab === "content"  && <AdminContent users={users} reports={allReports} events={events} analytics={analytics}/>}
         {tab === "activity"  && <AdminActivity events={events}/>}
         {tab === "telemetry" && <AdminTelemetry/>}
         {tab === "waitlist"  && <AdminWaitlist/>}
