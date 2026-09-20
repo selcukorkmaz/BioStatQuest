@@ -430,9 +430,9 @@ const CASES: Case[] = [
     { q: "Stratified sampling is used to:", type:"mcq", standalone:true,
       options:["Deliberately increase estimation bias","Ensure representation of subgroups","Decrease the required sample size","Avoid randomization of participants"], answer:1,
       explain:"Strata guarantee subgroups (e.g., rare race categories) are represented.", method:"sampling_methods" },
-    { q: "Cluster sampling usually has standard errors that are:", type:"mcq", standalone:true,
+    { q: "Compared with simple random sampling (SRS) of the same total sample size, cluster sampling usually has standard errors that are:", type:"mcq", standalone:true,
       options:["Smaller than SRS","Equal to SRS","Larger than SRS","Zero"], answer:2,
-      explain:"Units in clusters are correlated → design effect > 1 → larger SE than SRS.", method:"sampling_methods" },
+      explain:"Units within a cluster resemble each other more than randomly chosen units do (intra-cluster correlation ρ > 0), so each extra unit from an already-sampled cluster carries less new information. The design effect — Deff = 1 + (m−1)ρ for clusters of size m — therefore exceeds 1, inflating the SE relative to simple random sampling of the same total size. Cluster sampling is chosen for logistical cost, not precision.", method:"sampling_methods" },
     { q: "Convenience sampling primarily introduces:", type:"mcq", standalone:true,
       options:["Measurement error","Selection bias","Recall bias","Publication bias"], answer:1,
       explain:"Who shows up is not random → selection bias.", method:"sampling_methods" },
@@ -465,8 +465,8 @@ const CASES: Case[] = [
       options:["Ignore the sampling design","Compensate for unequal selection probabilities","Save analysis time","Always reduce the effective sample size"], answer:1,
       explain:"Design weights restore representativeness when probabilities differ across units.", method:"sampling_methods" },
     { q: "Multi-stage sampling typically combines:", type:"mcq", standalone:true,
-      options:["Stratification and clustering","Only SRS","Only convenience","Random-digit dialing with quotas"], answer:0,
-      explain:"E.g., stratify by region, cluster by hospital, SRS within clusters — balances feasibility and precision.", method:"sampling_methods" },
+      options:["Stratification and clustering","Only simple random sampling","Only convenience sampling","Random-digit dialing with quotas"], answer:0,
+      explain:"E.g., stratify by region, cluster by hospital, then draw a simple random sample within each cluster — this balances feasibility against precision.", method:"sampling_methods" },
   ])
 },
 
