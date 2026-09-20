@@ -6382,9 +6382,10 @@ function LiveNow({ users, events }) {
 
   // Second signal for signed-in users: a progress save inside the window.
   for (const u of users || []) {
+    if (!u.user_id) continue; // fetchAllUsers selects user_id, not id
     const ts = new Date(u.updated_at).getTime();
     if (!(now - ts < WINDOW)) continue;
-    touch(`u:${u.id}`, ts, { guest: false, label: u.email || "signed-in user", last: { type: "progress_save" } });
+    touch(`u:${u.user_id}`, ts, { guest: false, label: u.email || "signed-in user", last: { type: "progress_save" } });
   }
 
   const rows = [...sessions.values()].sort((a, b) => b.lastSeen - a.lastSeen);
