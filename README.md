@@ -6,8 +6,6 @@ Live: <https://www.biostatquest.com>
 
 50 clinical / research case playthroughs. 1,019 authored questions plus 28 procedurally generated item families. 46 method deep-dives. Real R in your browser via WebR. FSRS-6 spaced repetition. Plays fully offline as a guest; optional sign-in syncs progress across devices.
 
-**Everything is free.** Paid plans were withdrawn on 2026-09-17 — see [Access & pricing](#access--pricing).
-
 ---
 
 ## What's inside
@@ -49,21 +47,6 @@ Live: <https://www.biostatquest.com>
 
 ---
 
-## Access & pricing
-
-BioStat Quest is **free for everyone**. There is no paid tier, no paywall, and nothing to buy.
-
-Paid Pro plans and the institutional per-seat offer were withdrawn on **2026-09-17**. Nobody held an active paid subscription at the time, so there was no migration to run. The kill switch lives in two places that must stay in sync:
-
-- `PAYMENTS_ENABLED` in [`src/lib/launchFlags.ts`](src/lib/launchFlags.ts) — client gating. While `false`, `effectivelyPro()` returns true for everyone and no checkout surface is rendered or routed.
-- `PAYMENTS_ENABLED` in [`api/_lib/payments.ts`](api/_lib/payments.ts) — the real enforcement point. Every money-moving endpoint answers `410 Gone`. The UI removal is convenience, not security: a stale tab or a hand-rolled POST still hits this.
-
-Webhook handlers are deliberately **not** switched off — they're inbound-only and staying live means a late provider retry still reconciles.
-
-The Stripe and Lemon Squeezy integrations remain in the tree, dormant, so sales can be re-opened without rebuilding them. To do that: flip both flags, restore the pricing sections in `index.html` / `for-educators.html` from git history, and re-add the `upgrade` route. Provider wiring notes are in [`STRIPE_SETUP.md`](STRIPE_SETUP.md) and [`docs/lemonsqueezy-setup.md`](docs/lemonsqueezy-setup.md).
-
----
-
 ## Tech stack
 
 | Layer | Choice |
@@ -77,7 +60,6 @@ The Stripe and Lemon Squeezy integrations remain in the tree, dormant, so sales 
 | In-browser R | [WebR](https://docs.r-wasm.org/webr/) loaded lazily, cached by the browser |
 | Serverless | Vercel functions under `api/` (dispatcher routes to stay inside the Hobby 12-function cap) |
 | Email | Resend (re-engagement + health alerts); Cloudflare Email Routing for inbound |
-| Payments | Stripe + Lemon Squeezy, both **dormant** (see above) |
 | Hosting | Vercel (static + serverless), deployed to `biostatquest.com` |
 | Tests | Vitest — 6,805 assertions across 33 files |
 | Analytics | Vercel Analytics + a first-party `events` table, both gated on cookie consent |
@@ -100,7 +82,7 @@ BioStatQuest/
 │   ├── styles.css         # Tailwind v4 + app design tokens
 │   ├── styles-legacy.css  # Pre-Tailwind classes still referenced by older views
 │   ├── components/        # CasePlay · DeepDive · TeachView · JoinView · AuthButton
-│   │                      # SubscriptionPanel · SimulationReveal · MyClassesBand · Icons · Confetti
+│   │                      # SimulationReveal · MyClassesBand · Icons · Confetti
 │   ├── views/             # Exam · Competency · SkillTree · Glossary · MyMisconceptions
 │   ├── design/            # Design-system primitives + tokens
 │   ├── data/
@@ -111,22 +93,20 @@ BioStatQuest/
 │   │   ├── glossary.ts         # 76 glossary entries + search normaliser
 │   │   ├── diagnostic.ts       # Onboarding diagnostic bank + scorer
 │   │   └── generators/         # 28 procedural item families + lazy loader + manifest
-│   └── lib/                    # auth · access · billing · classesApi · srs · adaptive
+│   └── lib/                    # auth · access · classesApi · srs · adaptive
 │                               # exam · competency · misconceptions · insightsRollup
 │                               # stats · simulate · streak · xp · launchFlags · viewRoutes …
 ├── api/
-│   ├── _lib/              # authed · supabaseAdmin · stripe · ls · payments · health
+│   ├── _lib/              # authed · supabaseAdmin · health
 │   ├── _classes/          # Nine classes handlers (underscore = not routed directly)
 │   ├── classes/[action].ts    # Dispatcher → _classes/*
-│   ├── billing/[action].ts    # Dispatcher → checkout · portal · cancel (all 410 today)
 │   ├── ai/explain.ts          # Single-turn question explainer
 │   ├── statements/issue.ts    # Record an issued Statement of Competency
 │   ├── verify.ts              # Public Doc-ID verification
 │   ├── health.ts              # Sign-in path probes
-│   ├── cron/                  # reengagement (daily 10:00 UTC) · healthcheck (07:00 UTC)
-│   └── {stripe,lemonsqueezy}/webhook.ts   # Inbound only — intentionally still live
+│   └── cron/                  # reengagement (daily 10:00 UTC) · healthcheck (07:00 UTC)
 ├── docs/                  # classes-design · v2-strategy · uptime-monitoring
-│                          # lemonsqueezy-setup · admin-analytics-rpcs.sql · SQL utilities
+│                          # admin-analytics-rpcs.sql · SQL utilities
 ├── public/                # Static assets (favicon, OG image)
 ├── scripts/generate-og.mjs
 ├── email-templates/       # Supabase transactional email templates
@@ -134,7 +114,7 @@ BioStatQuest/
 ├── supabase_schema_v2.sql           # question_attempts, ai_chats, misconception + admin RPCs
 ├── supabase_schema_v3_statements.sql# statements (Statement of Competency)
 ├── supabase_schema_classes.sql      # institutions, classes, class_members, class_invites
-├── supabase_schema_billing_provider.sql  # billing_provider column migration
+├── supabase_schema_billing_provider.sql  # billing_provider column on user_progress
 ├── vite.config.ts         # Multi-entry build (9 HTML pages) + manual vendor chunks
 ├── vercel.json            # Crons, clean URLs, SPA rewrites, headers, caching
 └── tsconfig*.json
@@ -168,7 +148,7 @@ VITE_SUPABASE_URL=https://xxxx.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGci...
 VITE_GOOGLE_AUTH_ENABLED=true          # render the Google sign-in button
 VITE_BQ_ADMIN_EMAILS=you@example.com   # comma-separated; gates the /admin UI
-VITE_OPEN_BETA_PRO=false               # legacy open-beta override; inert while payments are off
+VITE_OPEN_BETA_PRO=false               # legacy access override; inert
 
 # --- Server only (never exposed to the client) ---
 SUPABASE_URL=https://xxxx.supabase.co
@@ -185,14 +165,9 @@ AI_FREE_WEEKLY_QUOTA=5
 RESEND_API_KEY=re_...
 REENGAGEMENT_FROM=...   REENGAGEMENT_DORMANT_DAYS=...   REENGAGEMENT_DRY_RUN=true
 HEALTHCHECK_FROM=...    HEALTHCHECK_ALERT_TO=...
-
-# Payments — only needed if sales are re-opened
-STRIPE_SECRET_KEY=sk_...   STRIPE_WEBHOOK_SECRET=whsec_...
-STRIPE_PRICE_ID_MONTHLY=price_...   STRIPE_PRICE_ID_YEARLY=price_...
-LEMONSQUEEZY_TEST_MODE=false
 ```
 
-The Supabase anon key is safe to ship — RLS enforces per-user isolation. The service-role, AI, email, and payment keys must stay server-side.
+The Supabase anon key is safe to ship — RLS enforces per-user isolation. The service-role, AI, and email keys must stay server-side.
 
 **`VITE_BQ_ADMIN_EMAILS` is a UX gate only.** The security boundary is the admin email check inside the SECURITY DEFINER functions in `supabase_schema_v2.sql` and `docs/admin-analytics-rpcs.sql` — keep the two lists in sync.
 
@@ -209,7 +184,7 @@ npx vercel --prod   # production
 
 Vercel auto-detects the Vite build and the `api/` functions. `vercel.json` sets security headers, long-lived asset caching, short-lived HTML caching, clean URLs, the SPA rewrites for every in-app route, and the two cron schedules.
 
-**Function budget:** Vercel Hobby caps a deployment at 12 serverless functions, which is why `api/classes/[action].ts` and `api/billing/[action].ts` are dispatchers over handlers in `_`-prefixed directories rather than one file per endpoint. Add new endpoints to a dispatcher, not as new top-level files.
+**Function budget:** Vercel Hobby caps a deployment at 12 serverless functions, which is why `api/classes/[action].ts` is a dispatcher over the handlers in `api/_classes/` rather than one file per endpoint. Add new endpoints to a dispatcher, not as new top-level files.
 
 **Email** — inbound on `info@biostatquest.com` via Cloudflare Email Routing (free); outbound via Resend.
 
